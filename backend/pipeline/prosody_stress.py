@@ -51,6 +51,10 @@ class StressAnalyzer(ProsodyAnalyzer):
         if self.client is None:
             return {"word_stress": [], "error": "WhiStress model not loaded"}
 
+        if not words:
+            logger.debug("StressAnalyzer: no words to analyze")
+            return {"word_stress": []}
+
         try:
             # WhiStress expects audio as a dict with 'array' and 'sampling_rate'
             audio_dict = {
