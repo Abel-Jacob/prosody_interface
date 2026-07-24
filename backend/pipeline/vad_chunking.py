@@ -77,9 +77,10 @@ def chunk_audio_by_vad(
     )
 
     if not speech_timestamps:
-        logger.warning("VAD found no speech in audio — returning full audio as single chunk")
-        duration = len(audio) / sample_rate
-        return [{"audio": audio, "start_time": 0.0, "end_time": duration}]
+        logger.warning("VAD found no speech in audio — treating full audio as one speech segment")
+        # Create a synthetic segment spanning the full audio so the
+        # splitting logic below still enforces max chunk size
+        speech_timestamps = [{"start": 0, "end": len(audio)}]
 
     # Merge adjacent speech segments into chunks of ~5-8 seconds
     chunks = _merge_segments_into_chunks(
@@ -106,18 +107,39 @@ def _merge_segments_into_chunks(
     Merge VAD speech segments into larger chunks, splitting at silence
     boundaries when accumulated speech exceeds the target duration.
     Adds small padding around speech segments for cleaner boundaries.
+
+    If a single speech segment exceeds VAD_MAX_CHUNK_SEC, it is split
+    into sub-segments of approximately equal length — this is the only
+    case where we cut inside speech (necessary to bound inference time).
     """
     max_chunk_samples = int(VAD_MAX_CHUNK_SEC * sample_rate)
     padding_samples = int(0.15 * sample_rate)  # 150ms padding on each side
 
-    chunks = []
-    current_segments = []
-    current_duration_samples = 0
-
+    # First pass: split any oversized individual segments
+    split_segments = []
     for seg in speech_timestamps:
         seg_start = max(0, seg["start"] - padding_samples)
         seg_end = min(len(audio), seg["end"] + padding_samples)
         seg_len = seg_end - seg_start
+
+        if seg_len > max_chunk_samples:
+            # Split this oversized segment into roughly equal sub-segments
+            n_splits = int(np.ceil(seg_len / max_chunk_samples))
+            sub_len = seg_len // n_splits
+            for j in range(n_splits):
+                sub_start = seg_start + j * sub_len
+                sub_end = seg_start + (j + 1) * sub_len if j < n_splits - 1 else seg_end
+                split_segments.append({"start": sub_start, "end": sub_end})
+        else:
+            split_segments.append({"start": seg_start, "end": seg_end})
+
+    # Second pass: merge adjacent small segments into chunks up to max size
+    chunks = []
+    current_segments = []
+    current_duration_samples = 0
+
+    for seg in split_segments:
+        seg_len = seg["end"] - seg["start"]
 
         # If adding this segment would exceed max chunk duration,
         # finalize the current chunk first
@@ -127,7 +149,7 @@ def _merge_segments_into_chunks(
             current_segments = []
             current_duration_samples = 0
 
-        current_segments.append({"start": seg_start, "end": seg_end})
+        current_segments.append(seg)
         current_duration_samples += seg_len
 
     # Don't forget the last chunk
@@ -159,3 +181,4 @@ def _build_chunk(
         "start_time": chunk_start_sample / sample_rate,
         "end_time": chunk_end_sample / sample_rate,
     }
+
