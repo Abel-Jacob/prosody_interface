@@ -1,0 +1,74 @@
+"""
+Model Loader — Single source of truth for all model loading.
+
+Every model is loaded ONCE at startup and reused for all subsequent work.
+Never reload per request. This module is called by main.py at app startup.
+
+Models loaded:
+- faster-whisper (base.en): ASR for final transcription
+- WhiStress (small): Stress detection
+- Silero VAD: Silence boundary detection for chunking
+"""
+
+import sys
+import logging
+from pathlib import Path
+
+from config import VENDOR_DIR, WHISTRESS_DEVICE
+
+logger = logging.getLogger(__name__)
+
+
+def load_all_models() -> dict:
+    """
+    Load all ML models. Called once at app startup.
+
+    Returns:
+        Dict with keys: 'asr', 'whistress', 'vad'
+        Each value is the loaded model object, ready for inference.
+    """
+    models = {}
+
+    # 1. Load faster-whisper ASR model
+    logger.info("=" * 50)
+    logger.info("Loading ASR model (faster-whisper)...")
+    try:
+        from pipeline.asr import load_asr_model
+        models["asr"] = load_asr_model()
+    except Exception as e:
+        logger.error(f"Failed to load ASR model: {e}", exc_info=True)
+        models["asr"] = None
+
+    # 2. Load Silero VAD model
+    logger.info("=" * 50)
+    logger.info("Loading Silero VAD model...")
+    try:
+        from pipeline.vad_chunking import load_silero_vad
+        models["vad"] = load_silero_vad()
+    except Exception as e:
+        logger.error(f"Failed to load VAD model: {e}", exc_info=True)
+        models["vad"] = None
+
+    # 3. Load WhiStress model
+    logger.info("=" * 50)
+    logger.info("Loading WhiStress model...")
+    try:
+        # Add vendor directory to sys.path so whistress_pkg can be imported
+        vendor_path = str(VENDOR_DIR)
+        if vendor_path not in sys.path:
+            sys.path.insert(0, vendor_path)
+
+        from whistress_pkg import WhiStressInferenceClient
+        client = WhiStressInferenceClient(device=WHISTRESS_DEVICE)
+        models["whistress"] = client
+        logger.info("WhiStress model loaded successfully")
+    except Exception as e:
+        logger.error(f"Failed to load WhiStress model: {e}", exc_info=True)
+        models["whistress"] = None
+
+    logger.info("=" * 50)
+    loaded = [k for k, v in models.items() if v is not None]
+    failed = [k for k, v in models.items() if v is None]
+    logger.info(f"Model loading complete. Loaded: {loaded}. Failed: {failed}")
+
+    return models

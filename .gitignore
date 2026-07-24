@@ -1,0 +1,58 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment variables
+.env
+.env.local
+
+# Model weights (large binary files)
+backend/vendor/whistress_pkg/weights/*.pt
+backend/vendor/whistress_pkg/weights/*.bin
+*.onnx
+
+# faster-whisper cached models
+backend/models/cache/
+
+# Audio uploads and database
+backend/audio_uploads/
+backend/jobs.db
+backend/jobs.db-wal
+backend/jobs.db-shm
+
+# Node modules and build output
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# OS junk
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test artifacts
+backend/tests/test_audio/
+*.wav
+*.mp3
+*.webm
+*.ogg
+!backend/tests/fixtures/*.wav

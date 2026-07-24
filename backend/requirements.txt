@@ -1,0 +1,28 @@
+# Backend Dependencies — Prosody Interface
+#
+# Install: pip install -r requirements.txt
+# Note: PyTorch should be installed separately with CPU-only build
+#        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# Web framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+
+# ASR - faster-whisper (CTranslate2 backend, NOT openai-whisper)
+faster-whisper>=1.0.0
+
+# Audio processing
+librosa>=0.10.0
+soundfile>=0.12.0
+numpy>=1.24.0
+
+# WhiStress dependencies (vendored model uses these)
+transformers>=4.36.0
+torch>=2.0.0
+
+# Silero VAD (loaded via torch.hub, no separate pip package)
+# Already covered by torch
+
+# Data validation
+pydantic>=2.0.0

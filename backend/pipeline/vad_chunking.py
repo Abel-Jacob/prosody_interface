@@ -1,0 +1,161 @@
+"""
+VAD Chunking — Split audio at silence boundaries
+
+Uses Silero VAD to detect speech segments and split audio at natural
+pause/silence boundaries. NEVER at a rigid fixed-duration cut that can
+slice through active speech mid-word.
+
+Each chunk targets ~5-8 seconds of speech to keep memory and per-chunk
+inference time bounded regardless of total recording length.
+"""
+
+import logging
+import numpy as np
+import torch
+from typing import Optional
+
+from config import (
+    SAMPLE_RATE,
+    VAD_THRESHOLD,
+    VAD_MIN_SPEECH_MS,
+    VAD_MIN_SILENCE_MS,
+    VAD_MAX_CHUNK_SEC,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def load_silero_vad():
+    """Load the Silero VAD model. Called once at startup."""
+    model, utils = torch.hub.load(
+        repo_or_dir="snakers4/silero-vad",
+        model="silero_vad",
+        force_reload=False,
+        trust_repo=True,
+    )
+    get_speech_timestamps = utils[0]
+    logger.info("Silero VAD model loaded")
+    return {"model": model, "get_speech_timestamps": get_speech_timestamps}
+
+
+def chunk_audio_by_vad(
+    audio: np.ndarray,
+    vad_model: Optional[dict] = None,
+    sample_rate: int = SAMPLE_RATE,
+) -> list[dict]:
+    """
+    Split audio into chunks at silence/pause boundaries using Silero VAD.
+
+    Args:
+        audio: Full audio as float32 numpy array, 16kHz mono.
+        vad_model: Dict with 'model' and 'get_speech_timestamps' from load_silero_vad().
+        sample_rate: Audio sample rate (default 16000).
+
+    Returns:
+        List of dicts, each containing:
+        - 'audio': np.ndarray of the chunk
+        - 'start_time': float, start time in seconds
+        - 'end_time': float, end time in seconds
+    """
+    if vad_model is None:
+        raise ValueError("VAD model not loaded — call load_silero_vad() first")
+
+    model = vad_model["model"]
+    get_speech_timestamps = vad_model["get_speech_timestamps"]
+
+    # Convert to torch tensor for Silero VAD
+    audio_tensor = torch.from_numpy(audio).float()
+
+    # Get speech timestamps from VAD
+    speech_timestamps = get_speech_timestamps(
+        audio_tensor,
+        model,
+        sampling_rate=sample_rate,
+        threshold=VAD_THRESHOLD,
+        min_speech_duration_ms=VAD_MIN_SPEECH_MS,
+        min_silence_duration_ms=VAD_MIN_SILENCE_MS,
+    )
+
+    if not speech_timestamps:
+        logger.warning("VAD found no speech in audio — returning full audio as single chunk")
+        duration = len(audio) / sample_rate
+        return [{"audio": audio, "start_time": 0.0, "end_time": duration}]
+
+    # Merge adjacent speech segments into chunks of ~5-8 seconds
+    chunks = _merge_segments_into_chunks(
+        audio, speech_timestamps, sample_rate
+    )
+
+    logger.info(
+        f"VAD chunking: {len(speech_timestamps)} speech segments -> "
+        f"{len(chunks)} chunks (target: 5-8s each)"
+    )
+    for i, c in enumerate(chunks):
+        dur = c["end_time"] - c["start_time"]
+        logger.debug(f"  Chunk {i}: {c['start_time']:.2f}s - {c['end_time']:.2f}s ({dur:.2f}s)")
+
+    return chunks
+
+
+def _merge_segments_into_chunks(
+    audio: np.ndarray,
+    speech_timestamps: list[dict],
+    sample_rate: int,
+) -> list[dict]:
+    """
+    Merge VAD speech segments into larger chunks, splitting at silence
+    boundaries when accumulated speech exceeds the target duration.
+    Adds small padding around speech segments for cleaner boundaries.
+    """
+    max_chunk_samples = int(VAD_MAX_CHUNK_SEC * sample_rate)
+    padding_samples = int(0.15 * sample_rate)  # 150ms padding on each side
+
+    chunks = []
+    current_segments = []
+    current_duration_samples = 0
+
+    for seg in speech_timestamps:
+        seg_start = max(0, seg["start"] - padding_samples)
+        seg_end = min(len(audio), seg["end"] + padding_samples)
+        seg_len = seg_end - seg_start
+
+        # If adding this segment would exceed max chunk duration,
+        # finalize the current chunk first
+        if current_segments and (current_duration_samples + seg_len > max_chunk_samples):
+            chunk = _build_chunk(audio, current_segments, sample_rate)
+            chunks.append(chunk)
+            current_segments = []
+            current_duration_samples = 0
+
+        current_segments.append({"start": seg_start, "end": seg_end})
+        current_duration_samples += seg_len
+
+    # Don't forget the last chunk
+    if current_segments:
+        chunk = _build_chunk(audio, current_segments, sample_rate)
+        chunks.append(chunk)
+
+    return chunks
+
+
+def _build_chunk(
+    audio: np.ndarray,
+    segments: list[dict],
+    sample_rate: int,
+) -> dict:
+    """
+    Build a single chunk from a list of speech segments.
+    Uses the full range from first segment start to last segment end,
+    including any silence between segments (preserves natural pauses
+    which are important for prosody analysis).
+    """
+    chunk_start_sample = segments[0]["start"]
+    chunk_end_sample = segments[-1]["end"]
+
+    chunk_audio = audio[chunk_start_sample:chunk_end_sample].copy()
+
+    return {
+        "audio": chunk_audio,
+        "start_time": chunk_start_sample / sample_rate,
+        "end_time": chunk_end_sample / sample_rate,
+    }
