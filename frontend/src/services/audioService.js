@@ -1,0 +1,99 @@
+export class AudioService {
+  constructor() {
+    this.stream = null
+    this.mediaRecorder = null
+    this.socket = null
+    this.audioChunks = []
+  }
+
+  async startRecording(onPreviewText, onSocketConnected, onSocketError) {
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      
+      const wsUrl = `ws://${window.location.host}/api/ws/audio`
+      this.socket = new WebSocket(wsUrl)
+      
+      this.socket.onopen = () => {
+        if (onSocketConnected) onSocketConnected()
+        this.mediaRecorder = new MediaRecorder(this.stream, { mimeType: 'audio/webm' })
+        
+        this.mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0 && this.socket.readyState === WebSocket.OPEN) {
+            this.socket.send(event.data)
+          }
+        }
+        
+        // Emit chunks every 1 second
+        this.mediaRecorder.start(1000)
+      }
+      
+      this.socket.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data)
+          if (msg.type === 'preview_text' && onPreviewText) {
+            onPreviewText(msg.text)
+          }
+        } catch (e) {
+          console.error("Failed to parse socket message", e)
+        }
+      }
+      
+      this.socket.onerror = (error) => {
+        console.error("WebSocket error:", error)
+        if (onSocketError) onSocketError(error)
+      }
+      
+      return this.stream
+    } catch (err) {
+      console.error("Error accessing microphone:", err)
+      throw err
+    }
+  }
+
+  stopRecording() {
+    return new Promise((resolve, reject) => {
+      if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
+        return reject(new Error('MediaRecorder not active'))
+      }
+      
+      const handleMessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data)
+          if (msg.type === 'job_created') {
+            this.cleanup()
+            resolve(msg.job_id)
+          } else if (msg.type === 'error') {
+            this.cleanup()
+            reject(new Error(msg.message))
+          }
+        } catch (e) {
+          // ignore parsing errors for non-json
+        }
+      }
+      
+      this.socket.addEventListener('message', handleMessage)
+      
+      // Stop the recorder, which triggers the final dataavailable event
+      this.mediaRecorder.stop()
+      
+      // Request stop from server after a short delay to ensure final chunk is sent
+      setTimeout(() => {
+        if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+          this.socket.send(JSON.stringify({ type: 'stop' }))
+        }
+      }, 200)
+    })
+  }
+
+  cleanup() {
+    if (this.stream) {
+      this.stream.getTracks().forEach(track => track.stop())
+      this.stream = null
+    }
+    if (this.socket) {
+      this.socket.close()
+      this.socket = null
+    }
+    this.mediaRecorder = null
+  }
+}

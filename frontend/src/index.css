@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200..900&display=swap');
+
+:root {
+  /* Colors */
+  --bg: #0a0a0a;
+  --bg-subtle: #0e0e0e;
+  --text-primary: #e8e4de;
+  --text-muted: #6b6560;
+  --text-faded: #3a3632;
+  --accent: #c4956a;
+  --accent-dim: rgba(196, 149, 106, 0.3);
+  --error: #c46a6a;
+  --overlay-bg: #161514;
+  --overlay-border: #282421;
+
+  /* Typography */
+  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-secondary: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+  /* Motion */
+  --transition-base: 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Base Animations */
+@keyframes gradientShift {
+  0% {
+    background-size: 100% 100%;
+    background-position: center;
+  }
+  100% {
+    background-size: 120% 120%;
+    background-position: 50% 100%;
+  }
+}
+
+.canvas-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background-color: var(--bg);
+  transition: opacity 1.5s var(--transition-base);
+}
+
+.canvas-bg.active {
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, var(--bg-subtle) 0%, var(--bg) 100%);
+  animation: gradientShift 20s ease-in-out infinite alternate;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text-faded);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
