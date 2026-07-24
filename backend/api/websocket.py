@@ -22,7 +22,7 @@ from config import AUDIO_UPLOADS_DIR, SAMPLE_RATE
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(prefix="/api")
 
 
 @router.websocket("/ws/audio")

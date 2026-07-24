@@ -61,6 +61,8 @@ def inference_from_audio(audio: np.ndarray, model: WhiStress, device: str):
     out_model = model.generate_dual(input_features=input_features.to(device))
     emphasis_probs = F.softmax(out_model.logits, dim=-1)
     emphasis_preds = torch.argmax(emphasis_probs, dim=-1)
+    if emphasis_preds.dim() == 1:
+        emphasis_preds = emphasis_preds.unsqueeze(0)
     emphasis_preds_right_shifted = torch.cat((emphasis_preds[:, -1:], emphasis_preds[:, :-1]), dim=1)
     preds = out_model.preds
     if preds is None:

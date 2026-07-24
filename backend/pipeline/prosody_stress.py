@@ -62,13 +62,17 @@ class StressAnalyzer(ProsodyAnalyzer):
                 "sampling_rate": 16000,
             }
 
+            # Construct the transcription from words
+            transcription = " ".join([w["word"] for w in words])
+
             # Run WhiStress inference — returns list of (word, stress_label) tuples
-            # The predict method handles audio prep, inference, and token merging
-            word_emphasis_pairs = self.client.predict(
-                audio=audio_dict,
-                transcription=None,  # Let WhiStress use its own transcription
-                return_pairs=True,
-            )
+            # Passing transcription runs a fast single forward pass instead of slow generation
+            with torch.inference_mode():
+                word_emphasis_pairs = self.client.predict(
+                    audio=audio_dict,
+                    transcription=transcription,
+                    return_pairs=True,
+                )
 
             # Convert to our standard format
             stress_results = []
