@@ -34,7 +34,7 @@ def test_asr_model_loading():
 
     print(f"  Model loaded in {load_time:.2f}s")
     print(f"  Model type: {type(model).__name__}")
-    print(f"  ✓ Model loaded successfully")
+    print(f"  [PASS] Model loaded successfully")
 
     return model
 
@@ -99,12 +99,12 @@ def test_asr_on_chunks(model, chunks: list):
         "confidence" in w and 0 <= w["confidence"] <= 1 for w in all_words
     )
 
-    print(f"\n  Words found: {'✓' if has_words else '✗'}")
-    print(f"  All have timestamps: {'✓' if has_timestamps else '✗'}")
-    print(f"  All have confidence: {'✓' if has_confidence else '✗'}")
+    print(f"\n  Words found: {'[PASS]' if has_words else '[FAIL]'}")
+    print(f"  All have timestamps: {'[PASS]' if has_timestamps else '[FAIL]'}")
+    print(f"  All have confidence: {'[PASS]' if has_confidence else '[FAIL]'}")
 
     all_pass = has_words and has_timestamps and has_confidence
-    print(f"\n  OVERALL: {'PASS ✓' if all_pass else 'FAIL ✗'}")
+    print(f"\n  OVERALL: {'PASS' if all_pass else 'FAIL'}")
 
     return all_pass
 
