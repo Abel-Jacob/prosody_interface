@@ -27,17 +27,29 @@ def load_all_models() -> dict:
         Dict with keys: 'asr', 'whistress', 'vad'
         Each value is the loaded model object, ready for inference.
     """
+    import torch
+    # Lock PyTorch CPU threads to physical cores (4) to prevent OS thread thrashing
+    try:
+        torch.set_num_threads(4)
+        torch.set_num_interop_threads(1)
+        logger.info("Optimized PyTorch CPU threads (threads=4, interop=1)")
+    except Exception as e:
+        logger.debug(f"Could not set PyTorch threads: {e}")
+
     models = {}
 
-    # 1. Load faster-whisper ASR model
+    # 1. Load faster-whisper ASR models
     logger.info("=" * 50)
-    logger.info("Loading ASR model (faster-whisper)...")
+    logger.info("Loading ASR models (faster-whisper)...")
     try:
         from pipeline.asr import load_asr_model
-        models["asr"] = load_asr_model()
+        from config import ASR_MODEL_SIZE_PREVIEW, ASR_MODEL_SIZE_FINAL
+        models["asr_preview"] = load_asr_model(ASR_MODEL_SIZE_PREVIEW)
+        models["asr_final"] = load_asr_model(ASR_MODEL_SIZE_FINAL)
     except Exception as e:
-        logger.error(f"Failed to load ASR model: {e}", exc_info=True)
-        models["asr"] = None
+        logger.error(f"Failed to load ASR models: {e}", exc_info=True)
+        models["asr_preview"] = None
+        models["asr_final"] = None
 
     # 2. Load Silero VAD model
     logger.info("=" * 50)

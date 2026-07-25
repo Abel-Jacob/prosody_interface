@@ -1,0 +1,67 @@
+/* =========================================
+   WordTooltip.css
+   ========================================= */
+.word-tooltip-container {
+  position: absolute;
+  z-index: 9999;
+  pointer-events: auto;
+  /* Slight bounce animation on enter */
+  animation: tooltipFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Base translation centers the tooltip horizontally over the word */
+.word-tooltip-container.above {
+  transform: translate(-50%, -100%);
+}
+.word-tooltip-container.below {
+  transform: translate(-50%, 0);
+}
+
+.word-tooltip-content {
+  background-color: #1a1a1a;
+  color: #e5e5e5;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  border: 1px solid #333;
+  position: relative;
+}
+
+/* --- Tooltip CSS Triangle Arrow --- */
+.word-tooltip-content::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  margin-left: -6px;
+  border-width: 6px;
+  border-style: solid;
+}
+
+.word-tooltip-container.above .word-tooltip-content::after {
+  top: 100%; /* Point arrow down */
+  border-color: #1a1a1a transparent transparent transparent;
+}
+
+.word-tooltip-container.below .word-tooltip-content::after {
+  bottom: 100%; /* Point arrow up */
+  border-color: transparent transparent #1a1a1a transparent;
+}
+
+/* Layout for internal text */
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 2px 0;
+  gap: 8px;
+}
+.tooltip-label { color: #888; font-weight: 500; }
+.tooltip-value { font-weight: 600; font-family: monospace; }
+
+/* Subtle entry animation */
+@keyframes tooltipFadeIn {
+  from { opacity: 0; transform: translate(-50%, calc(var(--y-offset, 0) + 4px)); }
+  to { opacity: 1; transform: translate(-50%, var(--y-offset, 0)); }
+}
+.word-tooltip-container.above { --y-offset: -100%; }
+.word-tooltip-container.below { --y-offset: 0%; }

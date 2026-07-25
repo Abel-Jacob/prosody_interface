@@ -128,7 +128,7 @@ class Worker:
                     asr_result = await asyncio.to_thread(
                         transcribe_chunk,
                         chunk_audio,
-                        self.models.get("asr"),
+                        self.models.get("asr_final"),
                     )
 
                     # (b) Prosody analysis (stress detection + future modules)
@@ -215,6 +215,14 @@ class Worker:
                 job_id, "failed",
                 error=f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()[-500:]}",
             )
+        finally:
+            import os
+            try:
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                    logger.info(f"Cleaned up audio file: {filepath}")
+            except Exception as cleanup_err:
+                logger.warning(f"Failed to clean up audio file {filepath}: {cleanup_err}")
 
     def _load_audio(self, filepath: str) -> tuple[np.ndarray, float]:
         """Load audio file, convert to 16kHz mono float32 numpy array."""

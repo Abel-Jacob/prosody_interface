@@ -24,6 +24,19 @@ def get_loaded_model(device="cuda"):
     whistress_model.load_model(PATH_TO_WEIGHTS)
     whistress_model.to(device)
     whistress_model.eval()
+
+    if device == "cpu":
+        import torch.nn as nn
+        # Explicitly set number of threads to match physical cores for optimal Windows CPU inference
+        import os
+        physical_cores = min(4, os.cpu_count() or 4)
+        torch.set_num_threads(physical_cores)
+        
+        # Apply dynamic quantization to Linear layers
+        whistress_model = torch.quantization.quantize_dynamic(
+            whistress_model, {nn.Linear}, dtype=torch.qint8
+        )
+
     return whistress_model
 
 

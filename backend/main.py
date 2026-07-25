@@ -58,6 +58,7 @@ async def lifespan(app: FastAPI):
     # 2. Load all models ONCE
     logger.info("Loading models (this may take a minute on first run)...")
     models = load_all_models()
+    app.state.models = models
 
     # 3. Start background worker
     _worker = Worker(models)

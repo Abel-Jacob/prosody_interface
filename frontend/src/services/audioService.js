@@ -4,11 +4,27 @@ export class AudioService {
     this.mediaRecorder = null
     this.socket = null
     this.audioChunks = []
+    this.isStarting = false
   }
 
   async startRecording(onPreviewText, onSocketConnected, onSocketError) {
+    if (this.isStarting || this.mediaRecorder) {
+      console.warn("Recording already starting or active, cleaning up first")
+      this.cleanup()
+    }
+    
+    this.isStarting = true
+    const currentSessionId = Date.now() + Math.random();
+    this.recordingSessionId = currentSessionId;
+
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      
+      if (!this.isStarting || this.recordingSessionId !== currentSessionId) {
+        // Was cancelled while awaiting getUserMedia, or a new session started
+        this.stream.getTracks().forEach(t => t.stop())
+        return null
+      }
       
       const wsUrl = `ws://${window.location.host}/api/ws/audio`
       this.socket = new WebSocket(wsUrl)
@@ -46,6 +62,7 @@ export class AudioService {
       return this.stream
     } catch (err) {
       console.error("Error accessing microphone:", err)
+      this.isStarting = false
       throw err
     }
   }
@@ -86,6 +103,13 @@ export class AudioService {
   }
 
   cleanup() {
+    this.isStarting = false
+    this.recordingSessionId = null
+    
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      try { this.mediaRecorder.stop() } catch(e) {}
+    }
+    
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop())
       this.stream = null

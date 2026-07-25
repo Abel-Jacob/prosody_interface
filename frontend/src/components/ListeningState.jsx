@@ -5,6 +5,7 @@ import { AudioService } from '../services/audioService'
 export default function ListeningState({ onStop }) {
   const [error, setError] = useState(null)
   const [isConnected, setIsConnected] = useState(false)
+  const [previewText, setPreviewText] = useState('')
   const canvasRef = useRef(null)
   const audioService = useRef(new AudioService())
   const audioCtxRef = useRef(null)
@@ -18,8 +19,9 @@ export default function ListeningState({ onStop }) {
       try {
         const stream = await audioService.current.startRecording(
           (text) => {
-            // Live preview text would update here
-            console.log("Preview:", text)
+            if (mounted && text) {
+              setPreviewText(text)
+            }
           },
           () => {
             if (mounted) setIsConnected(true)
@@ -204,31 +206,51 @@ export default function ListeningState({ onStop }) {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          cursor: 'pointer'
+          cursor: 'pointer',
+          padding: '0 2rem'
         }}
       >
-        <h1 style={{
-          fontFamily: 'var(--font-secondary)',
-          fontWeight: 'bold',
-          fontSize: '1.05rem',
-          letterSpacing: '0.18em',
-          textTransform: 'lowercase',
-          color: 'var(--text-muted)',
-          margin: 0
-        }}>
-          listening
-        </h1>
-        
-        <p style={{
-          fontFamily: 'var(--font-secondary)',
-          fontSize: '0.8rem',
-          letterSpacing: '0.1em',
-          color: 'var(--text-faded)',
-          marginTop: '0.8rem',
-          textDecoration: 'underline'
-        }}>
-          click anywhere or press space to stop
-        </p>
+        {!previewText ? (
+          <>
+            <h1 style={{
+              fontFamily: 'var(--font-secondary)',
+              fontWeight: 'bold',
+              fontSize: '1.05rem',
+              letterSpacing: '0.18em',
+              textTransform: 'lowercase',
+              color: 'var(--text-muted)',
+              margin: 0
+            }}>
+              listening
+            </h1>
+            
+            <p style={{
+              fontFamily: 'var(--font-secondary)',
+              fontSize: '0.8rem',
+              letterSpacing: '0.1em',
+              color: 'var(--text-faded)',
+              marginTop: '0.8rem',
+              textDecoration: 'underline'
+            }}>
+              click anywhere or press space to stop
+            </p>
+          </>
+        ) : (
+          <div style={{
+            maxWidth: '48rem',
+            width: '100%',
+            maxHeight: '65vh',
+            overflowY: 'auto',
+            padding: '0 1rem',
+            textAlign: 'center',
+            fontSize: 'clamp(0.95rem, 1.6vw, 1.4rem)',
+            lineHeight: 1.65,
+            color: 'var(--text-primary)',
+            fontFamily: 'var(--font-primary)'
+          }}>
+            {previewText}
+          </div>
+        )}
 
         {error && (
           <p style={{ color: 'var(--error)', marginTop: '2rem' }}>{error}</p>

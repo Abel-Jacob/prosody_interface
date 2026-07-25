@@ -34,6 +34,8 @@ def load_asr_model(model_size: str = ASR_MODEL_SIZE_FINAL):
         model_size,
         device=ASR_DEVICE,
         compute_type=ASR_COMPUTE_TYPE,
+        cpu_threads=4,
+        num_workers=1,
     )
     logger.info(f"faster-whisper model '{model_size}' loaded successfully")
     return model
@@ -61,15 +63,25 @@ def transcribe_chunk(
         audio,
         language=language,
         word_timestamps=True,
-        beam_size=3,          # Reduced from default 5 for CPU speed
-        best_of=1,            # No sampling variants on CPU
-        vad_filter=False,     # We already did VAD chunking, don't double-filter
+        beam_size=1,
+        best_of=1,
+        vad_filter=False,
+        condition_on_previous_text=False,
+        repetition_penalty=1.5,
+        compression_ratio_threshold=2.2,
+        log_prob_threshold=-1.0,
+        no_repeat_ngram_size=3,
+        temperature=0.0,
     )
 
     words = []
     text_parts = []
 
     for segment in segments:
+        if segment.no_speech_prob > 0.6:
+            logger.debug(f"ASR: Dropped segment due to high no_speech_prob ({segment.no_speech_prob:.2f})")
+            continue
+            
         text_parts.append(segment.text.strip())
         if segment.words:
             for w in segment.words:

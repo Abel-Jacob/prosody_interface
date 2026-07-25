@@ -50,12 +50,45 @@ async def audio_websocket(websocket: WebSocket):
                 audio_chunks.append(chunk_data)
                 
                 # Live preview transcription (lightweight)
-                # TODO: Wire up tiny.en whisper for live preview in Stage 5+
-                # For now, acknowledge receipt
-                await websocket.send_json({
-                    "type": "preview_ack",
-                    "chunks_received": len(audio_chunks),
-                })
+                try:
+                    # Convert bytes to numpy array
+                    import librosa
+                    import io
+                    import soundfile as sf
+                    
+                    # We might not have a valid header if it's just raw chunks, 
+                    # but webm chunks often can be decoded by soundfile if they are self-contained.
+                    # A better way for live streaming is to just use a fast sliding window.
+                    # For simplicity, we just decode the accumulated buffer.
+                    # This is lightweight enough for tiny.en on short buffers.
+                    with io.BytesIO(b"".join(audio_chunks)) as buf:
+                        audio, _ = librosa.load(buf, sr=SAMPLE_RATE, mono=True)
+                    
+                    models = websocket.app.state.models
+                    if models and models.get("asr_preview"):
+                        from pipeline.asr import transcribe_chunk
+                        # Use to_thread to avoid blocking the event loop
+                        asr_result = await asyncio.to_thread(
+                            transcribe_chunk,
+                            audio,
+                            models.get("asr_preview")
+                        )
+                        logger.info(f"Live Preview ASR: {asr_result['text']}")
+                        await websocket.send_json({
+                            "type": "preview_text",
+                            "text": asr_result["text"]
+                        })
+                    else:
+                        await websocket.send_json({
+                            "type": "preview_ack",
+                            "chunks_received": len(audio_chunks),
+                        })
+                except Exception as e:
+                    logger.debug(f"Live preview decode failed (often normal for partial webm): {e}")
+                    await websocket.send_json({
+                        "type": "preview_ack",
+                        "chunks_received": len(audio_chunks),
+                    })
             
             elif "text" in message:
                 import json

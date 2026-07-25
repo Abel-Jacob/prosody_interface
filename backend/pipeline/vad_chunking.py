@@ -133,28 +133,11 @@ def _merge_segments_into_chunks(
         else:
             split_segments.append({"start": seg_start, "end": seg_end})
 
-    # Second pass: merge adjacent small segments into chunks up to max size
+    # Second pass: Create a chunk for each segment. Do NOT merge them.
+    # Merging segments bridges pauses with noise, causing Whisper hallucinations.
     chunks = []
-    current_segments = []
-    current_duration_samples = 0
-
     for seg in split_segments:
-        seg_len = seg["end"] - seg["start"]
-
-        # If adding this segment would exceed max chunk duration,
-        # finalize the current chunk first
-        if current_segments and (current_duration_samples + seg_len > max_chunk_samples):
-            chunk = _build_chunk(audio, current_segments, sample_rate)
-            chunks.append(chunk)
-            current_segments = []
-            current_duration_samples = 0
-
-        current_segments.append(seg)
-        current_duration_samples += seg_len
-
-    # Don't forget the last chunk
-    if current_segments:
-        chunk = _build_chunk(audio, current_segments, sample_rate)
+        chunk = _build_chunk(audio, [seg], sample_rate)
         chunks.append(chunk)
 
     return chunks

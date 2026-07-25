@@ -81,3 +81,50 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent);
 }
+
+/* --- CSS-only hover tooltip for the question mark --- */
+.info-tooltip-trigger {
+  position: relative;
+  display: inline-block;
+  margin-left: 4px;
+  cursor: help;
+  color: #888;
+}
+
+.info-tooltip-content {
+  visibility: hidden;
+  opacity: 0;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 4px;
+  padding: 6px 10px;
+  position: absolute;
+  z-index: 100;
+  bottom: 150%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 220px;
+  font-size: 0.75rem;
+  font-weight: normal;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.info-tooltip-content::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #333 transparent transparent transparent;
+}
+
+.info-tooltip-trigger:hover .info-tooltip-content {
+  visibility: visible;
+  opacity: 1;
+}

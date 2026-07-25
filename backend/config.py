@@ -20,9 +20,9 @@ WHISTRESS_WEIGHTS_DIR = VENDOR_DIR / "whistress_pkg" / "weights"
 AUDIO_UPLOADS_DIR.mkdir(exist_ok=True)
 
 # ── Model Configuration ───────────────────────────────────────
-# faster-whisper: use tiny.en for live preview, base.en for final
+# faster-whisper: use tiny.en for live preview, small.en for final (more accurate)
 ASR_MODEL_SIZE_PREVIEW = "tiny.en"
-ASR_MODEL_SIZE_FINAL = os.getenv("ASR_MODEL_SIZE_FINAL", "base.en")
+ASR_MODEL_SIZE_FINAL = os.getenv("ASR_MODEL_SIZE_FINAL", "small.en")
 ASR_DEVICE = "cpu"
 ASR_COMPUTE_TYPE = "int8"  # Best for CPU inference speed
 
