@@ -48,8 +48,10 @@ export class AudioService {
       this.socket.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data)
-          if (msg.type === 'preview_text' && onPreviewText) {
-            onPreviewText(msg.text)
+          if (msg.type === 'incremental_words' && onPreviewText) {
+            onPreviewText({ type: 'words', words: msg.words })
+          } else if (msg.type === 'preview_text' && onPreviewText) {
+            onPreviewText({ type: 'text', text: msg.text })
           }
         } catch (e) {
           console.error("Failed to parse socket message", e)

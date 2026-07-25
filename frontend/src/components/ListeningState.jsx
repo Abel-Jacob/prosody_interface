@@ -6,6 +6,7 @@ export default function ListeningState({ onStop }) {
   const [error, setError] = useState(null)
   const [isConnected, setIsConnected] = useState(false)
   const [previewText, setPreviewText] = useState('')
+  const [words, setWords] = useState([])
   const canvasRef = useRef(null)
   const audioService = useRef(new AudioService())
   const audioCtxRef = useRef(null)
@@ -18,9 +19,15 @@ export default function ListeningState({ onStop }) {
     const start = async () => {
       try {
         const stream = await audioService.current.startRecording(
-          (text) => {
-            if (mounted && text) {
-              setPreviewText(text)
+          (payload) => {
+            if (!mounted || !payload) return
+            if (payload.type === 'words' && payload.words) {
+              setWords(prev => [...prev, ...payload.words])
+              setPreviewText(prevText => prevText ? prevText + ' ' + payload.words.map(w => w.word).join(' ') : payload.words.map(w => w.word).join(' '))
+            } else if (payload.type === 'text') {
+              setPreviewText(payload.text)
+            } else if (typeof payload === 'string') {
+              setPreviewText(payload)
             }
           },
           () => {
@@ -210,7 +217,7 @@ export default function ListeningState({ onStop }) {
           padding: '0 2rem'
         }}
       >
-        {!previewText ? (
+        {!previewText && words.length === 0 ? (
           <>
             <h1 style={{
               fontFamily: 'var(--font-secondary)',
@@ -248,7 +255,38 @@ export default function ListeningState({ onStop }) {
             color: 'var(--text-primary)',
             fontFamily: 'var(--font-primary)'
           }}>
-            {previewText}
+            {words.length > 0 ? (
+              words.map((w, index) => {
+                const conf = w.confidence !== undefined ? w.confidence : 1
+                const opacity = conf < 0.95 ? Math.max(0.5, 0.4 + conf * 0.6) : 1
+                const blurVal = conf < 0.85 ? Math.min(1.4, (0.85 - conf) * 4) : 0
+                const filter = blurVal > 0.05 ? `blur(${blurVal.toFixed(2)}px)` : 'none'
+                
+                const baseStyle = {
+                  filter,
+                  opacity,
+                  display: 'inline-block',
+                  marginRight: '0.25rem',
+                  transition: 'filter 0.2s, opacity 0.2s'
+                }
+                
+                const stressedStyle = w.stressed ? {
+                  fontWeight: 600,
+                  color: 'var(--accent)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  textShadow: '0 0 12px var(--accent-dim)'
+                } : {}
+
+                return (
+                  <span key={index} style={{ ...baseStyle, ...stressedStyle }}>
+                    {w.word}
+                  </span>
+                )
+              })
+            ) : (
+              previewText
+            )}
           </div>
         )}
 
