@@ -94,17 +94,22 @@ export default function SummaryState({ result, onReset }) {
     >
       
       {/* Transcript View */}
-      <div style={{
-        maxWidth: '48rem',
-        width: '100%',
-        flex: 1,
-        minHeight: 0,
-        overflowY: 'auto',
-        paddingRight: '1rem',
-        marginBottom: '1rem',
-        marginTop: '1.5rem',
-        textAlign: 'center'
-      }}>
+      <motion.div 
+        initial={{ y: 30, opacity: 0.85 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+        style={{
+          maxWidth: '48rem',
+          width: '100%',
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          paddingRight: '1rem',
+          marginBottom: '1rem',
+          marginTop: '1.5rem',
+          textAlign: 'center'
+        }}
+      >
         <div style={{
           fontSize: 'clamp(0.95rem, 1.6vw, 1.4rem)',
           lineHeight: 1.65,
@@ -125,7 +130,7 @@ export default function SummaryState({ result, onReset }) {
             </div>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* Feature 2: Render Word Tooltip */}
       {inspectedWord && (
@@ -138,9 +143,9 @@ export default function SummaryState({ result, onReset }) {
 
       {/* Summary Panel */}
       <motion.div
-        initial={{ y: 15, opacity: 0 }}
+        initial={{ y: 25, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 100, damping: 18, delay: 0.2 }}
+        transition={{ type: 'spring', stiffness: 100, damping: 18, delay: 0.25 }}
         style={{
           display: 'flex',
           flexDirection: 'column',

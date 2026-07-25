@@ -16,9 +16,14 @@ function App() {
     setAppState('listening')
   }
 
-  const handleStopListening = (newJobId) => {
-    setJobId(newJobId)
-    setAppState('processing')
+  const handleStopListening = (response) => {
+    if (response && response.result) {
+      setFinalResult(response.result)
+      setAppState('summary')
+    } else {
+      setJobId(response?.jobId || response)
+      setAppState('processing')
+    }
   }
 
   const handleProcessingComplete = (result) => {

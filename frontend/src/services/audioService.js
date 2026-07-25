@@ -80,9 +80,9 @@ export class AudioService {
       const handleMessage = (event) => {
         try {
           const msg = JSON.parse(event.data)
-          if (msg.type === 'job_created') {
+          if (msg.type === 'job_created' || msg.type === 'job_completed') {
             this.cleanup()
-            resolve(msg.job_id)
+            resolve({ jobId: msg.job_id, result: msg.result })
           } else if (msg.type === 'error') {
             this.cleanup()
             reject(new Error(msg.message))
