@@ -51,38 +51,39 @@ async def audio_websocket(websocket: WebSocket):
                 
                 # Live preview transcription (lightweight)
                 try:
-                    # Convert bytes to numpy array
-                    import librosa
-                    import io
-                    import soundfile as sf
+                    import tempfile
+                    import os
                     
-                    # We might not have a valid header if it's just raw chunks, 
-                    # but webm chunks often can be decoded by soundfile if they are self-contained.
-                    # A better way for live streaming is to just use a fast sliding window.
-                    # For simplicity, we just decode the accumulated buffer.
-                    # This is lightweight enough for tiny.en on short buffers.
-                    with io.BytesIO(b"".join(audio_chunks)) as buf:
-                        audio, _ = librosa.load(buf, sr=SAMPLE_RATE, mono=True)
-                    
-                    models = websocket.app.state.models
-                    if models and models.get("asr_preview"):
-                        from pipeline.asr import transcribe_chunk
-                        # Use to_thread to avoid blocking the event loop
-                        asr_result = await asyncio.to_thread(
-                            transcribe_chunk,
-                            audio,
-                            models.get("asr_preview")
-                        )
-                        logger.info(f"Live Preview ASR: {asr_result['text']}")
-                        await websocket.send_json({
-                            "type": "preview_text",
-                            "text": asr_result["text"]
-                        })
-                    else:
-                        await websocket.send_json({
-                            "type": "preview_ack",
-                            "chunks_received": len(audio_chunks),
-                        })
+                    tmp_path = None
+                    try:
+                        with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
+                            tmp.write(b"".join(audio_chunks))
+                            tmp_path = tmp.name
+                        
+                        models = websocket.app.state.models
+                        if models and models.get("asr_preview"):
+                            from pipeline.asr import transcribe_chunk
+                            asr_result = await asyncio.to_thread(
+                                transcribe_chunk,
+                                tmp_path,
+                                models.get("asr_preview")
+                            )
+                            logger.info(f"Live Preview ASR: {asr_result['text']}")
+                            await websocket.send_json({
+                                "type": "preview_text",
+                                "text": asr_result["text"]
+                            })
+                        else:
+                            await websocket.send_json({
+                                "type": "preview_ack",
+                                "chunks_received": len(audio_chunks),
+                            })
+                    finally:
+                        if tmp_path and os.path.exists(tmp_path):
+                            try:
+                                os.remove(tmp_path)
+                            except Exception:
+                                pass
                 except Exception as e:
                     logger.debug(f"Live preview decode failed (often normal for partial webm): {e}")
                     await websocket.send_json({
