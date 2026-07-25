@@ -43,7 +43,7 @@ SAMPLE_RATE = 16000  # All audio normalized to 16kHz mono
 # ── Server ─────────────────────────────────────────────────────
 HOST = "0.0.0.0"
 PORT = 8000
-CORS_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
+CORS_ORIGINS = ["*"]
 
 # ── Worker ─────────────────────────────────────────────────────
 WORKER_POLL_INTERVAL_SEC = 1.0  # How often worker checks for new jobs

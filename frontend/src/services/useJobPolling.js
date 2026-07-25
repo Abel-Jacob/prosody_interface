@@ -14,7 +14,11 @@ export function useJobPolling(jobId, onComplete) {
 
     const pollJob = async () => {
       try {
-        const response = await fetch(getHttpUrl(`/api/jobs/${jobId}`))
+        const response = await fetch(getHttpUrl(`/api/jobs/${jobId}`), {
+          headers: {
+            'ngrok-skip-browser-warning': 'true'
+          }
+        })
         if (!response.ok) {
           throw new Error('Failed to fetch job status')
         }
