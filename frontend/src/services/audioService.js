@@ -1,3 +1,5 @@
+import { getWsUrl } from '../apiConfig'
+
 export class AudioService {
   constructor() {
     this.stream = null
@@ -26,7 +28,7 @@ export class AudioService {
         return null
       }
       
-      const wsUrl = `ws://${window.location.host}/api/ws/audio`
+      const wsUrl = getWsUrl('/api/ws/audio')
       this.socket = new WebSocket(wsUrl)
       
       this.socket.onopen = () => {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { getHttpUrl } from '../apiConfig'
 
 export function useJobPolling(jobId, onComplete) {
   const [progress, setProgress] = useState(0)
@@ -13,7 +14,7 @@ export function useJobPolling(jobId, onComplete) {
 
     const pollJob = async () => {
       try {
-        const response = await fetch(`/api/jobs/${jobId}`)
+        const response = await fetch(getHttpUrl(`/api/jobs/${jobId}`))
         if (!response.ok) {
           throw new Error('Failed to fetch job status')
         }
