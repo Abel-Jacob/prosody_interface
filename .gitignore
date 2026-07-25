@@ -13,8 +13,8 @@ env/
 .env.local
 
 # Model weights (large binary files)
-#backend/vendor/whistress_pkg/weights/*.pt
-#backend/vendor/whistress_pkg/weights/*.bin
+backend/vendor/whistress_pkg/weights/*.pt
+backend/vendor/whistress_pkg/weights/*.bin
 *.onnx
 
 # faster-whisper cached models
