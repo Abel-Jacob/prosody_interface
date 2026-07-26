@@ -38,16 +38,19 @@ def load_all_models() -> dict:
 
     models = {}
 
-    # 1. Load faster-whisper ASR models
+    # 1. Load faster-whisper ASR model (Single Model Architecture)
     logger.info("=" * 50)
-    logger.info("Loading ASR models (faster-whisper)...")
+    logger.info("Loading ASR model (faster-whisper)...")
     try:
         from pipeline.asr import load_asr_model
-        from config import ASR_MODEL_SIZE_PREVIEW, ASR_MODEL_SIZE_FINAL
-        models["asr_preview"] = load_asr_model(ASR_MODEL_SIZE_PREVIEW)
-        models["asr_final"] = load_asr_model(ASR_MODEL_SIZE_FINAL)
+        from config import ASR_MODEL_SIZE
+        asr_model = load_asr_model(ASR_MODEL_SIZE)
+        models["asr"] = asr_model
+        models["asr_preview"] = asr_model  # alias for backward compatibility
+        models["asr_final"] = asr_model    # alias for backward compatibility
     except Exception as e:
-        logger.error(f"Failed to load ASR models: {e}", exc_info=True)
+        logger.error(f"Failed to load ASR model: {e}", exc_info=True)
+        models["asr"] = None
         models["asr_preview"] = None
         models["asr_final"] = None
 
