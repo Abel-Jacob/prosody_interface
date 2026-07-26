@@ -78,139 +78,101 @@ class Worker:
             from pipeline.vad_chunking import chunk_audio_by_vad
             from pipeline.asr import transcribe_chunk
             from pipeline.prosody_registry import get_active_analyzers
-            from pipeline.merge import merge_chunk_results, reconstruct_grammatical_phrases
+            from pipeline.merge import reconstruct_grammatical_phrases
+            from schemas import PhraseResult, WordResult
 
-            # Stage 1: Load and chunk audio by VAD
+            # Stage 1: Load audio
             update_job_progress(job_id, 0.05, 0, current_stage="loading_audio")
             audio, duration = await asyncio.to_thread(
                 self._load_audio, filepath
             )
             logger.info(f"Job {job_id}: loaded audio, duration={duration:.1f}s")
 
-            update_job_progress(job_id, 0.10, 0, current_stage="vad_chunking")
-            chunks = await asyncio.to_thread(
-                chunk_audio_by_vad, audio, self.models.get("vad")
+            # Stage 2: Transcribe full audio in one pass for 100% perfect grammar and punctuation
+            update_job_progress(job_id, 0.15, 0, current_stage="transcribing_full_audio")
+            asr_result = await asyncio.to_thread(
+                transcribe_chunk,
+                audio,
+                self.models.get("asr_final"),
+                "en",
             )
-            total_chunks = len(chunks)
-            logger.info(f"Job {job_id}: VAD produced {total_chunks} chunks")
+            
+            # Wrap in initial phrase and group into natural grammatical sentences
+            raw_words = [
+                WordResult(
+                    word=w["word"],
+                    start=round(w["start"], 3),
+                    end=round(w["end"], 3),
+                    confidence=round(w.get("confidence", 1.0), 3),
+                    stressed=False,
+                    stress_score=0.0,
+                )
+                for w in asr_result.get("words", [])
+            ]
+            initial_phrase = PhraseResult(
+                phrase_index=0,
+                text=asr_result.get("text", ""),
+                words=raw_words,
+                start_time=0.0,
+                end_time=duration,
+                chunk_index=0,
+            )
+            grammatical_phrases = reconstruct_grammatical_phrases([initial_phrase])
+            total_sentences = len(grammatical_phrases)
+            logger.info(f"Job {job_id}: full ASR complete -> {total_sentences} grammatical sentences")
 
-            update_job_status(job_id, "processing", total_chunks=total_chunks)
+            update_job_status(job_id, "processing", total_chunks=total_sentences)
 
-            # Free the full audio buffer — we have chunks now
+            # Stage 3: Analyze prosody (word stress) on each grammatical sentence
+            prosody_analyzers = get_active_analyzers(self.models)
+            for idx, phrase in enumerate(grammatical_phrases):
+                phrase.phrase_index = idx
+                phrase.chunk_index = idx
+                
+                start_sample = max(0, int(phrase.start_time * self.models.get("sample_rate", 16000)))
+                end_sample = min(len(audio), int(phrase.end_time * self.models.get("sample_rate", 16000)))
+                sentence_audio = audio[start_sample:end_sample]
+
+                for analyzer in prosody_analyzers:
+                    try:
+                        res = await asyncio.to_thread(
+                            analyzer.analyze, sentence_audio, [w.model_dump() for w in phrase.words]
+                        )
+                        if "word_stress" in res:
+                            stress_map = {sw["word"].lower().strip(".,?!:;\"'"): sw for sw in res["word_stress"]}
+                            for w in phrase.words:
+                                clean_w = w.word.lower().strip(".,?!:;\"'")
+                                if clean_w in stress_map:
+                                    w.stressed = stress_map[clean_w]["stressed"]
+                                    w.stress_score = stress_map[clean_w]["stress_score"]
+                    except Exception as ae:
+                        logger.warning(f"Job {job_id}: analyzer '{analyzer.name}' failed on sentence {idx+1}: {ae}")
+
+                update_job_progress(
+                    job_id,
+                    0.20 + (0.75 * (idx + 1) / max(1, total_sentences)),
+                    idx + 1,
+                    current_stage=f"analyzing_sentence_{idx+1}_of_{total_sentences}",
+                    partial_result=self._build_result(grammatical_phrases[:idx+1], duration).model_dump(),
+                )
+
+            # Free audio buffer
             del audio
             gc.collect()
 
-            # Stage 2: Process each chunk sequentially
-            all_phrases: list[PhraseResult] = []
-            last_prompt: Optional[str] = None
-            prosody_analyzers = get_active_analyzers(self.models)
-
-            for i, chunk_info in enumerate(chunks):
-                chunk_audio = chunk_info["audio"]
-                chunk_start = chunk_info["start_time"]
-                chunk_end = chunk_info["end_time"]
-                chunk_duration = chunk_end - chunk_start
-
-                stage_label = f"chunk_{i+1}_of_{total_chunks}"
-                logger.info(
-                    f"Job {job_id}: processing chunk {i+1}/{total_chunks} "
-                    f"({chunk_start:.1f}s - {chunk_end:.1f}s)"
-                )
-
-                try:
-                    # (a) ASR transcription
-                    update_job_progress(
-                        job_id,
-                        0.10 + (0.80 * i / total_chunks),
-                        i,
-                        current_stage=f"transcribing_chunk_{i+1}",
-                    )
-                    asr_result = await asyncio.to_thread(
-                        transcribe_chunk,
-                        chunk_audio,
-                        self.models.get("asr_final"),
-                        "en",
-                        last_prompt,
-                    )
-                    if asr_result.get("text"):
-                        last_prompt = asr_result["text"][-150:]
-
-                    # (b) Prosody analysis (stress detection + future modules)
-                    update_job_progress(
-                        job_id,
-                        0.10 + (0.80 * (i + 0.5) / total_chunks),
-                        i,
-                        current_stage=f"analyzing_chunk_{i+1}",
-                    )
-                    prosody_results = {}
-                    for analyzer in prosody_analyzers:
-                        try:
-                            result = await asyncio.to_thread(
-                                analyzer.analyze, chunk_audio, asr_result["words"]
-                            )
-                            prosody_results[analyzer.name] = result
-                        except Exception as ae:
-                            logger.warning(
-                                f"Job {job_id}: prosody analyzer '{analyzer.name}' "
-                                f"failed on chunk {i+1}: {ae}"
-                            )
-                            prosody_results[analyzer.name] = {"error": str(ae)}
-
-                    # (c) Build phrase result with correct time_offset
-                    phrase = merge_chunk_results(
-                        chunk_index=i,
-                        asr_result=asr_result,
-                        prosody_results=prosody_results,
-                        time_offset=chunk_start,  # Use actual chunk start from VAD
-                    )
-                    all_phrases.append(phrase)
-
-                except Exception as chunk_err:
-                    logger.error(
-                        f"Job {job_id}: chunk {i+1} failed: {chunk_err}",
-                        exc_info=True,
-                    )
-                    # Create a placeholder phrase for the failed chunk
-                    all_phrases.append(
-                        PhraseResult(
-                            phrase_index=i,
-                            text=f"[chunk {i+1} failed: {str(chunk_err)[:100]}]",
-                            words=[],
-                            start_time=chunk_start,
-                            end_time=chunk_end,
-                            chunk_index=i,
-                        )
-                    )
-
-                finally:
-                    # (d) Free chunk memory
-                    del chunk_audio
-                    gc.collect()
-
-                    # Update progress with partial results
-                    partial = self._build_result(all_phrases, duration)
-                    update_job_progress(
-                        job_id,
-                        0.10 + (0.80 * (i + 1) / total_chunks),
-                        i + 1,
-                        current_stage=stage_label,
-                        partial_result=partial.model_dump(),
-                    )
-
-            # Stage 3: Finalize
-            update_job_progress(job_id, 0.95, total_chunks, current_stage="finalizing")
-            reconstructed_phrases = reconstruct_grammatical_phrases(all_phrases)
-            final_result = self._build_result(reconstructed_phrases, duration)
+            # Stage 4: Finalize
+            update_job_progress(job_id, 0.95, total_sentences, current_stage="finalizing")
+            final_result = self._build_result(grammatical_phrases, duration)
 
             update_job_status(
                 job_id, "complete",
                 progress=1.0,
-                completed_chunks=total_chunks,
+                completed_chunks=total_sentences,
                 current_stage="done",
                 result=final_result.model_dump(),
             )
             logger.info(
-                f"Job {job_id}: complete — {len(all_phrases)} phrases, "
+                f"Job {job_id}: complete — {len(grammatical_phrases)} phrases, "
                 f"{final_result.word_count} words, {final_result.wpm:.0f} WPM"
             )
 

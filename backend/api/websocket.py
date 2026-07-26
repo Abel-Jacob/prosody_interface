@@ -122,18 +122,8 @@ async def audio_websocket(websocket: WebSocket):
                                     if asr_result.get("text"):
                                         last_prompt = asr_result["text"][-150:]
                                     
+                                    # Skip slow prosody (WhiStress) during live stream for maximum speed; computed in final worker
                                     prosody_results = {}
-                                    if models:
-                                        from pipeline.prosody_registry import get_active_analyzers
-                                        for analyzer in get_active_analyzers(models):
-                                            try:
-                                                res = await asyncio.to_thread(
-                                                    analyzer.analyze, audio_slice, asr_result["words"]
-                                                )
-                                                prosody_results[analyzer.name] = res
-                                            except Exception as ae:
-                                                logger.debug(f"Live prosody failed: {ae}")
-                                                prosody_results[analyzer.name] = {"error": str(ae)}
                                     
                                     phrase = merge_chunk_results(
                                         chunk_index=len(all_phrases),
