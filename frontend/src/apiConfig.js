@@ -6,7 +6,7 @@
 export const BACKEND_DOMAIN = "sixfold-hyphen-remote.ngrok-free.dev";
 
 export function getWsUrl(path) {
-  if (BACKEND_DOMAIN) {
+  if (BACKEND_DOMAIN && !import.meta.env.DEV) {
     const separator = path.includes('?') ? '&' : '?';
     return `wss://${BACKEND_DOMAIN}${path}${separator}ngrok-skip-browser-warning=69420`;
   }
@@ -15,7 +15,7 @@ export function getWsUrl(path) {
 }
 
 export function getHttpUrl(path) {
-  if (BACKEND_DOMAIN) {
+  if (BACKEND_DOMAIN && !import.meta.env.DEV) {
     const separator = path.includes('?') ? '&' : '?';
     return `https://${BACKEND_DOMAIN}${path}${separator}ngrok-skip-browser-warning=69420`;
   }
