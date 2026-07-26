@@ -7,7 +7,8 @@ export const BACKEND_DOMAIN = "sixfold-hyphen-remote.ngrok-free.dev";
 
 export function getWsUrl(path) {
   if (BACKEND_DOMAIN) {
-    return `wss://${BACKEND_DOMAIN}${path}`;
+    const separator = path.includes('?') ? '&' : '?';
+    return `wss://${BACKEND_DOMAIN}${path}${separator}ngrok-skip-browser-warning=69420`;
   }
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${protocol}//${window.location.host}${path}`;
@@ -15,7 +16,8 @@ export function getWsUrl(path) {
 
 export function getHttpUrl(path) {
   if (BACKEND_DOMAIN) {
-    return `https://${BACKEND_DOMAIN}${path}`;
+    const separator = path.includes('?') ? '&' : '?';
+    return `https://${BACKEND_DOMAIN}${path}${separator}ngrok-skip-browser-warning=69420`;
   }
   return path;
 }
