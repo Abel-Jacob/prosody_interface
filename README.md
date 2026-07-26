@@ -1,8 +1,7 @@
 # Prosody Interface
 
 Real-time Speech-to-Text + Prosody Analysis web application with a 
-job-queue architecture designed for reliable processing on constrained 
-hardware (Intel i5, 8GB RAM, no GPU).
+job-queue architecture 
 
 ## Quick Start
 
