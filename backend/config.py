@@ -35,8 +35,8 @@ WHISTRESS_WHISPER_BACKBONE = "openai/whisper-small.en"
 VAD_THRESHOLD = 0.5         # Speech probability threshold
 VAD_MIN_SPEECH_MS = 250     # Minimum speech duration (ms)
 VAD_MIN_SILENCE_MS = 500    # Minimum silence between chunks (ms)
-VAD_TARGET_CHUNK_SEC = 7.0  # Target ~5-8 seconds per chunk
-VAD_MAX_CHUNK_SEC = 15.0    # Hard max to bound memory/inference time
+VAD_TARGET_CHUNK_SEC = 25.0 # Target ~25 seconds per chunk (gives Whisper full grammatical context)
+VAD_MAX_CHUNK_SEC = 29.0    # Hard max just under Whisper's 30s attention limit
 
 # ── Audio ──────────────────────────────────────────────────────
 SAMPLE_RATE = 16000  # All audio normalized to 16kHz mono

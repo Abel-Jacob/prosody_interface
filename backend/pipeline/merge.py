@@ -203,8 +203,8 @@ def reconstruct_grammatical_phrases(phrases: list[PhraseResult]) -> list[PhraseR
             # Rule B: If current word is grammatically incapable of ending a sentence
             elif clean_curr in NON_SENTENCE_ENDERS:
                 is_false_period = True
-            # Rule C: If the acoustic gap is small (< 0.4s) and next word is a common lowercaseable word
-            elif gap < 0.4 and w_next.word.strip().lower().rstrip(".,?!:;\"'") in COMMON_LOWERCASEABLE_WORDS:
+            # Rule C: If the acoustic gap is small (< 0.8s) and next word is a common lowercaseable word
+            elif gap < 0.8 and w_next.word.strip().lower().rstrip(".,?!:;\"'") in COMMON_LOWERCASEABLE_WORDS:
                 is_false_period = True
 
             if is_false_period:
