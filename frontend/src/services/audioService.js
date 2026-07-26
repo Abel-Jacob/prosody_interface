@@ -74,7 +74,7 @@ export class AudioService {
   stopRecording() {
     return new Promise((resolve, reject) => {
       if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
-        return reject(new Error('MediaRecorder not active'))
+        return reject(new Error('Cannot stop recording: Connection to backend server was not established. Check your Ngrok URL in apiConfig.js or visit your Ngrok URL in a browser first.'))
       }
       
       const handleMessage = (event) => {
