@@ -106,6 +106,22 @@ app.include_router(api_router)
 app.include_router(ws_router)
 
 
+@app.get("/")
+async def root():
+    """Root endpoint for easy verification when opening the Ngrok URL in a browser."""
+    return {
+        "status": "ok",
+        "message": "Prosody Interface Backend is running and ready!",
+        "version": "1.0.0",
+        "endpoints": {
+            "health": "/health",
+            "websocket": "/api/ws/audio",
+            "jobs_create": "POST /api/jobs",
+            "jobs_status": "GET /api/jobs/{job_id}",
+        },
+    }
+
+
 @app.get("/health")
 async def health():
     """Health check endpoint."""
