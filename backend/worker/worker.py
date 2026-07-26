@@ -139,12 +139,12 @@ class Worker:
                             analyzer.analyze, sentence_audio, [w.model_dump() for w in phrase.words]
                         )
                         if "word_stress" in res:
-                            stress_map = {sw["word"].lower().strip(".,?!:;\"'"): sw for sw in res["word_stress"]}
-                            for w in phrase.words:
-                                clean_w = w.word.lower().strip(".,?!:;\"'")
-                                if clean_w in stress_map:
-                                    w.stressed = stress_map[clean_w]["stressed"]
-                                    w.stress_score = stress_map[clean_w]["stress_score"]
+                            from pipeline.merge import _find_stress_match
+                            for i, w in enumerate(phrase.words):
+                                match = _find_stress_match(w.word, i, res["word_stress"])
+                                if match:
+                                    w.stressed = match["stressed"]
+                                    w.stress_score = match.get("stress_score", 1.0 if match["stressed"] else 0.0)
                     except Exception as ae:
                         logger.warning(f"Job {job_id}: analyzer '{analyzer.name}' failed on sentence {idx+1}: {ae}")
 

@@ -149,9 +149,9 @@ def inference_from_audio_and_transcription(
     input_ids = model.processor.tokenizer(
         transcription,
         return_tensors="pt",
-        padding="max_length",
+        padding=True,
         truncation=True,
-        max_length=30,
+        max_length=256,
     )["input_ids"]
     out_model = model(
                     input_features=input_features.to(device),

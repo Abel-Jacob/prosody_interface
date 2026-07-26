@@ -78,7 +78,7 @@ def transcribe_chunk(
         "beam_size": 5,
         "best_of": 5,
         "vad_filter": True,
-        "vad_parameters": dict(min_silence_duration_ms=400),
+        "vad_parameters": dict(min_silence_duration_ms=200),
         "condition_on_previous_text": True if (initial_prompt and initial_prompt.strip()) else False,
         "repetition_penalty": 1.05,
         "compression_ratio_threshold": 2.4,
