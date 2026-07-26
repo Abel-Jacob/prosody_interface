@@ -12,12 +12,12 @@ import logging
 import numpy as np
 from typing import Optional
 
-from config import ASR_MODEL_SIZE, ASR_DEVICE, ASR_COMPUTE_TYPE, SAMPLE_RATE
+from config import ASR_MODEL_SIZE_FINAL, ASR_DEVICE, ASR_COMPUTE_TYPE, SAMPLE_RATE
 
 logger = logging.getLogger(__name__)
 
 
-def load_asr_model(model_size: str = ASR_MODEL_SIZE):
+def load_asr_model(model_size: str = ASR_MODEL_SIZE_FINAL):
     """
     Load the faster-whisper model. Called once at startup.
 

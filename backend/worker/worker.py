@@ -128,7 +128,7 @@ class Worker:
                     asr_result = await asyncio.to_thread(
                         transcribe_chunk,
                         chunk_audio,
-                        self.models.get("asr") or self.models.get("asr_final"),
+                        self.models.get("asr_final"),
                         "en",
                         last_prompt,
                     )

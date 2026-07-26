@@ -108,7 +108,7 @@ async def audio_websocket(websocket: WebSocket):
                                     slice_path = stmp.name
                                 
                                 models = websocket.app.state.models
-                                asr_model = models.get("asr") or models.get("asr_final") or models.get("asr_preview") if models else None
+                                asr_model = models.get("asr_final") or models.get("asr_preview") if models else None
                                 
                                 if asr_model:
                                     from pipeline.asr import transcribe_chunk
@@ -203,7 +203,7 @@ async def audio_websocket(websocket: WebSocket):
                                         slice_path = stmp.name
                                     
                                     models = websocket.app.state.models
-                                    asr_model = models.get("asr") or models.get("asr_final") or models.get("asr_preview") if models else None
+                                    asr_model = models.get("asr_final") or models.get("asr_preview") if models else None
                                     if asr_model:
                                         from pipeline.asr import transcribe_chunk
                                         asr_result = await asyncio.to_thread(transcribe_chunk, slice_path, asr_model, "en", last_prompt)
