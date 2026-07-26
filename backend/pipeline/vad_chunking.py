@@ -133,12 +133,34 @@ def _merge_segments_into_chunks(
         else:
             split_segments.append({"start": seg_start, "end": seg_end})
 
-    # Second pass: Create a chunk for each segment. Do NOT merge them.
-    # Merging segments bridges pauses with noise, causing Whisper hallucinations.
+    # Second pass: Merge adjacent segments into chunks targeting ~7 seconds.
+    # We split when accumulated duration exceeds target, or at major pauses (>1.2s).
+    from config import VAD_TARGET_CHUNK_SEC
+    target_chunk_samples = int(VAD_TARGET_CHUNK_SEC * sample_rate)
+    major_pause_samples = int(1.2 * sample_rate)
+
     chunks = []
+    current_group = []
+
     for seg in split_segments:
-        chunk = _build_chunk(audio, [seg], sample_rate)
-        chunks.append(chunk)
+        if not current_group:
+            current_group.append(seg)
+            continue
+
+        # Check silence gap between current segment and last segment in group
+        silence_gap = seg["start"] - current_group[-1]["end"]
+        # Check accumulated span if we were to add this segment
+        accumulated_span = seg["end"] - current_group[0]["start"]
+
+        # Split if there's a major speech pause or if we exceed target duration
+        if silence_gap >= major_pause_samples or accumulated_span > target_chunk_samples:
+            chunks.append(_build_chunk(audio, current_group, sample_rate))
+            current_group = [seg]
+        else:
+            current_group.append(seg)
+
+    if current_group:
+        chunks.append(_build_chunk(audio, current_group, sample_rate))
 
     return chunks
 

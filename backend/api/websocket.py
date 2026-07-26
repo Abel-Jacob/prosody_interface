@@ -20,7 +20,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from database import create_job, update_job_status
 from config import AUDIO_UPLOADS_DIR, SAMPLE_RATE
 from schemas import PhraseResult, WordResult, JobResult
-from pipeline.merge import merge_chunk_results
+from pipeline.merge import merge_chunk_results, reconstruct_grammatical_phrases
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,7 @@ async def audio_websocket(websocket: WebSocket):
     audio_chunks: list[bytes] = []
     last_processed_sample_index = 0
     all_phrases: list[PhraseResult] = []
+    last_prompt: str | None = None
     job_id = str(uuid.uuid4())
     
     try:
@@ -114,8 +115,12 @@ async def audio_websocket(websocket: WebSocket):
                                     asr_result = await asyncio.to_thread(
                                         transcribe_chunk,
                                         slice_path,
-                                        asr_model
+                                        asr_model,
+                                        "en",
+                                        last_prompt,
                                     )
+                                    if asr_result.get("text"):
+                                        last_prompt = asr_result["text"][-150:]
                                     
                                     prosody_results = {}
                                     if models:
@@ -201,7 +206,9 @@ async def audio_websocket(websocket: WebSocket):
                                     asr_model = models.get("asr_final") or models.get("asr_preview") if models else None
                                     if asr_model:
                                         from pipeline.asr import transcribe_chunk
-                                        asr_result = await asyncio.to_thread(transcribe_chunk, slice_path, asr_model)
+                                        asr_result = await asyncio.to_thread(transcribe_chunk, slice_path, asr_model, "en", last_prompt)
+                                        if asr_result.get("text"):
+                                            last_prompt = asr_result["text"][-150:]
                                         
                                         prosody_results = {}
                                         if models:
@@ -238,9 +245,10 @@ async def audio_websocket(websocket: WebSocket):
                     if filepath:
                         create_job(job_id, str(filepath))
                         
-                        # Build final JobResult from accumulated single-pass phrases
+                        # Build final JobResult from accumulated single-pass phrases, reconstructed for proper grammar and sentence boundaries
+                        reconstructed_phrases = reconstruct_grammatical_phrases(all_phrases)
                         all_words = []
-                        for p in all_phrases:
+                        for p in reconstructed_phrases:
                             all_words.extend(p.words)
                         
                         duration = len(audio_full) / float(SAMPLE_RATE) if 'audio_full' in locals() and len(audio_full) > 0 else 1.0
@@ -251,7 +259,7 @@ async def audio_websocket(websocket: WebSocket):
                         stress_ratio = stressed_count / word_count if word_count > 0 else 0.0
                         
                         final_result = JobResult(
-                            phrases=all_phrases,
+                            phrases=reconstructed_phrases,
                             total_duration=duration,
                             word_count=word_count,
                             wpm=wpm,
@@ -262,7 +270,7 @@ async def audio_websocket(websocket: WebSocket):
                         update_job_status(
                             job_id, "complete",
                             progress=1.0,
-                            completed_chunks=len(all_phrases),
+                            completed_chunks=len(reconstructed_phrases),
                             current_stage="done",
                             result=final_result.model_dump(),
                         )

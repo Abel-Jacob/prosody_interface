@@ -45,6 +45,7 @@ def transcribe_chunk(
     audio: np.ndarray,
     model,
     language: str = "en",
+    initial_prompt: Optional[str] = None,
 ) -> dict:
     """
     Transcribe a single audio chunk using faster-whisper.
@@ -53,25 +54,32 @@ def transcribe_chunk(
         audio: Audio chunk as float32 numpy array, 16kHz mono.
         model: Pre-loaded WhisperModel from load_asr_model().
         language: Language code.
+        initial_prompt: Optional text from previous chunk to maintain context and punctuation.
 
     Returns:
         dict with:
         - 'text': Full transcription text
         - 'words': List of word dicts with {word, start, end, confidence}
     """
+    kwargs = {
+        "language": language,
+        "word_timestamps": True,
+        "beam_size": 1,
+        "best_of": 1,
+        "vad_filter": False,
+        "condition_on_previous_text": False,
+        "repetition_penalty": 1.5,
+        "compression_ratio_threshold": 2.2,
+        "log_prob_threshold": -1.0,
+        "no_repeat_ngram_size": 3,
+        "temperature": 0.0,
+    }
+    if initial_prompt and initial_prompt.strip():
+        kwargs["initial_prompt"] = initial_prompt.strip()
+
     segments, info = model.transcribe(
         audio,
-        language=language,
-        word_timestamps=True,
-        beam_size=1,
-        best_of=1,
-        vad_filter=False,
-        condition_on_previous_text=False,
-        repetition_penalty=1.5,
-        compression_ratio_threshold=2.2,
-        log_prob_threshold=-1.0,
-        no_repeat_ngram_size=3,
-        temperature=0.0,
+        **kwargs,
     )
 
     words = []

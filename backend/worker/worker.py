@@ -78,7 +78,7 @@ class Worker:
             from pipeline.vad_chunking import chunk_audio_by_vad
             from pipeline.asr import transcribe_chunk
             from pipeline.prosody_registry import get_active_analyzers
-            from pipeline.merge import merge_chunk_results
+            from pipeline.merge import merge_chunk_results, reconstruct_grammatical_phrases
 
             # Stage 1: Load and chunk audio by VAD
             update_job_progress(job_id, 0.05, 0, current_stage="loading_audio")
@@ -102,7 +102,7 @@ class Worker:
 
             # Stage 2: Process each chunk sequentially
             all_phrases: list[PhraseResult] = []
-            cumulative_offset = 0.0
+            last_prompt: Optional[str] = None
             prosody_analyzers = get_active_analyzers(self.models)
 
             for i, chunk_info in enumerate(chunks):
@@ -129,7 +129,11 @@ class Worker:
                         transcribe_chunk,
                         chunk_audio,
                         self.models.get("asr_final"),
+                        "en",
+                        last_prompt,
                     )
+                    if asr_result.get("text"):
+                        last_prompt = asr_result["text"][-150:]
 
                     # (b) Prosody analysis (stress detection + future modules)
                     update_job_progress(
@@ -195,7 +199,8 @@ class Worker:
 
             # Stage 3: Finalize
             update_job_progress(job_id, 0.95, total_chunks, current_stage="finalizing")
-            final_result = self._build_result(all_phrases, duration)
+            reconstructed_phrases = reconstruct_grammatical_phrases(all_phrases)
+            final_result = self._build_result(reconstructed_phrases, duration)
 
             update_job_status(
                 job_id, "complete",
