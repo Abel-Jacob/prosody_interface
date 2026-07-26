@@ -22,8 +22,13 @@ export default function ListeningState({ onStop }) {
           (payload) => {
             if (!mounted || !payload) return
             if (payload.type === 'words' && payload.words) {
-              setWords(prev => [...prev, ...payload.words])
-              setPreviewText(prevText => prevText ? prevText + ' ' + payload.words.map(w => w.word).join(' ') : payload.words.map(w => w.word).join(' '))
+              if (payload.replace_words) {
+                setWords(payload.words)
+                setPreviewText(payload.text || payload.words.map(w => w.word).join(' '))
+              } else {
+                setWords(prev => [...prev, ...payload.words])
+                setPreviewText(prevText => prevText ? prevText + ' ' + payload.words.map(w => w.word).join(' ') : payload.words.map(w => w.word).join(' '))
+              }
             } else if (payload.type === 'text') {
               setPreviewText(payload.text)
             } else if (typeof payload === 'string') {

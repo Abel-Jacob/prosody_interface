@@ -108,7 +108,7 @@ async def audio_websocket(websocket: WebSocket):
                                     slice_path = stmp.name
                                 
                                 models = websocket.app.state.models
-                                asr_model = models.get("asr_final") or models.get("asr_preview") if models else None
+                                asr_model = models.get("asr_preview") or models.get("asr_final") if models else None
                                 
                                 if asr_model:
                                     from pipeline.asr import transcribe_chunk
@@ -144,12 +144,15 @@ async def audio_websocket(websocket: WebSocket):
                                     
                                     if phrase.words:
                                         all_phrases.append(phrase)
-                                        formatted_words = [w.model_dump() for w in phrase.words]
-                                        logger.info(f"Single-Pass VAD Phrase: '{phrase.text}' ({len(formatted_words)} words)")
+                                        all_phrases = reconstruct_grammatical_phrases(all_phrases)
+                                        all_words_dump = [w.model_dump() for p in all_phrases for w in p.words]
+                                        full_text = " ".join([p.text for p in all_phrases])
+                                        logger.info(f"Single-Pass VAD Phrase: '{full_text}' ({len(all_words_dump)} words)")
                                         await websocket.send_json({
                                             "type": "incremental_words",
-                                            "words": formatted_words,
-                                            "text": phrase.text
+                                            "replace_words": True,
+                                            "words": all_words_dump,
+                                            "text": full_text
                                         })
                                         last_processed_sample_index += end_sample_in_unprocessed
                                     else:
@@ -223,10 +226,14 @@ async def audio_websocket(websocket: WebSocket):
                                         phrase = merge_chunk_results(len(all_phrases), asr_result, prosody_results, slice_offset)
                                         if phrase.words:
                                             all_phrases.append(phrase)
+                                            all_phrases = reconstruct_grammatical_phrases(all_phrases)
+                                            all_words_dump = [w.model_dump() for p in all_phrases for w in p.words]
+                                            full_text = " ".join([p.text for p in all_phrases])
                                             await websocket.send_json({
                                                 "type": "incremental_words",
-                                                "words": [w.model_dump() for w in phrase.words],
-                                                "text": phrase.text
+                                                "replace_words": True,
+                                                "words": all_words_dump,
+                                                "text": full_text
                                             })
                                 finally:
                                     if slice_path and os.path.exists(slice_path):

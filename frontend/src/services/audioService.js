@@ -49,7 +49,7 @@ export class AudioService {
         try {
           const msg = JSON.parse(event.data)
           if (msg.type === 'incremental_words' && onPreviewText) {
-            onPreviewText({ type: 'words', words: msg.words })
+            onPreviewText({ type: 'words', words: msg.words, replace_words: msg.replace_words, text: msg.text })
           } else if (msg.type === 'preview_text' && onPreviewText) {
             onPreviewText({ type: 'text', text: msg.text })
           }
