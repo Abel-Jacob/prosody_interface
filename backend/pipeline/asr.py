@@ -11,6 +11,7 @@ Provides word-level timestamps and confidence scores.
 import logging
 import numpy as np
 from typing import Optional
+from pathlib import Path
 
 from config import ASR_MODEL_SIZE_FINAL, ASR_DEVICE, ASR_COMPUTE_TYPE, SAMPLE_RATE
 
@@ -61,6 +62,11 @@ def transcribe_chunk(
         - 'text': Full transcription text
         - 'words': List of word dicts with {word, start, end, confidence}
     """
+    # If audio is passed as a file path (string or Path), load it into numpy array first
+    if isinstance(audio, (str, Path)):
+        import librosa
+        audio, _ = librosa.load(str(audio), sr=SAMPLE_RATE, mono=True)
+
     # Normalize audio volume if too quiet (helps Whisper recognize low-volume speech)
     max_val = np.max(np.abs(audio))
     if max_val > 1e-4 and max_val < 0.5:
