@@ -61,18 +61,24 @@ def transcribe_chunk(
         - 'text': Full transcription text
         - 'words': List of word dicts with {word, start, end, confidence}
     """
+    # Normalize audio volume if too quiet (helps Whisper recognize low-volume speech)
+    max_val = np.max(np.abs(audio))
+    if max_val > 1e-4 and max_val < 0.5:
+        audio = audio * (0.85 / max_val)
+
     kwargs = {
         "language": language,
         "word_timestamps": True,
-        "beam_size": 1,
-        "best_of": 1,
-        "vad_filter": False,
+        "beam_size": 5,
+        "best_of": 5,
+        "vad_filter": True,
+        "vad_parameters": dict(min_silence_duration_ms=400),
         "condition_on_previous_text": False,
-        "repetition_penalty": 1.5,
-        "compression_ratio_threshold": 2.2,
+        "repetition_penalty": 1.05,
+        "compression_ratio_threshold": 2.4,
         "log_prob_threshold": -1.0,
-        "no_repeat_ngram_size": 3,
-        "temperature": 0.0,
+        "no_repeat_ngram_size": 0,
+        "temperature": [0.0, 0.2, 0.4],
     }
     if initial_prompt and initial_prompt.strip():
         kwargs["initial_prompt"] = initial_prompt.strip()
@@ -86,7 +92,7 @@ def transcribe_chunk(
     text_parts = []
 
     for segment in segments:
-        if segment.no_speech_prob > 0.6:
+        if segment.no_speech_prob > 0.85:
             logger.debug(f"ASR: Dropped segment due to high no_speech_prob ({segment.no_speech_prob:.2f})")
             continue
             

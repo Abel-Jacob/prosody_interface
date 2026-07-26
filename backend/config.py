@@ -20,9 +20,9 @@ WHISTRESS_WEIGHTS_DIR = VENDOR_DIR / "whistress_pkg" / "weights"
 AUDIO_UPLOADS_DIR.mkdir(exist_ok=True)
 
 # ── Model Configuration ───────────────────────────────────────
-# faster-whisper: use tiny.en for live preview, small.en for final (more accurate)
-ASR_MODEL_SIZE_PREVIEW = "tiny.en"
-ASR_MODEL_SIZE_FINAL = os.getenv("ASR_MODEL_SIZE_FINAL", "small.en")
+# faster-whisper: use base.en for live preview, medium.en for final (more accurate)
+ASR_MODEL_SIZE_PREVIEW = "base.en"
+ASR_MODEL_SIZE_FINAL = os.getenv("ASR_MODEL_SIZE_FINAL", "medium.en")
 import torch
 _HAS_GPU = torch.cuda.is_available()
 
