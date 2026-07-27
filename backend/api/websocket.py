@@ -163,8 +163,8 @@ async def audio_websocket(websocket: WebSocket):
                                 )
                                 if speech_ts:
                                     last_end = speech_ts[-1]["end"]
-                                    # Trigger if >= 600ms silence after speech, or if chunk grew > 20.0s
-                                    if len(audio_unprocessed) - last_end >= int(0.6 * SAMPLE_RATE) or len(audio_unprocessed) >= int(20.0 * SAMPLE_RATE):
+                                    # Trigger if >= 600ms silence after speech, or if chunk grew > 3.0s
+                                    if len(audio_unprocessed) - last_end >= int(0.6 * SAMPLE_RATE) or len(audio_unprocessed) >= int(3.0 * SAMPLE_RATE):
                                         should_process = True
                                         if len(audio_unprocessed) - last_end >= int(0.6 * SAMPLE_RATE):
                                             end_sample_in_unprocessed = min(len(audio_unprocessed), last_end + int(0.2 * SAMPLE_RATE))
