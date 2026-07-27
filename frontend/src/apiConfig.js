@@ -3,7 +3,7 @@
 // set BACKEND_DOMAIN to your Ngrok or Hugging Face URL without http/https (e.g. "sixfold-hyphen-remote.ngrok-free.dev").
 // If set to "", it defaults to your local computer / Vite proxy.
 
-export const BACKEND_DOMAIN = "sixfold-hyphen-remote.ngrok-free.dev";
+export const BACKEND_DOMAIN = "prosody-interface-colab.loca.lt";
 
 export function getWsUrl(path) {
   if (BACKEND_DOMAIN && !import.meta.env.DEV) {
