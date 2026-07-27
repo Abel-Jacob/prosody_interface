@@ -89,7 +89,7 @@ async def audio_websocket(websocket: WebSocket):
                                         res = await asyncio.to_thread(analyzer.analyze, audio_slice, asr_result["words"])
                                         pros_results[analyzer.name] = res
                         except Exception as e:
-                            logger.debug(f"Live stress analyzer failed: {e}")
+                            logger.error(f"Live stress analyzer failed: {e}")
                             
                         # 1. SEND INSTANT ASR + STRESS PREVIEW
                         phrase = merge_chunk_results(
@@ -105,14 +105,17 @@ async def audio_websocket(websocket: WebSocket):
                             now_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
                             logger.info(f"[{now_str}] Live ASR (Instant): '{phrase.text}' ({len(w_dump)} words)")
                             try:
-                                await websocket.send_json({
+                                payload = {
                                     "type": "incremental_words",
                                     "replace_words": False,
                                     "words": w_dump,
                                     "text": phrase.text
-                                })
-                            except Exception:
-                                pass
+                                }
+                                logger.info(f"[{now_str}] ATTEMPTING to send WebSocket payload: {payload['type']}")
+                                await websocket.send_json(payload)
+                                logger.info(f"[{now_str}] SUCCESS: WebSocket payload sent")
+                            except Exception as e:
+                                logger.error(f"[{now_str}] FAILED to send WebSocket payload: {e}")
                         else:
                             try:
                                 await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
@@ -128,7 +131,7 @@ async def audio_websocket(websocket: WebSocket):
                         try: os.remove(slice_path)
                         except Exception: pass
             except Exception as e:
-                logger.debug(f"Live window decode failed: {e}")
+                logger.error(f"Live window decode failed: {e}")
                 try:
                     await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
                 except Exception:
@@ -157,21 +160,22 @@ async def audio_websocket(websocket: WebSocket):
                                 tmp.write(b"".join(window_chunks))
                                 tmp_path = tmp.name
                             
-                            # Fast decode using direct ffmpeg Popen to avoid O(N^2) librosa/audioread overhead
-                            async def decode_ffmpeg():
-                                import subprocess, numpy as np
-                                p = subprocess.Popen(
-                                    ['ffmpeg', '-i', tmp_path, '-f', 's16le', '-acodec', 'pcm_s16le', '-ac', '1', '-ar', '16000', '-'],
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                                )
-                                out, _ = await asyncio.to_thread(p.communicate)
-                                if out:
-                                    return np.frombuffer(out, dtype=np.int16).astype(np.float32) / 32768.0
-                                return np.array([], dtype=np.float32)
-                            
-                            audio_slice = await decode_ffmpeg()
-                            
-                            if len(audio_slice) > 0:
+                        # Fast decode using direct ffmpeg Popen to avoid O(N^2) librosa/audioread overhead
+                        async def decode_ffmpeg():
+                            import subprocess, numpy as np
+                            p = subprocess.Popen(
+                                ['ffmpeg', '-i', tmp_path, '-f', 's16le', '-acodec', 'pcm_s16le', '-ac', '1', '-ar', '16000', '-'],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                            )
+                            out, err = await asyncio.to_thread(p.communicate)
+                            if out:
+                                return np.frombuffer(out, dtype=np.int16).astype(np.float32) / 32768.0
+                            logger.error(f"ffmpeg decode failed: {err.decode('utf-8', errors='ignore')}")
+                            return np.array([], dtype=np.float32)
+                        
+                        audio_slice = await decode_ffmpeg()
+                        
+                        if len(audio_slice) > 0:
                                 if process_task is None or process_task.done():
                                     process_task = asyncio.create_task(process_window(audio_slice))
                                 else:
@@ -195,7 +199,7 @@ async def audio_websocket(websocket: WebSocket):
                         window_chunks = [window_chunks[0]]
                         
                     except Exception as e:
-                        logger.debug(f"Live decode failed: {e}")
+                        logger.error(f"Live decode failed: {e}")
                         window_chunks = [window_chunks[0]]
                         try:
                             await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
