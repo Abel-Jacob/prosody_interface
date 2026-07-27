@@ -26,6 +26,22 @@ export class AudioService {
         return null
       }
 
+      this.pendingChunks = []
+
+      this.mediaRecorder = new MediaRecorder(this.stream, { mimeType: 'audio/webm' })
+
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+            this.socket.send(event.data)
+          } else if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
+            this.pendingChunks.push(event.data)
+          }
+        }
+      }
+
+      this.mediaRecorder.start(1000)
+
       const wsUrl = getWsUrl('/api/ws/audio')
       console.log('[AudioService] Connecting WebSocket:', wsUrl)
       this.socket = new WebSocket(wsUrl)
@@ -33,16 +49,11 @@ export class AudioService {
       this.socket.onopen = () => {
         console.log('[AudioService] WebSocket connected')
         if (onSocketConnected) onSocketConnected()
-        this.mediaRecorder = new MediaRecorder(this.stream, { mimeType: 'audio/webm' })
-
-        this.mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0 && this.socket && this.socket.readyState === WebSocket.OPEN) {
-            this.socket.send(event.data)
-          }
+        
+        // Send any chunks that were recorded while connecting
+        while (this.pendingChunks.length > 0) {
+          this.socket.send(this.pendingChunks.shift())
         }
-
-        // Emit chunks every 1 second
-        this.mediaRecorder.start(1000)
       }
 
       this.socket.onmessage = (event) => {
@@ -90,14 +101,11 @@ export class AudioService {
     }
     this.isStopping = true
 
-    // If the mediaRecorder was never created (WebSocket didn't connect in time),
-    // clean up gracefully instead of showing the scary "connection not established" error.
-    if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
-      console.warn('[AudioService] MediaRecorder not ready at stop time — cleaning up gracefully')
+    // If the socket completely failed or we have no stream, reject
+    if (!this.stream) {
+      console.warn('[AudioService] No stream available at stop time')
       this.cleanup()
-      return Promise.reject(new Error(
-        'Recording stopped before connection was ready. Please try again.'
-      ))
+      return Promise.reject(new Error('Microphone was not active.'))
     }
 
     return new Promise((resolve, reject) => {
@@ -128,14 +136,30 @@ export class AudioService {
       this.socket.addEventListener('message', handleMessage)
 
       // Stop the recorder, which triggers the final dataavailable event
-      this.mediaRecorder.stop()
+      try {
+        if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+          this.mediaRecorder.stop()
+        }
+      } catch (e) {
+        console.error("Error stopping media recorder", e)
+      }
 
-      // Request stop from server after a short delay to ensure final chunk is sent
-      setTimeout(() => {
+      // Request stop from server after a short delay to ensure final chunk is sent.
+      // If the socket is still connecting, we must wait for it to open first.
+      const sendStop = () => {
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
           this.socket.send(JSON.stringify({ type: 'stop' }))
+        } else if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
+          // Wait a bit and try again
+          setTimeout(sendStop, 100)
+        } else {
+          clearTimeout(timeout)
+          this.cleanup()
+          reject(new Error('WebSocket closed before stop signal could be sent.'))
         }
-      }, 200)
+      }
+
+      setTimeout(sendStop, 200)
     })
   }
 
