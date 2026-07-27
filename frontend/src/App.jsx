@@ -82,9 +82,10 @@ function App() {
         <input 
           type="text" 
           value={backendUrl}
-          onChange={(e) => setBackendUrl(e.target.value)}
-          onBlur={() => setBackendDomain(backendUrl)}
-          onKeyDown={(e) => e.key === 'Enter' && setBackendDomain(backendUrl)}
+          onChange={(e) => {
+            setBackendUrl(e.target.value)
+            setBackendDomain(e.target.value)
+          }}
           placeholder="e.g. random-words.trycloudflare.com"
           style={{
             background: 'transparent',
