@@ -78,12 +78,17 @@ export default function ListeningState({ onStop }) {
     }
   }, [])
 
+  const [isStopping, setIsStopping] = useState(false)
+
   const handleStop = async () => {
+    if (isStopping) return
+    setIsStopping(true)
     try {
       const jobId = await audioService.current.stopRecording()
       onStop(jobId)
     } catch (err) {
       setError(err.message)
+      setIsStopping(false)
     }
   }
 

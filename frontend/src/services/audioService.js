@@ -7,6 +7,7 @@ export class AudioService {
     this.socket = null
     this.audioChunks = []
     this.isStarting = false
+    this.isStopping = false
   }
 
   async startRecording(onPreviewText, onSocketConnected, onSocketError) {
@@ -72,8 +73,14 @@ export class AudioService {
   }
 
   stopRecording() {
+    if (this.isStopping) {
+      return new Promise(() => {}) // Return a pending promise that never resolves/rejects to avoid triggering error handlers
+    }
+    this.isStopping = true
+    
     return new Promise((resolve, reject) => {
       if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
+        this.isStopping = false
         return reject(new Error('Cannot stop recording: Connection to backend server was not established. Check your Ngrok URL in apiConfig.js or visit your Ngrok URL in a browser first.'))
       }
       
@@ -108,6 +115,7 @@ export class AudioService {
 
   cleanup() {
     this.isStarting = false
+    this.isStopping = false
     this.recordingSessionId = null
     
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
