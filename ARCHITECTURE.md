@@ -114,9 +114,9 @@ Full Audio File
 
 | Model | Purpose | Size | Loaded By |
 |-------|---------|------|-----------|
-| faster-whisper `tiny.en` | Live preview transcription | ~75MB | Worker startup |
-| faster-whisper `base.en` | Final full transcription | ~150MB | Worker startup |
-| WhiStress small | Stress/emphasis detection | ~42MB custom weights + whisper-small.en backbone | Worker startup |
+| faster-whisper `base.en` | Live preview transcription | ~150MB | Worker startup |
+| faster-whisper `medium.en` | Final full transcription | ~1.5GB | Worker startup |
+| WhiStress | Stress/emphasis detection | ~42MB custom weights + whisper-small.en backbone | Worker startup |
 | Silero VAD | Silence boundary detection | ~2MB | Worker startup |
 
 ## Extensibility: Prosody Modules
