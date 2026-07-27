@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { AudioService } from '../services/audioService'
 
 export default function ListeningState({ onStop }) {
@@ -12,6 +11,23 @@ export default function ListeningState({ onStop }) {
   const audioCtxRef = useRef(null)
   const analyserRef = useRef(null)
   const animationFrameRef = useRef(null)
+  // Use a ref for the stopping guard — refs are not affected by stale closures
+  const isStoppingRef = useRef(false)
+
+  const handleStop = useCallback(async () => {
+    // Guard: if already stopping, do nothing. Uses a ref so it works
+    // correctly even when called from a stale closure (keydown handler).
+    if (isStoppingRef.current) return
+    isStoppingRef.current = true
+
+    try {
+      const result = await audioService.current.stopRecording()
+      onStop(result)
+    } catch (err) {
+      setError(err.message)
+      isStoppingRef.current = false
+    }
+  }, [onStop])
 
   useEffect(() => {
     let mounted = true
@@ -43,6 +59,8 @@ export default function ListeningState({ onStop }) {
           }
         )
 
+        if (!stream || !mounted) return
+
         // Setup Web Audio API for visualizer
         const AudioContext = window.AudioContext || window.webkitAudioContext
         audioCtxRef.current = new AudioContext()
@@ -50,7 +68,7 @@ export default function ListeningState({ onStop }) {
         const source = audioCtxRef.current.createMediaStreamSource(stream)
         source.connect(analyserRef.current)
         analyserRef.current.fftSize = 256
-        
+
         drawWaveform()
       } catch (err) {
         if (mounted) setError(err.message)
@@ -59,17 +77,8 @@ export default function ListeningState({ onStop }) {
 
     start()
 
-    const handleKeyDown = (e) => {
-      if (e.code === 'Space') {
-        e.preventDefault()
-        handleStop()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-
     return () => {
       mounted = false
-      window.removeEventListener('keydown', handleKeyDown)
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
       if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
         audioCtxRef.current.close()
@@ -78,38 +87,36 @@ export default function ListeningState({ onStop }) {
     }
   }, [])
 
-  const [isStopping, setIsStopping] = useState(false)
-
-  const handleStop = async () => {
-    if (isStopping) return
-    setIsStopping(true)
-    try {
-      const jobId = await audioService.current.stopRecording()
-      onStop(jobId)
-    } catch (err) {
-      setError(err.message)
-      setIsStopping(false)
+  // Separate effect for keydown so handleStop is always up-to-date
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault()
+        handleStop()
+      }
     }
-  }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleStop])
 
   const drawWaveform = () => {
     if (!canvasRef.current || !analyserRef.current) return
-    
+
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
     const width = canvas.width
     const height = canvas.height
-    
+
     const bufferLength = analyserRef.current.frequencyBinCount
     const dataArray = new Uint8Array(bufferLength)
-    
+
     const draw = () => {
       animationFrameRef.current = requestAnimationFrame(draw)
-      
+
       analyserRef.current.getByteTimeDomainData(dataArray)
-      
+
       ctx.clearRect(0, 0, width, height)
-      
+
       // Draw faint background line
       ctx.lineWidth = 0.75
       ctx.strokeStyle = 'rgba(196, 149, 106, 0.3)'
@@ -124,33 +131,33 @@ export default function ListeningState({ onStop }) {
       ctx.lineWidth = 1.5
       ctx.strokeStyle = 'rgba(196, 149, 106, 0.8)'
       ctx.beginPath()
-      
+
       const sliceWidth = width * 1.0 / bufferLength
       let x = 0
-      
+
       for (let i = 0; i < bufferLength; i++) {
         const v = dataArray[i] / 128.0
         const y = v * height / 2
-        
+
         if (i === 0) {
           ctx.moveTo(x, y)
         } else {
           ctx.lineTo(x, y)
         }
-        
+
         x += sliceWidth
       }
-      
+
       ctx.lineTo(canvas.width, canvas.height / 2)
       ctx.stroke()
     }
-    
+
     draw()
   }
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      
+
       {/* Overlays */}
       <div style={{
         position: 'fixed',
@@ -215,7 +222,7 @@ export default function ListeningState({ onStop }) {
       </div>
 
       {/* Main Content Area */}
-      <div 
+      <div
         onClick={handleStop}
         style={{
           flex: 1,
@@ -240,7 +247,7 @@ export default function ListeningState({ onStop }) {
             }}>
               listening
             </h1>
-            
+
             <p style={{
               fontFamily: 'var(--font-secondary)',
               fontSize: '0.8rem',
@@ -271,7 +278,7 @@ export default function ListeningState({ onStop }) {
                 const opacity = conf < 0.95 ? Math.max(0.5, 0.4 + conf * 0.6) : 1
                 const blurVal = conf < 0.85 ? Math.min(1.4, (0.85 - conf) * 4) : 0
                 const filter = blurVal > 0.05 ? `blur(${blurVal.toFixed(2)}px)` : 'none'
-                
+
                 const baseStyle = {
                   filter,
                   opacity,
@@ -279,7 +286,7 @@ export default function ListeningState({ onStop }) {
                   marginRight: '0.25rem',
                   transition: 'filter 0.2s, opacity 0.2s'
                 }
-                
+
                 const stressedStyle = w.stressed ? {
                   fontWeight: 600,
                   color: 'var(--accent)',
@@ -314,11 +321,11 @@ export default function ListeningState({ onStop }) {
         height: '60px',
         pointerEvents: 'none'
       }}>
-        <canvas 
-          ref={canvasRef} 
-          width={window.innerWidth} 
-          height={60} 
-          style={{ width: '100%', height: '100%' }} 
+        <canvas
+          ref={canvasRef}
+          width={window.innerWidth}
+          height={60}
+          style={{ width: '100%', height: '100%' }}
         />
       </div>
     </div>
