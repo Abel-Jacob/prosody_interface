@@ -46,23 +46,22 @@ async def audio_websocket(websocket: WebSocket):
     logger.info("WebSocket connected")
     
     audio_chunks: list[bytes] = []
-    last_processed_sample_index = 0
+    window_chunks: list[bytes] = []
     last_prompt: str | None = None
     job_id = str(uuid.uuid4())
     stop_handled = False
     
     try:
-        vad_task = None
+        process_task = None
 
-        async def process_vad(unprocessed_audio, processed_index):
-            nonlocal last_prompt, last_processed_sample_index
+        async def process_window(audio_slice):
+            nonlocal last_prompt
             try:
 
                 
-                slice_path = None
                 try:
                     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as stmp:
-                        sf.write(stmp.name, unprocessed_audio, SAMPLE_RATE)
+                        sf.write(stmp.name, audio_slice, SAMPLE_RATE)
                         slice_path = stmp.name
                     
                     models = websocket.app.state.models
@@ -80,14 +79,24 @@ async def audio_websocket(websocket: WebSocket):
                         if asr_result.get("text"):
                             last_prompt = asr_result["text"][-150:]
                         
-                        slice_offset = processed_index / float(SAMPLE_RATE)
-                        
-                        # 1. SEND INSTANT ASR PREVIEW (Without stress)
+                        # RUN STRESS (WhiStress) ON THE SAME SLICE
+                        pros_results = {}
+                        try:
+                            if models and asr_result.get("words"):
+                                from pipeline.prosody_registry import get_active_analyzers
+                                for analyzer in get_active_analyzers(models):
+                                    if analyzer.name == "stress":
+                                        res = await asyncio.to_thread(analyzer.analyze, audio_slice, asr_result["words"])
+                                        pros_results[analyzer.name] = res
+                        except Exception as e:
+                            logger.debug(f"Live stress analyzer failed: {e}")
+                            
+                        # 1. SEND INSTANT ASR + STRESS PREVIEW
                         phrase = merge_chunk_results(
                             chunk_index=0,
                             asr_result=asr_result,
-                            prosody_results={},
-                            time_offset=slice_offset,
+                            prosody_results=pros_results,
+                            time_offset=0.0,
                         )
                         
                         if phrase.words:
@@ -104,10 +113,6 @@ async def audio_websocket(websocket: WebSocket):
                                 })
                             except Exception:
                                 pass
-                            
-                            # Live preview skips prosody updating to maintain true rolling window speed
-                            pass
-                            pass
                         else:
                             try:
                                 await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
@@ -123,7 +128,7 @@ async def audio_websocket(websocket: WebSocket):
                         try: os.remove(slice_path)
                         except Exception: pass
             except Exception as e:
-                logger.debug(f"Live VAD incremental decode failed: {e}")
+                logger.debug(f"Live window decode failed: {e}")
                 try:
                     await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
                 except Exception:
@@ -137,84 +142,65 @@ async def audio_websocket(websocket: WebSocket):
                 chunk_data = message["bytes"]
                 audio_chunks.append(chunk_data)
                 
-                # Single-Pass VAD streaming: check for natural speech pauses
-                try:
-
-                    
-                    tmp_path = None
+                if not window_chunks:
+                    # First chunk is always the WebM header
+                    window_chunks.append(chunk_data)
+                else:
+                    window_chunks.append(chunk_data)
+                
+                # Process rolling window when we have header + 3 chunks (~3 seconds)
+                if len(window_chunks) >= 4:
                     try:
-                        with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
-                            tmp.write(b"".join(audio_chunks))
-                            tmp_path = tmp.name
-                        
-                        # Run librosa.load in a background thread to prevent O(N^2) event loop blocking
-                        audio_full, _ = await asyncio.to_thread(librosa.load, tmp_path, sr=SAMPLE_RATE, mono=True)
-                        audio_unprocessed = audio_full[last_processed_sample_index : len(audio_full)]
-                        
-                        should_process = False
-                        end_sample_in_unprocessed = 0
-                        
-                        # Check Silero VAD if we have at least 1.0s of unprocessed audio
-                        if len(audio_unprocessed) >= int(1.0 * SAMPLE_RATE):
-                            models = websocket.app.state.models
-                            vad_model = models.get("vad") if models else None
+                        tmp_path = None
+                        try:
+                            with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
+                                tmp.write(b"".join(window_chunks))
+                                tmp_path = tmp.name
                             
-                            if vad_model:
-                                audio_tensor = torch.from_numpy(audio_unprocessed).float()
-                                speech_ts = vad_model["get_speech_timestamps"](
-                                    audio_tensor, vad_model["model"], sampling_rate=SAMPLE_RATE,
-                                    min_speech_duration_ms=200, min_silence_duration_ms=500
+                            # Fast decode using direct ffmpeg Popen to avoid O(N^2) librosa/audioread overhead
+                            async def decode_ffmpeg():
+                                import subprocess, numpy as np
+                                p = subprocess.Popen(
+                                    ['ffmpeg', '-i', tmp_path, '-f', 's16le', '-acodec', 'pcm_s16le', '-ac', '1', '-ar', '16000', '-'],
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE
                                 )
-                                if speech_ts:
-                                    last_end = speech_ts[-1]["end"]
-                                    # Trigger if >= 600ms silence after speech, or if chunk grew > 3.0s
-                                    if len(audio_unprocessed) - last_end >= int(0.6 * SAMPLE_RATE) or len(audio_unprocessed) >= int(3.0 * SAMPLE_RATE):
-                                        should_process = True
-                                        if len(audio_unprocessed) - last_end >= int(0.6 * SAMPLE_RATE):
-                                            end_sample_in_unprocessed = min(len(audio_unprocessed), last_end + int(0.2 * SAMPLE_RATE))
-                                        elif len(speech_ts) > 1:
-                                            end_sample_in_unprocessed = speech_ts[-2]["end"] + int(0.2 * SAMPLE_RATE)
-                                        else:
-                                            end_sample_in_unprocessed = last_end
+                                out, _ = await asyncio.to_thread(p.communicate)
+                                if out:
+                                    return np.frombuffer(out, dtype=np.int16).astype(np.float32) / 32768.0
+                                return np.array([], dtype=np.float32)
+                            
+                            audio_slice = await decode_ffmpeg()
+                            
+                            if len(audio_slice) > 0:
+                                if process_task is None or process_task.done():
+                                    process_task = asyncio.create_task(process_window(audio_slice))
+                                else:
+                                    # Fall behind protection
+                                    logger.warning("Live preview skipped a rolling window chunk to maintain real-time speed.")
+                                    try:
+                                        await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                                    except Exception:
+                                        pass
                             else:
-                                # Fallback timer if VAD model is unavailable
-                                if len(audio_unprocessed) >= int(3.0 * SAMPLE_RATE):
-                                    should_process = True
-                                    end_sample_in_unprocessed = len(audio_unprocessed)
-                        
-                        if should_process and end_sample_in_unprocessed > 0:
-                            # Only spawn a new VAD task if one isn't currently running
-                            # This prevents the CPU from backing up and blocking the main thread
-                            if vad_task is None or vad_task.done():
-                                audio_slice = audio_unprocessed[0 : end_sample_in_unprocessed]
-                                current_index = last_processed_sample_index
-                                last_processed_sample_index += end_sample_in_unprocessed
-                                vad_task = asyncio.create_task(process_vad(audio_slice, current_index))
-                            else:
-                                # LIVE PREVIEW FELL BEHIND!
-                                # Advance the index anyway to prevent O(N^2) snowballing.
-                                # This drops the chunk from the live preview, ensuring the preview stays fast.
-                                logger.warning(f"Live preview skipping a {end_sample_in_unprocessed/SAMPLE_RATE:.1f}s chunk to maintain real-time speed.")
-                                last_processed_sample_index += end_sample_in_unprocessed
                                 try:
                                     await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
                                 except Exception:
                                     pass
-                        else:
-                            try:
-                                await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
-                            except Exception:
-                                pass
-                    finally:
-                        if tmp_path and os.path.exists(tmp_path):
-                            try: os.remove(tmp_path)
-                            except Exception: pass
-                except Exception as e:
-                    logger.debug(f"Live VAD incremental decode failed: {e}")
-                    try:
-                        await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
-                    except Exception:
-                        pass
+                        finally:
+                            if tmp_path and os.path.exists(tmp_path):
+                                try: os.remove(tmp_path)
+                                except Exception: pass
+                                
+                        # Clear window chunks (keep header)
+                        window_chunks = [window_chunks[0]]
+                        
+                    except Exception as e:
+                        logger.debug(f"Live decode failed: {e}")
+                        window_chunks = [window_chunks[0]]
+                        try:
+                            await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                        except Exception:
+                            pass
             
             elif "text" in message:
                 try:
@@ -225,9 +211,9 @@ async def audio_websocket(websocket: WebSocket):
                 if msg.get("type") == "stop":
                     if not stop_handled:
                         stop_handled = True
-                        # Cancel any running VAD task
-                        if vad_task and not vad_task.done():
-                            vad_task.cancel()
+                        # Cancel any running processing task
+                        if process_task and not process_task.done():
+                            process_task.cancel()
 
                         # Save complete audio to disk
                         filepath = await _save_audio(job_id, audio_chunks)
