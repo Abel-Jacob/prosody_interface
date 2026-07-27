@@ -270,3 +270,43 @@ def reconstruct_grammatical_phrases(phrases: list[PhraseResult]) -> list[PhraseR
             current_sentence_words = []
 
     return reconstructed_phrases
+
+
+def group_words_by_punctuation(words: list[WordResult]) -> list[PhraseResult]:
+    """
+    Group words into grammatical sentences strictly based on the punctuation provided
+    by the ASR model. Does not apply any heuristics for gaps or false periods.
+    Ideal for processing the output of a single-pass full-audio transcription.
+    """
+    if not words:
+        return []
+
+    phrases: list[PhraseResult] = []
+    current_sentence_words: list[WordResult] = []
+
+    for i, w in enumerate(words):
+        current_sentence_words.append(w)
+        
+        is_last_word = (i == len(words) - 1)
+        has_sent_end = w.word.endswith(".") or w.word.endswith("?") or w.word.endswith("!")
+
+        if has_sent_end or is_last_word:
+            phrase_idx = len(phrases)
+            start_t = current_sentence_words[0].start
+            end_t = current_sentence_words[-1].end
+            text_str = " ".join([cw.word for cw in current_sentence_words])
+
+            phrases.append(
+                PhraseResult(
+                    phrase_index=phrase_idx,
+                    text=text_str,
+                    words=current_sentence_words,
+                    start_time=start_t,
+                    end_time=end_t,
+                    chunk_index=phrase_idx,
+                )
+            )
+            current_sentence_words = []
+
+    return phrases
+

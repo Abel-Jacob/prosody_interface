@@ -78,7 +78,7 @@ class Worker:
             from pipeline.vad_chunking import chunk_audio_by_vad
             from pipeline.asr import transcribe_chunk
             from pipeline.prosody_registry import get_active_analyzers
-            from pipeline.merge import reconstruct_grammatical_phrases
+            from pipeline.merge import group_words_by_punctuation
             from schemas import PhraseResult, WordResult
 
             # Stage 1: Load audio
@@ -97,7 +97,7 @@ class Worker:
                 "en",
             )
             
-            # Wrap in initial phrase and group into natural grammatical sentences
+            # Group into natural grammatical sentences based strictly on the model's output punctuation
             raw_words = [
                 WordResult(
                     word=w["word"],
@@ -109,15 +109,8 @@ class Worker:
                 )
                 for w in asr_result.get("words", [])
             ]
-            initial_phrase = PhraseResult(
-                phrase_index=0,
-                text=asr_result.get("text", ""),
-                words=raw_words,
-                start_time=0.0,
-                end_time=duration,
-                chunk_index=0,
-            )
-            grammatical_phrases = reconstruct_grammatical_phrases([initial_phrase])
+            
+            grammatical_phrases = group_words_by_punctuation(raw_words)
             total_sentences = len(grammatical_phrases)
             logger.info(f"Job {job_id}: full ASR complete -> {total_sentences} grammatical sentences")
 
