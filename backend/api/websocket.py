@@ -159,23 +159,23 @@ async def audio_websocket(websocket: WebSocket):
                             with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
                                 tmp.write(b"".join(window_chunks))
                                 tmp_path = tmp.name
+                                
+                            # Fast decode using direct ffmpeg Popen to avoid O(N^2) librosa/audioread overhead
+                            async def decode_ffmpeg():
+                                import subprocess, numpy as np
+                                p = subprocess.Popen(
+                                    ['ffmpeg', '-i', tmp_path, '-f', 's16le', '-acodec', 'pcm_s16le', '-ac', '1', '-ar', '16000', '-'],
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                                )
+                                out, err = await asyncio.to_thread(p.communicate)
+                                if out:
+                                    return np.frombuffer(out, dtype=np.int16).astype(np.float32) / 32768.0
+                                logger.error(f"ffmpeg decode failed: {err.decode('utf-8', errors='ignore')}")
+                                return np.array([], dtype=np.float32)
                             
-                        # Fast decode using direct ffmpeg Popen to avoid O(N^2) librosa/audioread overhead
-                        async def decode_ffmpeg():
-                            import subprocess, numpy as np
-                            p = subprocess.Popen(
-                                ['ffmpeg', '-i', tmp_path, '-f', 's16le', '-acodec', 'pcm_s16le', '-ac', '1', '-ar', '16000', '-'],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                            )
-                            out, err = await asyncio.to_thread(p.communicate)
-                            if out:
-                                return np.frombuffer(out, dtype=np.int16).astype(np.float32) / 32768.0
-                            logger.error(f"ffmpeg decode failed: {err.decode('utf-8', errors='ignore')}")
-                            return np.array([], dtype=np.float32)
-                        
-                        audio_slice = await decode_ffmpeg()
-                        
-                        if len(audio_slice) > 0:
+                            audio_slice = await decode_ffmpeg()
+                            
+                            if len(audio_slice) > 0:
                                 if process_task is None or process_task.done():
                                     process_task = asyncio.create_task(process_window(audio_slice))
                                 else:
