@@ -40,7 +40,10 @@ def load_all_models() -> dict:
 
     # 1. Load faster-whisper ASR models
     logger.info("=" * 50)
-    logger.info(f"System Check | CUDA Available: {torch.cuda.is_available()} | ASR Device: {ASR_DEVICE} | WhiStress Device: {WHISTRESS_DEVICE}")
+    has_cuda = torch.cuda.is_available()
+    gpu_name = torch.cuda.get_device_name(0) if has_cuda else "None"
+    logger.info(f"System Check | CUDA Available: {has_cuda} | GPU Name: {gpu_name}")
+    logger.info(f"ASR Device: {ASR_DEVICE} | WhiStress Device: {WHISTRESS_DEVICE}")
     logger.info("Loading ASR models (faster-whisper)...")
     try:
         from pipeline.asr import load_asr_model

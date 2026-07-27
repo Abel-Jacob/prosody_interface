@@ -26,9 +26,9 @@ ASR_MODEL_SIZE_FINAL = os.getenv("ASR_MODEL_SIZE_FINAL", "medium.en")
 import torch
 _HAS_GPU = torch.cuda.is_available()
 
-ASR_DEVICE = "cuda" if _HAS_GPU else "cpu"
-ASR_COMPUTE_TYPE = "float16" if _HAS_GPU else "int8"
-WHISTRESS_DEVICE = "cuda" if _HAS_GPU else "cpu"
+ASR_DEVICE = "cuda"
+ASR_COMPUTE_TYPE = "float16"
+WHISTRESS_DEVICE = "cuda"
 WHISTRESS_WHISPER_BACKBONE = "openai/whisper-small.en"
 
 # Silero VAD

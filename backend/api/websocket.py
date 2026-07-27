@@ -46,7 +46,8 @@ async def audio_websocket(websocket: WebSocket):
     logger.info("WebSocket connected")
     
     audio_chunks: list[bytes] = []
-    window_chunks: list[bytes] = []
+    last_yielded_idx = 0
+    last_processed_chunk_idx = 1
     last_prompt: str | None = None
     job_id = str(uuid.uuid4())
     stop_handled = False
@@ -54,84 +55,124 @@ async def audio_websocket(websocket: WebSocket):
     try:
         process_task = None
 
-        async def process_window(audio_slice):
-            nonlocal last_prompt
+        async def process_live_audio(chunks_to_process):
+            nonlocal last_yielded_idx, last_prompt
             try:
-
-                
+                # 1. Decode all accumulated chunks to PCM
+                tmp_path = None
                 try:
-                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as stmp:
-                        sf.write(stmp.name, audio_slice, SAMPLE_RATE)
-                        slice_path = stmp.name
-                    
-                    models = websocket.app.state.models
-                    asr_model = models.get("asr_preview") or models.get("asr_final") if models else None
-                    
-                    if asr_model:
-                        from pipeline.asr import transcribe_chunk
-                        asr_result = await asyncio.to_thread(
-                            transcribe_chunk,
-                            slice_path,
-                            asr_model,
-                            "en",
-                            last_prompt,
-                        )
-                        if asr_result.get("text"):
-                            last_prompt = asr_result["text"][-150:]
+                    with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
+                        tmp.write(b"".join(chunks_to_process))
+                        tmp_path = tmp.name
                         
-                        # RUN STRESS (WhiStress) ON THE SAME SLICE
-                        pros_results = {}
-                        try:
-                            if models and asr_result.get("words"):
-                                from pipeline.prosody_registry import get_active_analyzers
-                                for analyzer in get_active_analyzers(models):
-                                    if analyzer.name == "stress":
-                                        res = await asyncio.to_thread(analyzer.analyze, audio_slice, asr_result["words"])
-                                        pros_results[analyzer.name] = res
-                        except Exception as e:
-                            logger.error(f"Live stress analyzer failed: {e}")
-                            
-                        # 1. SEND INSTANT ASR + STRESS PREVIEW
-                        phrase = merge_chunk_results(
-                            chunk_index=0,
-                            asr_result=asr_result,
-                            prosody_results=pros_results,
-                            time_offset=0.0,
+                    async def decode_ffmpeg():
+                        import subprocess, numpy as np
+                        p = subprocess.Popen(
+                            ['ffmpeg', '-i', tmp_path, '-f', 's16le', '-acodec', 'pcm_s16le', '-ac', '1', '-ar', '16000', '-'],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE
                         )
-                        
-                        if phrase.words:
-                            w_dump = [w.model_dump() for w in phrase.words]
-                            from datetime import datetime
-                            now_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-                            logger.info(f"[{now_str}] Live ASR (Instant): '{phrase.text}' ({len(w_dump)} words)")
-                            try:
-                                payload = {
-                                    "type": "incremental_words",
-                                    "replace_words": False,
-                                    "words": w_dump,
-                                    "text": phrase.text
-                                }
-                                logger.info(f"[{now_str}] ATTEMPTING to send WebSocket payload: {payload['type']}")
-                                await websocket.send_json(payload)
-                                logger.info(f"[{now_str}] SUCCESS: WebSocket payload sent")
-                            except Exception as e:
-                                logger.error(f"[{now_str}] FAILED to send WebSocket payload: {e}")
-                        else:
-                            try:
-                                await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
-                            except Exception:
-                                pass
-                    else:
-                        try:
-                            await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
-                        except Exception:
-                            pass
+                        out, err = await asyncio.to_thread(p.communicate)
+                        if out:
+                            return np.frombuffer(out, dtype=np.int16).astype(np.float32) / 32768.0
+                        logger.error(f"ffmpeg decode failed: {err.decode('utf-8', errors='ignore')}")
+                        return np.array([], dtype=np.float32)
+                    
+                    full_pcm = await decode_ffmpeg()
                 finally:
-                    if slice_path and os.path.exists(slice_path):
-                        try: os.remove(slice_path)
+                    if tmp_path and os.path.exists(tmp_path):
+                        try: os.remove(tmp_path)
                         except Exception: pass
+                        
+                if len(full_pcm) == 0:
+                    return
+                
+                # Check if we have enough new audio since last yield
+                if len(full_pcm) - last_yielded_idx < int(1.5 * SAMPLE_RATE):
+                    return
+                    
+                # 2. Extract 4-second context window ending at the live edge
+                window_start_idx = max(0, len(full_pcm) - 4 * SAMPLE_RATE)
+                audio_window = full_pcm[window_start_idx : len(full_pcm)]
+                
+                models = websocket.app.state.models
+                asr_model = models.get("asr_preview") or models.get("asr_final") if models else None
+                
+                if not asr_model:
+                    return
+                    
+                # 3. Transcribe window
+                from pipeline.asr import transcribe_chunk
+                import time
+                
+                start_asr = time.time()
+                asr_result = await asyncio.to_thread(
+                    transcribe_chunk,
+                    audio_window,
+                    asr_model,
+                    "en",
+                    last_prompt,
+                )
+                asr_duration = time.time() - start_asr
+                
+                if asr_result.get("text"):
+                    last_prompt = asr_result["text"][-150:]
+                    
+                # 4. Filter words to prevent duplication and cut-off
+                threshold_sec = (last_yielded_idx - window_start_idx) / float(SAMPLE_RATE)
+                # Ensure we don't accept words that are too close to the edge (0.5s margin)
+                # unless we are near the very end of a short file where the window is small
+                safe_end_sec = (len(audio_window) / float(SAMPLE_RATE)) - 0.4
+                
+                valid_words = []
+                if asr_result.get("words"):
+                    for w in asr_result["words"]:
+                        if w["start"] >= threshold_sec and w["end"] <= safe_end_sec:
+                            valid_words.append(w)
+                            
+                if not valid_words:
+                    # If we've processed a lot of silence, force advance to prevent endless silence processing
+                    if len(full_pcm) - last_yielded_idx > 5 * SAMPLE_RATE:
+                        last_yielded_idx = len(full_pcm) - int(2.0 * SAMPLE_RATE)
+                    return
+                    
+                # 5. Run Stress Analyzer
+                pros_results = {}
+                start_stress = time.time()
+                try:
+                    from pipeline.prosody_registry import get_active_analyzers
+                    for analyzer in get_active_analyzers(models):
+                        if analyzer.name == "stress":
+                            # We only care about stress for the new valid words
+                            res = await asyncio.to_thread(analyzer.analyze, audio_window, valid_words)
+                            pros_results[analyzer.name] = res
+                except Exception as e:
+                    logger.error(f"Live stress analyzer failed: {e}")
+                stress_duration = time.time() - start_stress
+                
+                # 6. Merge results and send
+                phrase = merge_chunk_results(0, {"text": " ".join(w["word"] for w in valid_words), "words": valid_words}, pros_results, 0.0)
+                
+                w_dump = [w.model_dump() for w in phrase.words]
+                from datetime import datetime
+                now_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                stress_vals = [w.stress for w in phrase.words if hasattr(w, 'stress')]
+                
+                logger.info(f"[{now_str}] WINDOW STATS: len={len(audio_window)/SAMPLE_RATE:.2f}s | ASR={asr_duration:.2f}s | STRESS={stress_duration:.2f}s | NEW_WORDS={len(valid_words)}")
+                logger.info(f"[{now_str}] Live ASR (Instant): '{phrase.text}' | STRESS={stress_vals}")
+                
+                payload = {
+                    "type": "incremental_words",
+                    "replace_words": False,
+                    "words": w_dump,
+                    "text": phrase.text
+                }
+                await websocket.send_json(payload)
+                
+                # 7. Advance yielded index exactly to the end of the last word
+                last_yielded_idx = window_start_idx + int(valid_words[-1]["end"] * SAMPLE_RATE)
+                
             except Exception as e:
-                logger.error(f"Live window decode failed: {e}")
+                logger.error(f"Live window processing failed: {e}", exc_info=True)
                 try:
                     await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
                 except Exception:
@@ -145,66 +186,15 @@ async def audio_websocket(websocket: WebSocket):
                 chunk_data = message["bytes"]
                 audio_chunks.append(chunk_data)
                 
-                if not window_chunks:
-                    # First chunk is always the WebM header
-                    window_chunks.append(chunk_data)
-                else:
-                    window_chunks.append(chunk_data)
-                
-                # Process rolling window when we have header + 3 chunks (~3 seconds)
-                if len(window_chunks) >= 4:
-                    try:
-                        tmp_path = None
-                        try:
-                            with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
-                                tmp.write(b"".join(window_chunks))
-                                tmp_path = tmp.name
-                                
-                            # Fast decode using direct ffmpeg Popen to avoid O(N^2) librosa/audioread overhead
-                            async def decode_ffmpeg():
-                                import subprocess, numpy as np
-                                p = subprocess.Popen(
-                                    ['ffmpeg', '-i', tmp_path, '-f', 's16le', '-acodec', 'pcm_s16le', '-ac', '1', '-ar', '16000', '-'],
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                                )
-                                out, err = await asyncio.to_thread(p.communicate)
-                                if out:
-                                    return np.frombuffer(out, dtype=np.int16).astype(np.float32) / 32768.0
-                                logger.error(f"ffmpeg decode failed: {err.decode('utf-8', errors='ignore')}")
-                                return np.array([], dtype=np.float32)
-                            
-                            audio_slice = await decode_ffmpeg()
-                            
-                            if len(audio_slice) > 0:
-                                if process_task is None or process_task.done():
-                                    process_task = asyncio.create_task(process_window(audio_slice))
-                                else:
-                                    # Fall behind protection
-                                    logger.warning("Live preview skipped a rolling window chunk to maintain real-time speed.")
-                                    try:
-                                        await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
-                                    except Exception:
-                                        pass
-                            else:
-                                try:
-                                    await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
-                                except Exception:
-                                    pass
-                        finally:
-                            if tmp_path and os.path.exists(tmp_path):
-                                try: os.remove(tmp_path)
-                                except Exception: pass
-                                
-                        # Clear window chunks (keep header)
-                        window_chunks = [window_chunks[0]]
-                        
-                    except Exception as e:
-                        logger.error(f"Live decode failed: {e}")
-                        window_chunks = [window_chunks[0]]
-                        try:
-                            await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
-                        except Exception:
-                            pass
+                # Process every 2 chunks (~2 seconds)
+                if len(audio_chunks) - last_processed_chunk_idx >= 2:
+                    last_processed_chunk_idx = len(audio_chunks)
+                    
+                    if process_task is None or process_task.done():
+                        # Pass a copy of the list so it doesn't mutate during await
+                        process_task = asyncio.create_task(process_live_audio(list(audio_chunks)))
+                    else:
+                        logger.warning("Live preview skipped chunks to maintain real-time speed.")
             
             elif "text" in message:
                 try:
