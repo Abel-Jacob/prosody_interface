@@ -102,7 +102,6 @@ async def audio_websocket(websocket: WebSocket):
                                 "words": all_words_dump,
                                 "text": full_text
                             })
-                            last_processed_sample_index += len(unprocessed_audio)
                             
                             # 2. RUN PROSODY IN BACKGROUND AND UPDATE PREVIEW
                             prosody_results = {}
@@ -210,6 +209,7 @@ async def audio_websocket(websocket: WebSocket):
                             if vad_task is None or vad_task.done():
                                 audio_slice = audio_unprocessed[0 : end_sample_in_unprocessed]
                                 current_index = last_processed_sample_index
+                                last_processed_sample_index += end_sample_in_unprocessed
                                 vad_task = asyncio.create_task(process_vad(audio_slice, current_index))
                             else:
                                 await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
