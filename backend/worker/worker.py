@@ -75,7 +75,6 @@ class Worker:
 
         try:
             # Import pipeline modules here to avoid circular imports
-            from pipeline.vad_chunking import chunk_audio_by_vad
             from pipeline.asr import transcribe_chunk
             from pipeline.prosody_registry import get_active_analyzers
             from pipeline.merge import group_words_by_punctuation

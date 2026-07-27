@@ -14,7 +14,7 @@ import sys
 import logging
 from pathlib import Path
 
-from config import VENDOR_DIR, WHISTRESS_DEVICE
+from config import VENDOR_DIR, WHISTRESS_DEVICE, ASR_DEVICE
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ def load_all_models() -> dict:
 
     # 1. Load faster-whisper ASR models
     logger.info("=" * 50)
+    logger.info(f"System Check | CUDA Available: {torch.cuda.is_available()} | ASR Device: {ASR_DEVICE} | WhiStress Device: {WHISTRESS_DEVICE}")
     logger.info("Loading ASR models (faster-whisper)...")
     try:
         from pipeline.asr import load_asr_model

@@ -38,6 +38,9 @@ export default function ListeningState({ onStop }) {
           (payload) => {
             if (!mounted || !payload) return
             if (payload.type === 'words' && payload.words) {
+              const nowStr = new Date().toISOString().split('T')[1].slice(0, -1)
+              console.log(`[${nowStr}] Received ${payload.words.length} words (replace: ${payload.replace_words})`)
+              
               if (payload.replace_words) {
                 setWords(payload.words)
                 setPreviewText(payload.text || payload.words.map(w => w.word).join(' '))

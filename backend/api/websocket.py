@@ -15,6 +15,12 @@ import asyncio
 import numpy as np
 import io
 from pathlib import Path
+import tempfile
+import os
+import soundfile as sf
+import librosa
+import torch
+import json
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from database import create_job, update_job_status
@@ -41,19 +47,17 @@ async def audio_websocket(websocket: WebSocket):
     
     audio_chunks: list[bytes] = []
     last_processed_sample_index = 0
-    all_phrases: list[PhraseResult] = []
     last_prompt: str | None = None
     job_id = str(uuid.uuid4())
+    stop_handled = False
     
     try:
         vad_task = None
 
         async def process_vad(unprocessed_audio, processed_index):
-            nonlocal all_phrases, last_prompt, last_processed_sample_index
+            nonlocal last_prompt, last_processed_sample_index
             try:
-                import tempfile
-                import os
-                import soundfile as sf
+
                 
                 slice_path = None
                 try:
@@ -80,80 +84,50 @@ async def audio_websocket(websocket: WebSocket):
                         
                         # 1. SEND INSTANT ASR PREVIEW (Without stress)
                         phrase = merge_chunk_results(
-                            chunk_index=len(all_phrases),
+                            chunk_index=0,
                             asr_result=asr_result,
                             prosody_results={},
                             time_offset=slice_offset,
                         )
                         
                         if phrase.words:
-                            current_phrase_idx = len(all_phrases)
-                            all_phrases.append(phrase)
+                            w_dump = [w.model_dump() for w in phrase.words]
+                            from datetime import datetime
+                            now_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+                            logger.info(f"[{now_str}] Live ASR (Instant): '{phrase.text}' ({len(w_dump)} words)")
+                            try:
+                                await websocket.send_json({
+                                    "type": "incremental_words",
+                                    "replace_words": False,
+                                    "words": w_dump,
+                                    "text": phrase.text
+                                })
+                            except Exception:
+                                pass
                             
-                            # Clean grammar and send to frontend immediately
-                            clean_phrases = reconstruct_grammatical_phrases(all_phrases)
-                            all_words_dump = [w.model_dump() for p in clean_phrases for w in p.words]
-                            full_text = " ".join([p.text for p in clean_phrases])
-                            logger.info(f"Live ASR (Instant): '{full_text}' ({len(all_words_dump)} words)")
-                            await websocket.send_json({
-                                "type": "incremental_words",
-                                "replace_words": True,
-                                "words": all_words_dump,
-                                "text": full_text
-                            })
-                            
-                            # 2. RUN PROSODY IN BACKGROUND AND UPDATE PREVIEW
-                            async def apply_prosody(phrase_idx, audio_bytes, words, offset):
-                                try:
-                                    pros_results = {}
-                                    if models:
-                                        from pipeline.prosody_registry import get_active_analyzers
-                                        for analyzer in get_active_analyzers(models):
-                                            try:
-                                                res = await asyncio.to_thread(analyzer.analyze, audio_bytes, words)
-                                                pros_results[analyzer.name] = res
-                                            except Exception as e:
-                                                logger.debug(f"Live prosody analyzer '{analyzer.name}' failed: {e}")
-                                    
-                                    if pros_results:
-                                        updated = merge_chunk_results(
-                                            chunk_index=phrase_idx,
-                                            asr_result={"text": "", "words": words},
-                                            prosody_results=pros_results,
-                                            time_offset=offset,
-                                        )
-                                        updated.text = all_phrases[phrase_idx].text
-                                        all_phrases[phrase_idx] = updated
-                                        
-                                        clean = reconstruct_grammatical_phrases(all_phrases)
-                                        w_dump = [w.model_dump() for p in clean for w in p.words]
-                                        full = " ".join([p.text for p in clean])
-                                        await websocket.send_json({
-                                            "type": "incremental_words",
-                                            "replace_words": True,
-                                            "words": w_dump,
-                                            "text": full
-                                        })
-                                except Exception as e:
-                                    pass
-                            
-                            asyncio.create_task(apply_prosody(
-                                current_phrase_idx, 
-                                unprocessed_audio.copy(), 
-                                asr_result["words"], 
-                                slice_offset
-                            ))
+                            # Live preview skips prosody updating to maintain true rolling window speed
+                            pass
+                            pass
                         else:
-                            await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                            try:
+                                await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                            except Exception:
+                                pass
                     else:
-                        await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                        try:
+                            await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                        except Exception:
+                            pass
                 finally:
                     if slice_path and os.path.exists(slice_path):
                         try: os.remove(slice_path)
                         except Exception: pass
             except Exception as e:
                 logger.debug(f"Live VAD incremental decode failed: {e}")
-                await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                try:
+                    await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                except Exception:
+                    pass
 
         while True:
             message = await websocket.receive()
@@ -165,11 +139,7 @@ async def audio_websocket(websocket: WebSocket):
                 
                 # Single-Pass VAD streaming: check for natural speech pauses
                 try:
-                    import tempfile
-                    import os
-                    import soundfile as sf
-                    import librosa
-                    import torch
+
                     
                     tmp_path = None
                     try:
@@ -177,7 +147,8 @@ async def audio_websocket(websocket: WebSocket):
                             tmp.write(b"".join(audio_chunks))
                             tmp_path = tmp.name
                         
-                        audio_full, _ = librosa.load(tmp_path, sr=SAMPLE_RATE, mono=True)
+                        # Run librosa.load in a background thread to prevent O(N^2) event loop blocking
+                        audio_full, _ = await asyncio.to_thread(librosa.load, tmp_path, sr=SAMPLE_RATE, mono=True)
                         audio_unprocessed = audio_full[last_processed_sample_index : len(audio_full)]
                         
                         should_process = False
@@ -220,52 +191,72 @@ async def audio_websocket(websocket: WebSocket):
                                 last_processed_sample_index += end_sample_in_unprocessed
                                 vad_task = asyncio.create_task(process_vad(audio_slice, current_index))
                             else:
-                                await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                                # LIVE PREVIEW FELL BEHIND!
+                                # Advance the index anyway to prevent O(N^2) snowballing.
+                                # This drops the chunk from the live preview, ensuring the preview stays fast.
+                                logger.warning(f"Live preview skipping a {end_sample_in_unprocessed/SAMPLE_RATE:.1f}s chunk to maintain real-time speed.")
+                                last_processed_sample_index += end_sample_in_unprocessed
+                                try:
+                                    await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                                except Exception:
+                                    pass
                         else:
-                            await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                            try:
+                                await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                            except Exception:
+                                pass
                     finally:
                         if tmp_path and os.path.exists(tmp_path):
                             try: os.remove(tmp_path)
                             except Exception: pass
                 except Exception as e:
                     logger.debug(f"Live VAD incremental decode failed: {e}")
-                    await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                    try:
+                        await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                    except Exception:
+                        pass
             
             elif "text" in message:
-                import json
                 try:
                     msg = json.loads(message["text"])
                 except json.JSONDecodeError:
                     msg = {"type": message["text"]}
                 
                 if msg.get("type") == "stop":
-                    # Cancel any running VAD task
-                    if vad_task and not vad_task.done():
-                        vad_task.cancel()
+                    if not stop_handled:
+                        stop_handled = True
+                        # Cancel any running VAD task
+                        if vad_task and not vad_task.done():
+                            vad_task.cancel()
 
-                    # Save complete audio to disk
-                    filepath = await _save_audio(job_id, audio_chunks)
-                    
-                    if filepath:
-                        create_job(job_id, str(filepath))
+                        # Save complete audio to disk
+                        filepath = await _save_audio(job_id, audio_chunks)
                         
-                        logger.info(f"Recording stopped. Queued background job {job_id} for high-accuracy final processing.")
-                        await websocket.send_json({
-                            "type": "job_created",
-                            "job_id": job_id,
-                        })
-                    else:
-                        await websocket.send_json({
-                            "type": "error",
-                            "message": "Failed to save audio",
-                        })
-                    
+                        if filepath:
+                            create_job(job_id, str(filepath))
+                            logger.info(f"Recording stopped. Queued background job {job_id} for high-accuracy final processing.")
+                            try:
+                                await websocket.send_json({
+                                    "type": "job_created",
+                                    "job_id": job_id,
+                                })
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                await websocket.send_json({
+                                    "type": "error",
+                                    "message": "Failed to save audio",
+                                })
+                            except Exception:
+                                pass
                     break  # Close connection after stop
     
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected")
         # If we have audio but didn't get a stop signal, save anyway
-        if audio_chunks:
+        if audio_chunks and not stop_handled:
+            stop_handled = True
             filepath = await _save_audio(job_id, audio_chunks)
             if filepath:
                 create_job(job_id, str(filepath))

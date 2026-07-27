@@ -1,18 +1,25 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { getHttpUrl } from '../apiConfig'
 
 export function useJobPolling(jobId, onComplete) {
   const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState('queued')
   const [error, setError] = useState(null)
+  
+  const onCompleteRef = useRef(onComplete)
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+  }, [onComplete])
 
   useEffect(() => {
     if (!jobId) return
 
-    let pollInterval
     let isPolling = true
+    let timeoutId
 
     const pollJob = async () => {
+      if (!isPolling) return
+      
       try {
         const response = await fetch(getHttpUrl(`/api/jobs/${jobId}`), {
           headers: {
@@ -30,34 +37,37 @@ export function useJobPolling(jobId, onComplete) {
           setStatus(data.status)
           
           if (data.status === 'complete') {
-            clearInterval(pollInterval)
-            if (onComplete) {
-              onComplete(data.result)
+            if (onCompleteRef.current) {
+              onCompleteRef.current(data.result)
             }
+            return // Stop polling
           } else if (data.status === 'failed') {
-            clearInterval(pollInterval)
             setError(data.error || 'Job failed')
+            return // Stop polling
           }
         }
       } catch (err) {
         if (isPolling) {
           setError(err.message)
-          clearInterval(pollInterval)
+          return // Stop polling on error to prevent infinite loops
         }
+      }
+      
+      if (isPolling) {
+        // Schedule next poll only AFTER current request finishes
+        timeoutId = setTimeout(pollJob, 1000)
       }
     }
 
     // Initial poll
     pollJob()
-    
-    // Poll every 1 second
-    pollInterval = setInterval(pollJob, 1000)
 
     return () => {
       isPolling = false
-      clearInterval(pollInterval)
+      clearTimeout(timeoutId)
     }
-  }, [jobId, onComplete])
+  }, [jobId]) // Removed onComplete from dependencies
 
   return { progress, status, error }
 }
+
