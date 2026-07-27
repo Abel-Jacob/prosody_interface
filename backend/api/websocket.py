@@ -46,6 +46,79 @@ async def audio_websocket(websocket: WebSocket):
     job_id = str(uuid.uuid4())
     
     try:
+        vad_task = None
+
+        async def process_vad(unprocessed_audio, processed_index):
+            nonlocal all_phrases, last_prompt, last_processed_sample_index
+            try:
+                import tempfile
+                import os
+                import soundfile as sf
+                
+                slice_path = None
+                try:
+                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as stmp:
+                        sf.write(stmp.name, unprocessed_audio, SAMPLE_RATE)
+                        slice_path = stmp.name
+                    
+                    models = websocket.app.state.models
+                    asr_model = models.get("asr_preview") or models.get("asr_final") if models else None
+                    
+                    if asr_model:
+                        from pipeline.asr import transcribe_chunk
+                        asr_result = await asyncio.to_thread(
+                            transcribe_chunk,
+                            slice_path,
+                            asr_model,
+                            "en",
+                            last_prompt,
+                        )
+                        if asr_result.get("text"):
+                            last_prompt = asr_result["text"][-150:]
+                        
+                        prosody_results = {}
+                        if models:
+                            from pipeline.prosody_registry import get_active_analyzers
+                            for analyzer in get_active_analyzers(models):
+                                try:
+                                    res = await asyncio.to_thread(analyzer.analyze, unprocessed_audio, asr_result["words"])
+                                    prosody_results[analyzer.name] = res
+                                except Exception as e:
+                                    logger.debug(f"Live prosody analyzer '{analyzer.name}' failed: {e}")
+                        
+                        slice_offset = processed_index / float(SAMPLE_RATE)
+                        phrase = merge_chunk_results(
+                            chunk_index=len(all_phrases),
+                            asr_result=asr_result,
+                            prosody_results=prosody_results,
+                            time_offset=slice_offset,
+                        )
+                        
+                        if phrase.words:
+                            all_phrases.append(phrase)
+                            all_phrases = reconstruct_grammatical_phrases(all_phrases)
+                            all_words_dump = [w.model_dump() for p in all_phrases for w in p.words]
+                            full_text = " ".join([p.text for p in all_phrases])
+                            logger.info(f"Single-Pass VAD Phrase: '{full_text}' ({len(all_words_dump)} words)")
+                            await websocket.send_json({
+                                "type": "incremental_words",
+                                "replace_words": True,
+                                "words": all_words_dump,
+                                "text": full_text
+                            })
+                            last_processed_sample_index += len(unprocessed_audio)
+                        else:
+                            await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                    else:
+                        await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+                finally:
+                    if slice_path and os.path.exists(slice_path):
+                        try: os.remove(slice_path)
+                        except Exception: pass
+            except Exception as e:
+                logger.debug(f"Live VAD incremental decode failed: {e}")
+                await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
+
         while True:
             message = await websocket.receive()
             
@@ -103,68 +176,14 @@ async def audio_websocket(websocket: WebSocket):
                                     end_sample_in_unprocessed = len(audio_unprocessed)
                         
                         if should_process and end_sample_in_unprocessed > 0:
-                            audio_slice = audio_unprocessed[0 : end_sample_in_unprocessed]
-                            slice_offset = last_processed_sample_index / float(SAMPLE_RATE)
-                            
-                            slice_path = None
-                            try:
-                                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as stmp:
-                                    sf.write(stmp.name, audio_slice, SAMPLE_RATE)
-                                    slice_path = stmp.name
-                                
-                                models = websocket.app.state.models
-                                asr_model = models.get("asr_preview") or models.get("asr_final") if models else None
-                                
-                                if asr_model:
-                                    from pipeline.asr import transcribe_chunk
-                                    asr_result = await asyncio.to_thread(
-                                        transcribe_chunk,
-                                        slice_path,
-                                        asr_model,
-                                        "en",
-                                        last_prompt,
-                                    )
-                                    if asr_result.get("text"):
-                                        last_prompt = asr_result["text"][-150:]
-                                    
-                                    prosody_results = {}
-                                    if models:
-                                        from pipeline.prosody_registry import get_active_analyzers
-                                        for analyzer in get_active_analyzers(models):
-                                            try:
-                                                res = await asyncio.to_thread(analyzer.analyze, audio_slice, asr_result["words"])
-                                                prosody_results[analyzer.name] = res
-                                            except Exception as e:
-                                                logger.debug(f"Live prosody analyzer '{analyzer.name}' failed: {e}")
-                                    
-                                    phrase = merge_chunk_results(
-                                        chunk_index=len(all_phrases),
-                                        asr_result=asr_result,
-                                        prosody_results=prosody_results,
-                                        time_offset=slice_offset,
-                                    )
-                                    
-                                    if phrase.words:
-                                        all_phrases.append(phrase)
-                                        all_phrases = reconstruct_grammatical_phrases(all_phrases)
-                                        all_words_dump = [w.model_dump() for p in all_phrases for w in p.words]
-                                        full_text = " ".join([p.text for p in all_phrases])
-                                        logger.info(f"Single-Pass VAD Phrase: '{full_text}' ({len(all_words_dump)} words)")
-                                        await websocket.send_json({
-                                            "type": "incremental_words",
-                                            "replace_words": True,
-                                            "words": all_words_dump,
-                                            "text": full_text
-                                        })
-                                        last_processed_sample_index += end_sample_in_unprocessed
-                                    else:
-                                        await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
-                                else:
-                                    await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
-                            finally:
-                                if slice_path and os.path.exists(slice_path):
-                                    try: os.remove(slice_path)
-                                    except Exception: pass
+                            # Only spawn a new VAD task if one isn't currently running
+                            # This prevents the CPU from backing up and blocking the main thread
+                            if vad_task is None or vad_task.done():
+                                audio_slice = audio_unprocessed[0 : end_sample_in_unprocessed]
+                                current_index = last_processed_sample_index
+                                vad_task = asyncio.create_task(process_vad(audio_slice, current_index))
+                            else:
+                                await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
                         else:
                             await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
                     finally:
@@ -183,70 +202,9 @@ async def audio_websocket(websocket: WebSocket):
                     msg = {"type": message["text"]}
                 
                 if msg.get("type") == "stop":
-                    # Check if there is remaining unprocessed audio at stop
-                    try:
-                        import tempfile
-                        import os
-                        import soundfile as sf
-                        import librosa
-                        
-                        tmp_path = None
-                        try:
-                            with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
-                                tmp.write(b"".join(audio_chunks))
-                                tmp_path = tmp.name
-                            
-                            audio_full, _ = librosa.load(tmp_path, sr=SAMPLE_RATE, mono=True)
-                            audio_unprocessed = audio_full[last_processed_sample_index : len(audio_full)]
-                            
-                            if len(audio_unprocessed) >= int(0.2 * SAMPLE_RATE):
-                                slice_offset = last_processed_sample_index / float(SAMPLE_RATE)
-                                slice_path = None
-                                try:
-                                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as stmp:
-                                        sf.write(stmp.name, audio_unprocessed, SAMPLE_RATE)
-                                        slice_path = stmp.name
-                                    
-                                    models = websocket.app.state.models
-                                    asr_model = models.get("asr_final") or models.get("asr_preview") if models else None
-                                    if asr_model:
-                                        from pipeline.asr import transcribe_chunk
-                                        asr_result = await asyncio.to_thread(transcribe_chunk, slice_path, asr_model, "en", last_prompt)
-                                        if asr_result.get("text"):
-                                            last_prompt = asr_result["text"][-150:]
-                                        
-                                        prosody_results = {}
-                                        if models:
-                                            from pipeline.prosody_registry import get_active_analyzers
-                                            for analyzer in get_active_analyzers(models):
-                                                try:
-                                                    res = await asyncio.to_thread(analyzer.analyze, audio_unprocessed, asr_result["words"])
-                                                    prosody_results[analyzer.name] = res
-                                                except Exception:
-                                                    pass
-                                        
-                                        phrase = merge_chunk_results(len(all_phrases), asr_result, prosody_results, slice_offset)
-                                        if phrase.words:
-                                            all_phrases.append(phrase)
-                                            all_phrases = reconstruct_grammatical_phrases(all_phrases)
-                                            all_words_dump = [w.model_dump() for p in all_phrases for w in p.words]
-                                            full_text = " ".join([p.text for p in all_phrases])
-                                            await websocket.send_json({
-                                                "type": "incremental_words",
-                                                "replace_words": True,
-                                                "words": all_words_dump,
-                                                "text": full_text
-                                            })
-                                finally:
-                                    if slice_path and os.path.exists(slice_path):
-                                        try: os.remove(slice_path)
-                                        except Exception: pass
-                        finally:
-                            if tmp_path and os.path.exists(tmp_path):
-                                try: os.remove(tmp_path)
-                                except Exception: pass
-                    except Exception as fe:
-                        logger.debug(f"Final slice processing failed: {fe}")
+                    # Cancel any running VAD task
+                    if vad_task and not vad_task.done():
+                        vad_task.cancel()
 
                     # Save complete audio to disk
                     filepath = await _save_audio(job_id, audio_chunks)
