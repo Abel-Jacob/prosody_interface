@@ -117,59 +117,58 @@ async def audio_websocket(websocket: WebSocket):
                 if asr_result.get("text"):
                     last_prompt = asr_result["text"][-150:]
                     
-                # 4. Filter words to prevent duplication and cut-off
+                # 4. Run Stress Analyzer on the FULL window with FULL words
+                pros_results = {}
+                start_stress = time.time()
+                try:
+                    from pipeline.prosody_registry import get_active_analyzers
+                    for analyzer in get_active_analyzers(models):
+                        if analyzer.name == "stress" and asr_result.get("words"):
+                            res = await asyncio.to_thread(analyzer.analyze, audio_window, asr_result["words"])
+                            pros_results[analyzer.name] = res
+                except Exception as e:
+                    logger.error(f"Live stress analyzer failed: {e}")
+                stress_duration = time.time() - start_stress
+                
+                # 5. Merge results for the FULL window
+                full_phrase = merge_chunk_results(0, asr_result, pros_results, 0.0)
+                
+                # 6. Filter valid words to prevent duplication and cut-off
                 threshold_sec = (last_yielded_idx - window_start_idx) / float(SAMPLE_RATE)
-                # Ensure we don't accept words that are too close to the edge (0.5s margin)
-                # unless we are near the very end of a short file where the window is small
                 safe_end_sec = (len(audio_window) / float(SAMPLE_RATE)) - 0.4
                 
                 valid_words = []
-                if asr_result.get("words"):
-                    for w in asr_result["words"]:
-                        if w["start"] >= threshold_sec and w["end"] <= safe_end_sec:
-                            valid_words.append(w)
+                for w in full_phrase.words:
+                    if w.start >= threshold_sec and w.end <= safe_end_sec:
+                        valid_words.append(w)
                             
                 if not valid_words:
                     # If we've processed a lot of silence, force advance to prevent endless silence processing
                     if len(full_pcm) - last_yielded_idx > 5 * SAMPLE_RATE:
                         last_yielded_idx = len(full_pcm) - int(2.0 * SAMPLE_RATE)
                     return
-                    
-                # 5. Run Stress Analyzer
-                pros_results = {}
-                start_stress = time.time()
-                try:
-                    from pipeline.prosody_registry import get_active_analyzers
-                    for analyzer in get_active_analyzers(models):
-                        if analyzer.name == "stress":
-                            # We only care about stress for the new valid words
-                            res = await asyncio.to_thread(analyzer.analyze, audio_window, valid_words)
-                            pros_results[analyzer.name] = res
-                except Exception as e:
-                    logger.error(f"Live stress analyzer failed: {e}")
-                stress_duration = time.time() - start_stress
                 
-                # 6. Merge results and send
-                phrase = merge_chunk_results(0, {"text": " ".join(w["word"] for w in valid_words), "words": valid_words}, pros_results, 0.0)
+                # 7. Construct payload and send
+                phrase_text = " ".join([w.word for w in valid_words])
+                w_dump = [w.model_dump() for w in valid_words]
                 
-                w_dump = [w.model_dump() for w in phrase.words]
                 from datetime import datetime
                 now_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-                stress_vals = [w.stress for w in phrase.words if hasattr(w, 'stress')]
+                stress_vals = [w.stress_score for w in valid_words]
                 
                 logger.info(f"[{now_str}] WINDOW STATS: len={len(audio_window)/SAMPLE_RATE:.2f}s | ASR={asr_duration:.2f}s | STRESS={stress_duration:.2f}s | NEW_WORDS={len(valid_words)}")
-                logger.info(f"[{now_str}] Live ASR (Instant): '{phrase.text}' | STRESS={stress_vals}")
+                logger.info(f"[{now_str}] Live ASR (Instant): '{phrase_text}' | STRESS={stress_vals}")
                 
                 payload = {
                     "type": "incremental_words",
                     "replace_words": False,
                     "words": w_dump,
-                    "text": phrase.text
+                    "text": phrase_text
                 }
                 await websocket.send_json(payload)
                 
-                # 7. Advance yielded index exactly to the end of the last word
-                last_yielded_idx = window_start_idx + int(valid_words[-1]["end"] * SAMPLE_RATE)
+                # 8. Advance yielded index exactly to the end of the last word
+                last_yielded_idx = window_start_idx + int(valid_words[-1].end * SAMPLE_RATE)
                 
             except Exception as e:
                 logger.error(f"Live window processing failed: {e}", exc_info=True)
