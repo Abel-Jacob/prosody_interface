@@ -76,30 +76,26 @@ async def audio_websocket(websocket: WebSocket):
                         if asr_result.get("text"):
                             last_prompt = asr_result["text"][-150:]
                         
-                        prosody_results = {}
-                        if models:
-                            from pipeline.prosody_registry import get_active_analyzers
-                            for analyzer in get_active_analyzers(models):
-                                try:
-                                    res = await asyncio.to_thread(analyzer.analyze, unprocessed_audio, asr_result["words"])
-                                    prosody_results[analyzer.name] = res
-                                except Exception as e:
-                                    logger.debug(f"Live prosody analyzer '{analyzer.name}' failed: {e}")
-                        
                         slice_offset = processed_index / float(SAMPLE_RATE)
+                        
+                        # 1. SEND INSTANT ASR PREVIEW (Without stress)
                         phrase = merge_chunk_results(
                             chunk_index=len(all_phrases),
                             asr_result=asr_result,
-                            prosody_results=prosody_results,
+                            prosody_results={},
                             time_offset=slice_offset,
                         )
                         
                         if phrase.words:
+                            # Save the index where this phrase is inserted
+                            current_phrase_idx = len(all_phrases)
                             all_phrases.append(phrase)
-                            all_phrases = reconstruct_grammatical_phrases(all_phrases)
-                            all_words_dump = [w.model_dump() for p in all_phrases for w in p.words]
-                            full_text = " ".join([p.text for p in all_phrases])
-                            logger.info(f"Single-Pass VAD Phrase: '{full_text}' ({len(all_words_dump)} words)")
+                            
+                            # Clean grammar and send to frontend immediately
+                            clean_phrases = reconstruct_grammatical_phrases(all_phrases)
+                            all_words_dump = [w.model_dump() for p in clean_phrases for w in p.words]
+                            full_text = " ".join([p.text for p in clean_phrases])
+                            logger.info(f"Live ASR (Instant): '{full_text}' ({len(all_words_dump)} words)")
                             await websocket.send_json({
                                 "type": "incremental_words",
                                 "replace_words": True,
@@ -107,6 +103,39 @@ async def audio_websocket(websocket: WebSocket):
                                 "text": full_text
                             })
                             last_processed_sample_index += len(unprocessed_audio)
+                            
+                            # 2. RUN PROSODY IN BACKGROUND AND UPDATE PREVIEW
+                            prosody_results = {}
+                            if models:
+                                from pipeline.prosody_registry import get_active_analyzers
+                                for analyzer in get_active_analyzers(models):
+                                    try:
+                                        res = await asyncio.to_thread(analyzer.analyze, unprocessed_audio, asr_result["words"])
+                                        prosody_results[analyzer.name] = res
+                                    except Exception as e:
+                                        logger.debug(f"Live prosody analyzer '{analyzer.name}' failed: {e}")
+                            
+                            if prosody_results:
+                                # Update the phrase with stress data
+                                updated_phrase = merge_chunk_results(
+                                    chunk_index=current_phrase_idx,
+                                    asr_result=asr_result,
+                                    prosody_results=prosody_results,
+                                    time_offset=slice_offset,
+                                )
+                                # Replace the old phrase
+                                all_phrases[current_phrase_idx] = updated_phrase
+                                
+                                # Clean and send updated words to frontend
+                                clean_phrases = reconstruct_grammatical_phrases(all_phrases)
+                                all_words_dump = [w.model_dump() for p in clean_phrases for w in p.words]
+                                await websocket.send_json({
+                                    "type": "incremental_words",
+                                    "replace_words": True,
+                                    "words": all_words_dump,
+                                    "text": full_text
+                                })
+                                logger.info("Live Prosody (Delayed): Stress applied to UI.")
                         else:
                             await websocket.send_json({"type": "preview_ack", "chunks_received": len(audio_chunks)})
                     else:
