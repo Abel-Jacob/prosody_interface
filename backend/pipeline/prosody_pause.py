@@ -16,8 +16,18 @@ logger = logging.getLogger(__name__)
 HESITATION_WORDS = {"um", "umm", "uh", "uhh", "ah", "ahh", "er", "erm"}
 
 class PauseAnalyzer(ProsodyAnalyzer):
-    def __init__(self, name: str = "pause"):
-        super().__init__(name)
+    """Timestamp-based pause and hesitation detection."""
+
+    name = "pause"
+
+    def __init__(self):
+        self.client = None
+
+    def setup(self, models: dict) -> None:
+        """No model needed — pause detection is purely timestamp-based."""
+        # Pause detection doesn't require any ML model.
+        # It uses the word-level timestamps from faster-whisper.
+        logger.info("PauseAnalyzer initialized (no model required)")
 
     def analyze(self, audio: np.ndarray, words: list[dict]) -> dict:
         """

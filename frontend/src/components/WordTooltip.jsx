@@ -58,6 +58,20 @@ export default function WordTooltip({ wordData, wordRef, onClose }) {
             <span className="tooltip-value" style={{ color: 'var(--accent)' }}>Stressed</span>
           </div>
         )}
+        {wordData.pause_after > 0 && (
+          <div className="tooltip-row">
+            <span className="tooltip-label">Pause After:</span>
+            <span className="tooltip-value" style={{ color: wordData.pause_after > 0.5 ? '#f97316' : 'inherit' }}>
+              {wordData.pause_after.toFixed(2)}s
+            </span>
+          </div>
+        )}
+        {wordData.is_hesitation && (
+          <div className="tooltip-row">
+            <span className="tooltip-label">Hesitation:</span>
+            <span className="tooltip-value" style={{ color: '#eab308', fontStyle: 'italic' }}>Filler word</span>
+          </div>
+        )}
       </div>
     </div>
   );

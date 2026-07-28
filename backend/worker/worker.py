@@ -130,6 +130,7 @@ class Worker:
                         res = await asyncio.to_thread(
                             analyzer.analyze, sentence_audio, [w.model_dump() for w in phrase.words]
                         )
+                        # Apply stress results
                         if "word_stress" in res:
                             from pipeline.merge import _find_stress_match
                             for i, w in enumerate(phrase.words):
@@ -137,6 +138,13 @@ class Worker:
                                 if match:
                                     w.stressed = match["stressed"]
                                     w.stress_score = match.get("stress_score", 1.0 if match["stressed"] else 0.0)
+                        # Apply pause & hesitation results
+                        if "word_pauses" in res:
+                            pause_words = res["word_pauses"]
+                            for i, w in enumerate(phrase.words):
+                                if i < len(pause_words):
+                                    w.pause_after = pause_words[i].get("pause_after", 0.0)
+                                    w.is_hesitation = pause_words[i].get("is_hesitation", False)
                     except Exception as ae:
                         logger.warning(f"Job {job_id}: analyzer '{analyzer.name}' failed on sentence {idx+1}: {ae}")
 
