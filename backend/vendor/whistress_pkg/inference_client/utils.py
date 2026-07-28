@@ -94,11 +94,12 @@ def prepare_audio(audio, target_sr=16000):
     sr = audio["sampling_rate"]
     y = audio["array"]
     y = np.array(y, dtype=float)
-    y_resampled = librosa.resample(y, orig_sr=sr, target_sr=target_sr)
+    if sr != target_sr:
+        y = librosa.resample(y, orig_sr=sr, target_sr=target_sr)
     # The audio is already bounded to [-1, 1] from the ffmpeg pipeline.
     # We DO NOT peak-normalize here, because aggressively boosting quiet segments
     # destroys the natural amplitude features that the stress model relies on!
-    return y_resampled
+    return y
 
 
 def merge_stressed_tokens(tokens_with_stress):

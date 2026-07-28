@@ -88,3 +88,30 @@ def load_all_models() -> dict:
     logger.info(f"Model loading complete. Loaded: {loaded}. Failed: {failed}")
 
     return models
+
+def warmup_models(models: dict):
+    """Run a dummy forward pass to force CUDA memory allocation and cuDNN benchmarking."""
+    import numpy as np
+    import time
+    logger.info("=" * 50)
+    logger.info("Warming up models to prevent first-request latency spike...")
+    
+    dummy_audio = np.zeros(16000 * 2, dtype=np.float32)
+    start = time.time()
+    
+    if models.get("asr_preview"):
+        try:
+            list(models["asr_preview"].transcribe(dummy_audio, language="en"))
+        except: pass
+    
+    if models.get("whistress"):
+        try:
+            audio_dict = {"array": dummy_audio, "sampling_rate": 16000}
+            models["whistress"].predict(audio_dict, transcription="hello world", return_pairs=True)
+            # Run twice to ensure full CUDA initialization
+            models["whistress"].predict(audio_dict, transcription="hello world", return_pairs=True)
+        except Exception as e:
+            logger.error(f"WhiStress warmup failed: {e}")
+            
+    logger.info(f"Warmup complete in {time.time() - start:.2f}s")
+
