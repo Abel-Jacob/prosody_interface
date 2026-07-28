@@ -25,6 +25,7 @@ class WordResult(BaseModel):
     confidence: float = Field(default=1.0, description="ASR confidence 0-1")
     stressed: bool = Field(default=False, description="Whether word is stressed")
     stress_score: float = Field(default=0.0, description="Stress probability 0-1")
+    pause_after: float = Field(default=0.0, description="Seconds of pause after this word")
 
 
 class PhraseResult(BaseModel):
@@ -73,3 +74,4 @@ class LivePreviewWord(BaseModel):
     confidence: float = 1.0
     start: Optional[float] = None
     end: Optional[float] = None
+    pause_after: float = 0.0

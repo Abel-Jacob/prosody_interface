@@ -40,14 +40,43 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
     setInspectedWord({ data: w, ref: wordRef })
   }
 
+  const renderPause = (pauseVal) => {
+    if (!pauseVal || pauseVal < 0.3) return null
+    
+    // Scale dot size and opacity based on pause length
+    let size = '3px'
+    let opacity = 0.3
+    if (pauseVal > 1.2) { size = '7px'; opacity = 0.8 }
+    else if (pauseVal > 0.6) { size = '5px'; opacity = 0.5 }
+    
+    return (
+      <span style={{
+        display: 'inline-block',
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        backgroundColor: 'var(--accent)',
+        opacity: opacity,
+        marginLeft: '4px',
+        marginRight: '2px',
+        verticalAlign: 'middle',
+        transition: 'all 0.2s ease',
+        boxShadow: `0 0 8px var(--accent-dim)`
+      }} title={`Pause: ${pauseVal.toFixed(2)}s`} />
+    )
+  }
+
   return (
-    <span
-      ref={wordRef}
-      onClick={handleClick}
-      style={{ ...baseStyle, ...stressedStyle }}
-    >
-      {w.word}
-    </span>
+    <React.Fragment>
+      <span
+        ref={wordRef}
+        onClick={handleClick}
+        style={{ ...baseStyle, ...stressedStyle }}
+      >
+        {w.word}
+      </span>
+      {renderPause(w.pause_after)}
+    </React.Fragment>
   )
 }
 

@@ -15,6 +15,7 @@ from typing import Optional
 
 from pipeline.prosody_base import ProsodyAnalyzer
 from pipeline.prosody_stress import StressAnalyzer
+from pipeline.prosody_pause import PauseAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +24,9 @@ logger = logging.getLogger(__name__)
 # Order matters: they run in this sequence per chunk.
 ANALYZER_CLASSES: list[type[ProsodyAnalyzer]] = [
     StressAnalyzer,
+    PauseAnalyzer,
     # Future modules:
     # IntonationAnalyzer,   # librosa.pyin F0 extraction
-    # PauseAnalyzer,        # gap detection from VAD boundaries
     # RhythmAnalyzer,       # inter-word timing statistics
 ]
 

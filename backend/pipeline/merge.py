@@ -59,6 +59,14 @@ def merge_chunk_results(
             word.stressed = stress_match["stressed"]
             word.stress_score = stress_match.get("stress_score", 1.0 if stress_match["stressed"] else 0.0)
 
+        # Apply pause data if available
+        pause_data = prosody_results.get("pause", {})
+        word_pauses = pause_data.get("word_pauses", [])
+        for p in word_pauses:
+            if p["word_index"] == i:
+                word.pause_after = p["pause_length"]
+                break
+
         merged_words.append(word)
 
     # Compute phrase timing

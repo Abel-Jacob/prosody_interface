@@ -126,7 +126,7 @@ async def audio_websocket(websocket: WebSocket):
                 try:
                     from pipeline.prosody_registry import get_active_analyzers
                     for analyzer in get_active_analyzers(models):
-                        if analyzer.name == "stress" and asr_result.get("words"):
+                        if (analyzer.name == "stress" or analyzer.name == "pause") and asr_result.get("words"):
                             res = await asyncio.to_thread(analyzer.analyze, audio_window, asr_result["words"])
                             pros_results[analyzer.name] = res
                 except Exception as e:
