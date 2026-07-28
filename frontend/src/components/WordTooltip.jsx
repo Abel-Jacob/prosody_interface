@@ -66,12 +66,6 @@ export default function WordTooltip({ wordData, wordRef, onClose }) {
             </span>
           </div>
         )}
-        {wordData.is_hesitation && (
-          <div className="tooltip-row">
-            <span className="tooltip-label">Hesitation:</span>
-            <span className="tooltip-value" style={{ color: '#eab308', fontStyle: 'italic' }}>Filler word</span>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -1,6 +1,29 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import WordTooltip from './WordTooltip'
+
+/**
+ * Pre-process a phrase's word list:
+ * - Absorb hesitation words (um, uh, etc.) into the previous word's pause.
+ *   The total pause = gap before filler + filler duration + gap after filler.
+ * - Returns a new array with hesitation words removed.
+ */
+function preprocessWords(words) {
+  const result = []
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i]
+    if (w.is_hesitation && result.length > 0) {
+      // Merge this filler's entire span into the previous word's pause
+      const prev = result[result.length - 1]
+      const fillerDuration = (w.end || 0) - (w.start || 0)
+      prev.pause_after = (prev.pause_after || 0) + fillerDuration + (w.pause_after || 0)
+      continue // skip rendering this word
+    }
+    // Clone to avoid mutating original data
+    result.push({ ...w })
+  }
+  return result
+}
 
 // Helper component to render each word and its ref
 function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
@@ -34,29 +57,34 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
     letterSpacing: '0.04em',
     textShadow: '0 0 12px var(--accent-dim)'
   } : {}
-  
-  const hesitationStyle = w.is_hesitation ? {
-    color: '#eab308', // Amber/Yellow for hesitation
-    fontStyle: 'italic',
-    opacity: 0.8
-  } : {}
 
   const handleClick = (e) => {
-    e.stopPropagation() // Feature 3: Prevent canvas click from dismissing immediately
+    e.stopPropagation()
     setInspectedWord({ data: w, ref: wordRef })
   }
+
+  // Determine pause visualization
+  const pauseVal = w.pause_after || 0
+  const showTimePill = pauseVal > 0.5 && !isLast
+  const showComma = !showTimePill && pauseVal >= 0.2 && pauseVal <= 0.5 && !isLast
+
+  // If this word doesn't already end with punctuation and needs a micro-pause comma,
+  // append it to the displayed text
+  const wordText = w.word
+  const alreadyHasPunct = /[.,!?;:]$/.test(wordText)
+  const displayWord = (showComma && !alreadyHasPunct) ? wordText + ',' : wordText
 
   return (
     <React.Fragment>
       <span
         ref={wordRef}
         onClick={handleClick}
-        style={{ ...baseStyle, ...stressedStyle, ...hesitationStyle }}
+        style={{ ...baseStyle, ...stressedStyle }}
       >
-        {w.word}
+        {displayWord}
       </span>
-      {/* Option 1: The "Time-Pill" Badge */}
-      {w.pause_after > 0.5 && !isLast && (
+      {/* Time-pill badge for significant pauses (>0.5s) */}
+      {showTimePill && (
         <span style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -73,7 +101,7 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
           verticalAlign: 'middle',
           fontFamily: 'monospace'
         }}>
-          {w.pause_after.toFixed(1)}s
+          {pauseVal.toFixed(1)}s
         </span>
       )}
     </React.Fragment>
@@ -87,11 +115,19 @@ export default function SummaryState({ result, onReset }) {
   if (!result) return null
 
   const phrases = result.phrases || []
+
+  // Pre-process: absorb hesitation words into pauses for each phrase
+  const processedPhrases = useMemo(() => {
+    return phrases.map(p => ({
+      ...p,
+      words: preprocessWords(p.words)
+    }))
+  }, [phrases])
   
-  // Feature 4: Calculate total average confidence
+  // Feature 4: Calculate total average confidence (from processed words)
   let wordCount = 0;
   let totalConfidence = 0;
-  phrases.forEach(p => {
+  processedPhrases.forEach(p => {
     p.words.forEach(w => {
       wordCount++;
       totalConfidence += (w.confidence !== undefined ? w.confidence : 1);
@@ -145,7 +181,7 @@ export default function SummaryState({ result, onReset }) {
           color: 'var(--text-primary)',
           fontFamily: 'var(--font-primary)'
         }}>
-          {phrases.map((phrase, pIndex) => (
+          {processedPhrases.map((phrase, pIndex) => (
             <div key={pIndex} style={{ marginBottom: '1.2rem' }}>
               {phrase.words.map((w, wIndex) => (
                 <TranscribedWord 
@@ -245,8 +281,8 @@ export default function SummaryState({ result, onReset }) {
             <span>indicates ASR score</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: '#eab308', fontStyle: 'italic', fontWeight: 'bold' }}>italic</span>
-            <span>indicates hesitation (um/uh)</span>
+            <span style={{ color: 'var(--text-muted)' }}>,</span>
+            <span>indicates micro pause (0.2–0.5s)</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{
@@ -254,7 +290,7 @@ export default function SummaryState({ result, onReset }) {
               fontSize: '0.65rem', color: 'var(--text-faded)', backgroundColor: 'rgba(255,255,255,0.05)',
               border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '0 6px', height: '18px', fontFamily: 'monospace'
             }}>0.8s</span>
-            <span>indicates silent pause &gt; 0.5s</span>
+            <span>indicates pause &gt; 0.5s</span>
           </div>
         </div>
 
