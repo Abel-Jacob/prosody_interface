@@ -34,36 +34,16 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
     letterSpacing: '0.04em',
     textShadow: '0 0 12px var(--accent-dim)'
   } : {}
+  
+  const hesitationStyle = w.is_hesitation ? {
+    color: '#eab308', // Amber/Yellow for hesitation
+    fontStyle: 'italic',
+    opacity: 0.8
+  } : {}
 
   const handleClick = (e) => {
     e.stopPropagation() // Feature 3: Prevent canvas click from dismissing immediately
     setInspectedWord({ data: w, ref: wordRef })
-  }
-
-  const renderPause = (pauseVal) => {
-    if (!pauseVal || pauseVal < 0.3) return null
-    
-    // Scale dot size and opacity based on pause length
-    let size = '3px'
-    let opacity = 0.3
-    if (pauseVal > 1.2) { size = '7px'; opacity = 0.8 }
-    else if (pauseVal > 0.6) { size = '5px'; opacity = 0.5 }
-    
-    return (
-      <span style={{
-        display: 'inline-block',
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        backgroundColor: 'var(--accent)',
-        opacity: opacity,
-        marginLeft: '4px',
-        marginRight: '2px',
-        verticalAlign: 'middle',
-        transition: 'all 0.2s ease',
-        boxShadow: `0 0 8px var(--accent-dim)`
-      }} title={`Pause: ${pauseVal.toFixed(2)}s`} />
-    )
   }
 
   return (
@@ -71,11 +51,31 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
       <span
         ref={wordRef}
         onClick={handleClick}
-        style={{ ...baseStyle, ...stressedStyle }}
+        style={{ ...baseStyle, ...stressedStyle, ...hesitationStyle }}
       >
         {w.word}
       </span>
-      {renderPause(w.pause_after)}
+      {/* Option 1: The "Time-Pill" Badge */}
+      {w.pause_after > 0.5 && !isLast && (
+        <span style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '0.65rem',
+          color: 'var(--text-faded)',
+          backgroundColor: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '12px',
+          padding: '0 6px',
+          height: '18px',
+          marginRight: '0.35rem',
+          marginLeft: '0.1rem',
+          verticalAlign: 'middle',
+          fontFamily: 'monospace'
+        }}>
+          {w.pause_after.toFixed(1)}s
+        </span>
+      )}
     </React.Fragment>
   )
 }
@@ -233,8 +233,8 @@ export default function SummaryState({ result, onReset }) {
 
         {/* Legend */}
         <div style={{
-          display: 'flex', justifyContent: 'center', gap: '2rem', marginTop: '0.5rem', 
-          fontSize: '0.75rem', color: 'var(--text-muted)', width: '100%'
+          display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '0.5rem', 
+          fontSize: '0.75rem', color: 'var(--text-muted)', width: '100%', flexWrap: 'wrap'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ color: 'var(--accent)', fontWeight: 'bold', letterSpacing: '0.04em' }}>CAPS</span>
@@ -243,6 +243,18 @@ export default function SummaryState({ result, onReset }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ filter: 'blur(2px)', color: 'var(--text-faded)', fontWeight: 'bold' }}>blur</span>
             <span>indicates ASR score</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ color: '#eab308', fontStyle: 'italic', fontWeight: 'bold' }}>italic</span>
+            <span>indicates hesitation (um/uh)</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.65rem', color: 'var(--text-faded)', backgroundColor: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '0 6px', height: '18px', fontFamily: 'monospace'
+            }}>0.8s</span>
+            <span>indicates silent pause > 0.5s</span>
           </div>
         </div>
 

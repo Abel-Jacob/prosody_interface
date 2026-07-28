@@ -41,6 +41,9 @@ def merge_chunk_results(
     stress_data = prosody_results.get("stress", {})
     stress_words = stress_data.get("word_stress", [])
 
+    pause_data = prosody_results.get("pause", {})
+    pause_words = pause_data.get("word_pauses", [])
+
     # Build merged word list with absolute timestamps
     merged_words = []
     for i, asr_word in enumerate(asr_words):
@@ -51,6 +54,8 @@ def merge_chunk_results(
             confidence=asr_word.get("confidence", 1.0),
             stressed=False,
             stress_score=0.0,
+            pause_after=0.0,
+            is_hesitation=False,
         )
 
         # Try to match stress data by index or fuzzy word match
@@ -58,14 +63,11 @@ def merge_chunk_results(
         if stress_match:
             word.stressed = stress_match["stressed"]
             word.stress_score = stress_match.get("stress_score", 1.0 if stress_match["stressed"] else 0.0)
-
-        # Apply pause data if available
-        pause_data = prosody_results.get("pause", {})
-        word_pauses = pause_data.get("word_pauses", [])
-        for p in word_pauses:
-            if p["word_index"] == i:
-                word.pause_after = p["pause_length"]
-                break
+            
+        # Add pause data (index match is safe here since it uses the exact same words array)
+        if i < len(pause_words):
+            word.pause_after = pause_words[i].get("pause_after", 0.0)
+            word.is_hesitation = pause_words[i].get("is_hesitation", False)
 
         merged_words.append(word)
 

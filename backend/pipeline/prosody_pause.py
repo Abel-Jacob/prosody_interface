@@ -1,39 +1,56 @@
+"""
+Pause & Hesitation Analyzer
+
+Analyzes a chunk of words to detect:
+1. Silent gaps between words (pause duration)
+2. Vocalized hesitations (e.g. um, uh, ah)
+"""
+
+import logging
 import numpy as np
+
 from pipeline.prosody_base import ProsodyAnalyzer
 
+logger = logging.getLogger(__name__)
+
+HESITATION_WORDS = {"um", "umm", "uh", "uhh", "ah", "ahh", "er", "erm"}
+
 class PauseAnalyzer(ProsodyAnalyzer):
-    """
-    Detects pauses between words using Whisper's highly accurate word-level timestamps.
-    This runs at blazing speed with zero model overhead.
-    """
-    
-    name = "pause"
+    def __init__(self, name: str = "pause"):
+        super().__init__(name)
 
-    def setup(self, models: dict) -> None:
-        # No extra models needed for timestamp-based gap calculation
-        pass
+    def analyze(self, audio: np.ndarray, words: list[dict]) -> dict:
+        """
+        Calculates pauses between words and detects hesitations.
 
-    def analyze(self, audio_chunk: np.ndarray, words: list[dict]) -> dict:
+        Args:
+            audio: Full chunk audio (not used for this analyzer, relies on timestamps)
+            words: List of dicts with 'word', 'start', 'end'
+
+        Returns:
+            dict containing list of words with pause and hesitation data
         """
-        Calculates the gap between the end of word[i] and the start of word[i+1].
-        """
-        pauses = []
+        results = []
         
-        # We need at least 2 words to measure a gap
-        if len(words) >= 2:
-            for i in range(len(words) - 1):
-                current_word = words[i]
-                next_word = words[i+1]
-                
-                # Gap calculation
-                gap = next_word["start"] - current_word["end"]
-                
-                # We can enforce a minimum threshold if we want, or just return everything
-                # and let the frontend decide. Let's return any gap > 0 for accuracy.
+        for i, word_data in enumerate(words):
+            word_text = word_data["word"]
+            clean_word = word_text.strip().lower().rstrip(".,?!:;\"'")
+            
+            is_hesitation = clean_word in HESITATION_WORDS
+            
+            # Calculate pause after this word
+            pause_after = 0.0
+            if i < len(words) - 1:
+                next_word = words[i + 1]
+                # Whisper timestamps can sometimes slightly overlap or be negative gap
+                gap = next_word["start"] - word_data["end"]
                 if gap > 0:
-                    pauses.append({
-                        "word_index": i,
-                        "pause_length": round(gap, 3)
-                    })
-                    
-        return {"word_pauses": pauses}
+                    pause_after = round(gap, 3)
+            
+            results.append({
+                "word": word_text,
+                "pause_after": pause_after,
+                "is_hesitation": is_hesitation
+            })
+            
+        return {"word_pauses": results}
