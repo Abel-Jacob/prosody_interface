@@ -183,6 +183,10 @@ async def audio_websocket(websocket: WebSocket):
         while True:
             message = await websocket.receive()
             
+            if message.get("type") == "websocket.disconnect":
+                logger.info("Client disconnected normally.")
+                break
+                
             if "bytes" in message:
                 # Audio chunk received — accumulate it
                 chunk_data = message["bytes"]

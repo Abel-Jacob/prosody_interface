@@ -121,10 +121,12 @@ export class AudioService {
           const msg = JSON.parse(event.data)
           if (msg.type === 'job_created' || msg.type === 'job_completed') {
             clearTimeout(timeout)
+            this.socket.removeEventListener('close', handleClose)
             this.cleanup()
             resolve({ jobId: msg.job_id, result: msg.result })
           } else if (msg.type === 'error') {
             clearTimeout(timeout)
+            this.socket.removeEventListener('close', handleClose)
             this.cleanup()
             reject(new Error(msg.message))
           }
@@ -133,7 +135,14 @@ export class AudioService {
         }
       }
 
+      const handleClose = () => {
+        clearTimeout(timeout)
+        this.cleanup()
+        reject(new Error('WebSocket connection lost before server could respond.'))
+      }
+
       this.socket.addEventListener('message', handleMessage)
+      this.socket.addEventListener('close', handleClose)
 
       // Stop the recorder, which triggers the final dataavailable event
       try {
