@@ -38,20 +38,12 @@ Thumbs.db
 Desktop.ini
 ehthumbs.db
 
-# IDEs and Editors
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# Prosody Interface specific
-backend/audio_uploads/
-backend/scratch/
-backend/out.raw
-cloudflared.exe
-*.wav
-*.flac
-*.raw
+*~
 
 # Logs
 *.log
