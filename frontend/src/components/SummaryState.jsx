@@ -254,7 +254,7 @@ export default function SummaryState({ result, onReset }) {
               fontSize: '0.65rem', color: 'var(--text-faded)', backgroundColor: 'rgba(255,255,255,0.05)',
               border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '0 6px', height: '18px', fontFamily: 'monospace'
             }}>0.8s</span>
-            <span>indicates silent pause > 0.5s</span>
+            <span>indicates silent pause &gt; 0.5s</span>
           </div>
         </div>
 
