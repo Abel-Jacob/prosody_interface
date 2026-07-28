@@ -92,8 +92,8 @@ async def audio_websocket(websocket: WebSocket):
                 if len(full_pcm) - last_yielded_idx < int(1.5 * SAMPLE_RATE):
                     return
                     
-                # 2. Extract 4-second context window ending at the live edge
-                window_start_idx = max(0, len(full_pcm) - 4 * SAMPLE_RATE)
+                # 2. Extract 8-second context window ending at the live edge
+                window_start_idx = max(0, len(full_pcm) - 8 * SAMPLE_RATE)
                 audio_window = full_pcm[window_start_idx : len(full_pcm)]
                 
                 models = websocket.app.state.models
