@@ -47,6 +47,7 @@ def transcribe_chunk(
     model,
     language: str = "en",
     initial_prompt: Optional[str] = None,
+    is_live: bool = False,
 ) -> dict:
     """
     Transcribe a single audio chunk using faster-whisper.
@@ -56,6 +57,7 @@ def transcribe_chunk(
         model: Pre-loaded WhisperModel from load_asr_model().
         language: Language code.
         initial_prompt: Optional text from previous chunk to maintain context and punctuation.
+        is_live: If True, uses ultra-fast greedy decoding to maintain real-time speed.
 
     Returns:
         dict with:
@@ -72,6 +74,7 @@ def transcribe_chunk(
     if max_val > 1e-4 and max_val < 0.5:
         audio = audio * (0.85 / max_val)
 
+    # Base parameters for high accuracy
     kwargs = {
         "language": language,
         "word_timestamps": True,
@@ -86,7 +89,16 @@ def transcribe_chunk(
         "no_repeat_ngram_size": 0,
         "temperature": [0.0, 0.2, 0.4],
     }
-    if initial_prompt and initial_prompt.strip():
+
+    if is_live:
+        # Ultra-fast settings for real-time preview to prevent pipeline blockage
+        kwargs["beam_size"] = 1
+        kwargs["best_of"] = 1
+        kwargs["temperature"] = [0.0]
+        # Never condition on previous text for sliding windows, it causes infinite hallucination loops!
+        kwargs["condition_on_previous_text"] = False
+        
+    elif initial_prompt and initial_prompt.strip():
         kwargs["initial_prompt"] = initial_prompt.strip()
 
     segments, info = model.transcribe(

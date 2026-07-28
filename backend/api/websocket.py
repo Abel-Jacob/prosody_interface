@@ -113,6 +113,7 @@ async def audio_websocket(websocket: WebSocket):
                     asr_model,
                     "en",
                     last_prompt,
+                    True, # is_live=True
                 )
                 asr_duration = time.time() - start_asr
                 
