@@ -15,7 +15,6 @@ import asyncio
 import numpy as np
 import io
 from pathlib import Path
-import tempfile
 import os
 import soundfile as sf
 import librosa
@@ -31,7 +30,6 @@ from pipeline.merge import merge_chunk_results, reconstruct_grammatical_phrases
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
-
 
 @router.websocket("/ws/audio")
 async def audio_websocket(websocket: WebSocket):
@@ -52,39 +50,43 @@ async def audio_websocket(websocket: WebSocket):
     job_id = str(uuid.uuid4())
     stop_handled = False
     
+    ffmpeg_process = None
+    ffmpeg_reader_task = None
+    pcm_buffer = bytearray()
+    
     try:
+        # Start persistent FFMPEG streaming process
+        ffmpeg_process = await asyncio.create_subprocess_exec(
+            'ffmpeg', '-i', 'pipe:0', '-f', 's16le', '-acodec', 'pcm_s16le', '-ac', '1', '-ar', '16000', '-',
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        
+        async def read_ffmpeg_stdout():
+            while True:
+                try:
+                    chunk = await ffmpeg_process.stdout.read(4096)
+                    if not chunk:
+                        break
+                    pcm_buffer.extend(chunk)
+                except Exception as e:
+                    logger.error(f"FFMPEG stdout read error: {e}")
+                    break
+                    
+        ffmpeg_reader_task = asyncio.create_task(read_ffmpeg_stdout())
+        
         process_task = None
 
-        async def process_live_audio(chunks_to_process):
+        async def process_live_audio():
             nonlocal last_yielded_idx, last_prompt
             try:
-                # 1. Decode all accumulated chunks to PCM
-                tmp_path = None
-                try:
-                    with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
-                        tmp.write(b"".join(chunks_to_process))
-                        tmp_path = tmp.name
-                        
-                    async def decode_ffmpeg():
-                        import subprocess, numpy as np
-                        p = subprocess.Popen(
-                            ['ffmpeg', '-i', tmp_path, '-f', 's16le', '-acodec', 'pcm_s16le', '-ac', '1', '-ar', '16000', '-'],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                        )
-                        out, err = await asyncio.to_thread(p.communicate)
-                        if out:
-                            return np.frombuffer(out, dtype=np.int16).astype(np.float32) / 32768.0
-                        logger.error(f"ffmpeg decode failed: {err.decode('utf-8', errors='ignore')}")
-                        return np.array([], dtype=np.float32)
-                    
-                    full_pcm = await decode_ffmpeg()
-                finally:
-                    if tmp_path and os.path.exists(tmp_path):
-                        try: os.remove(tmp_path)
-                        except Exception: pass
-                        
-                if len(full_pcm) == 0:
+                # 1. Convert memory buffer to float32 PCM array
+                pcm_bytes = bytes(pcm_buffer)
+                if len(pcm_bytes) == 0:
                     return
+                    
+                full_pcm = np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32) / 32768.0
                 
                 # Check if we have enough new audio since last yield
                 if len(full_pcm) - last_yielded_idx < int(1.5 * SAMPLE_RATE):
@@ -185,13 +187,19 @@ async def audio_websocket(websocket: WebSocket):
                 chunk_data = message["bytes"]
                 audio_chunks.append(chunk_data)
                 
+                # Write to ffmpeg immediately
+                try:
+                    ffmpeg_process.stdin.write(chunk_data)
+                    await ffmpeg_process.stdin.drain()
+                except Exception as e:
+                    logger.error(f"Failed to write to FFMPEG stdin: {e}")
+                
                 # Process every 2 chunks (~2 seconds)
                 if len(audio_chunks) - last_processed_chunk_idx >= 2:
                     last_processed_chunk_idx = len(audio_chunks)
                     
                     if process_task is None or process_task.done():
-                        # Pass a copy of the list so it doesn't mutate during await
-                        process_task = asyncio.create_task(process_live_audio(list(audio_chunks)))
+                        process_task = asyncio.create_task(process_live_audio())
                     else:
                         logger.warning("Live preview skipped chunks to maintain real-time speed.")
             
@@ -243,6 +251,19 @@ async def audio_websocket(websocket: WebSocket):
     except Exception as e:
         logger.error(f"WebSocket error: {e}", exc_info=True)
     finally:
+        # Cleanup ffmpeg process
+        if ffmpeg_reader_task:
+            ffmpeg_reader_task.cancel()
+        if ffmpeg_process:
+            try:
+                ffmpeg_process.stdin.close()
+            except Exception:
+                pass
+            try:
+                ffmpeg_process.terminate()
+            except Exception:
+                pass
+                
         try:
             await websocket.close()
         except Exception:
