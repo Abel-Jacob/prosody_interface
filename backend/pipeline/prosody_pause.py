@@ -48,6 +48,13 @@ class PauseAnalyzer(ProsodyAnalyzer):
             
             is_hesitation = clean_word in HESITATION_WORDS
             
+            # Special case for "a": Whisper sometimes transcribes prolonged "ahhh" as just "a".
+            # The article "a" is spoken very quickly. If "a" lasts >= 0.35s, it is likely a hesitation.
+            if not is_hesitation and clean_word == "a":
+                word_duration = word_data["end"] - word_data["start"]
+                if word_duration >= 0.35:
+                    is_hesitation = True
+            
             # Calculate pause after this word
             pause_after = 0.0
             if i < len(words) - 1:
