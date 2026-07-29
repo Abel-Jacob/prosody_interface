@@ -63,14 +63,18 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
     setInspectedWord({ data: w, ref: wordRef })
   }
 
-  // Determine pause visualization — breathing dots
+  // Determine pause visualization
   const pauseVal = w.pause_after || 0
-  // 1 dot for micro (0.2–0.5s), 2 dots for medium (0.5–1.0s), 3 dots for long (>1.0s)
+  // Commas for micro pauses (0.2–0.5s), breathing dots for longer pauses
   const dotCount = isLast ? 0
     : pauseVal > 1.0 ? 3
     : pauseVal > 0.5 ? 2
-    : pauseVal >= 0.2 ? 1
     : 0
+  const showComma = dotCount === 0 && pauseVal >= 0.2 && pauseVal <= 0.5 && !isLast
+
+  const wordText = w.word
+  const alreadyHasPunct = /[.,!?;:]$/.test(wordText)
+  const displayWord = (showComma && !alreadyHasPunct) ? wordText + ',' : wordText
 
   return (
     <React.Fragment>
@@ -79,10 +83,10 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
         onClick={handleClick}
         style={{ ...baseStyle, ...stressedStyle }}
       >
-        {w.word}
+        {displayWord}
       </span>
       {dotCount > 0 && (
-        <span className="pause-dots" title={`${pauseVal.toFixed(2)}s pause`}>
+        <span className="pause-dots" data-pause={`${pauseVal.toFixed(1)}s`}>
           {Array.from({ length: dotCount }, (_, i) => (
             <span key={i} className="pause-dot" />
           ))}
@@ -265,17 +269,15 @@ export default function SummaryState({ result, onReset }) {
             <span>indicates ASR score</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span className="pause-dots" style={{ animation: 'none' }}>
-              <span className="pause-dot" style={{ opacity: 1, transform: 'none', animation: 'none' }} />
-            </span>
-            <span>micro pause (0.2–0.5s)</span>
+            <span style={{ color: 'var(--text-muted)' }}>,</span>
+            <span>micro pause</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span className="pause-dots" style={{ animation: 'none' }}>
               <span className="pause-dot" style={{ opacity: 1, transform: 'none', animation: 'none' }} />
               <span className="pause-dot" style={{ opacity: 1, transform: 'none', animation: 'none' }} />
             </span>
-            <span>medium pause (0.5–1.0s)</span>
+            <span>medium pause</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span className="pause-dots" style={{ animation: 'none' }}>
@@ -283,7 +285,7 @@ export default function SummaryState({ result, onReset }) {
               <span className="pause-dot" style={{ opacity: 1, transform: 'none', animation: 'none' }} />
               <span className="pause-dot" style={{ opacity: 1, transform: 'none', animation: 'none' }} />
             </span>
-            <span>long pause (&gt; 1.0s)</span>
+            <span>long pause</span>
           </div>
         </div>
 
