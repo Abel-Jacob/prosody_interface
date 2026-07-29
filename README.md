@@ -303,16 +303,17 @@ The frontend uses two visual treatments in `SummaryState.jsx`:
 | Pause Duration | Visual |
 |----------------|--------|
 | < 0.2s | Nothing — normal word spacing |
-| 0.2s – 0.5s | A comma `,` is inserted between words (micro-pause) |
-| > 0.5s | An inline pill badge shows the duration, e.g. `0.8s` |
+| 0.2s – 0.5s | A comma `,` is inserted between words (micro pause) |
+| 0.5s – 1.0s | `• •` — two animated breathing dots (orange, pulsing) |
+| > 1.0s | `• • •` — three animated breathing dots |
 
-Additionally, in the tooltip (on word click), pauses >0.5s are highlighted in orange.
+Hovering over the breathing dots reveals a styled tooltip showing the exact pause duration (e.g. `0.8s`). Clicking a word opens the full `WordTooltip` where pauses >0.5s are highlighted in orange (`#f97316`).
 
 ---
 
 ## Alternative Pause Visualization Methods
 
-Below are alternative methods to visualize pauses that could replace or complement the current comma/pill approach:
+Below are alternative methods that could complement the current comma/breathing-dots approach:
 
 ### 1. Variable-Width Gaps Between Words
 
