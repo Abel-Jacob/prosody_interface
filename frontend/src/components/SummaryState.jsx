@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import WordTooltip from './WordTooltip'
+import PauseTooltip from './PauseTooltip'
 
 /**
  * Pre-process a phrase's word list:
@@ -28,6 +29,8 @@ function preprocessWords(words) {
 // Helper component to render each word and its ref
 function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
   const wordRef = useRef(null)
+  const dotsRef = useRef(null)
+  const [dotsHovered, setDotsHovered] = useState(false)
   
   // Feature 1: Confidence-Based Text Blur
   const conf = w.confidence !== undefined ? w.confidence : 1
@@ -86,11 +89,19 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
         {displayWord}
       </span>
       {dotCount > 0 && (
-        <span className="pause-dots" data-pause={`${pauseVal.toFixed(1)}s`}>
+        <span
+          ref={dotsRef}
+          className="pause-dots"
+          onMouseEnter={() => setDotsHovered(true)}
+          onMouseLeave={() => setDotsHovered(false)}
+        >
           {Array.from({ length: dotCount }, (_, i) => (
             <span key={i} className="pause-dot" />
           ))}
         </span>
+      )}
+      {dotsHovered && dotCount > 0 && (
+        <PauseTooltip pauseVal={pauseVal} dotsRef={dotsRef} />
       )}
     </React.Fragment>
   )
@@ -268,10 +279,7 @@ export default function SummaryState({ result, onReset }) {
             <span style={{ filter: 'blur(2px)', color: 'var(--text-faded)', fontWeight: 'bold' }}>blur</span>
             <span>indicates ASR score</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: 'var(--text-muted)' }}>,</span>
-            <span>micro pause</span>
-          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span className="pause-dots" style={{ animation: 'none' }}>
               <span className="pause-dot" style={{ opacity: 1, transform: 'none', animation: 'none' }} />

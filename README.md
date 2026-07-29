@@ -298,16 +298,15 @@ When audio was processed in VAD chunks, Whisper would sometimes hallucinate peri
 
 ## Current Pause Visualization
 
-The frontend uses two visual treatments in `SummaryState.jsx`:
+The frontend uses breathing dots in `SummaryState.jsx`:
 
 | Pause Duration | Visual |
 |----------------|--------|
-| < 0.2s | Nothing — normal word spacing |
-| 0.2s – 0.5s | A comma `,` is inserted between words (micro pause) |
+| < 0.5s | Nothing — normal word spacing |
 | 0.5s – 1.0s | `• •` — two animated breathing dots (orange, pulsing) |
 | > 1.0s | `• • •` — three animated breathing dots |
 
-Hovering over the breathing dots reveals a styled tooltip showing the exact pause duration (e.g. `0.8s`). Clicking a word opens the full `WordTooltip` where pauses >0.5s are highlighted in orange (`#f97316`).
+Hovering over the breathing dots reveals a tooltip showing the exact pause duration (e.g. `0.8s`). Clicking a word opens the full `WordTooltip` where pauses >0.5s are highlighted in orange (`#f97316`).
 
 ---
 

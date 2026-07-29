@@ -147,35 +147,7 @@ body {
   gap: 3px;
   margin: 0 0.2rem;
   vertical-align: middle;
-  position: relative;
   cursor: default;
-}
-
-/* Hover tooltip showing pause duration */
-.pause-dots::after {
-  content: attr(data-pause);
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%) scale(0.9);
-  background-color: #1e1c1a;
-  color: #f97316;
-  font-size: 0.7rem;
-  font-family: 'Inter', monospace;
-  font-weight: 500;
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(249, 115, 22, 0.25);
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s ease, transform 0.15s ease;
-  z-index: 10;
-}
-
-.pause-dots:hover::after {
-  opacity: 1;
-  transform: translateX(-50%) scale(1);
 }
 
 .pause-dot {
