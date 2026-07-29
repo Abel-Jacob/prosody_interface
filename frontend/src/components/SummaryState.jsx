@@ -63,16 +63,14 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
     setInspectedWord({ data: w, ref: wordRef })
   }
 
-  // Determine pause visualization
+  // Determine pause visualization — breathing dots
   const pauseVal = w.pause_after || 0
-  const showTimePill = pauseVal > 0.5 && !isLast
-  const showComma = !showTimePill && pauseVal >= 0.2 && pauseVal <= 0.5 && !isLast
-
-  // If this word doesn't already end with punctuation and needs a micro-pause comma,
-  // append it to the displayed text
-  const wordText = w.word
-  const alreadyHasPunct = /[.,!?;:]$/.test(wordText)
-  const displayWord = (showComma && !alreadyHasPunct) ? wordText + ',' : wordText
+  // 1 dot for micro (0.2–0.5s), 2 dots for medium (0.5–1.0s), 3 dots for long (>1.0s)
+  const dotCount = isLast ? 0
+    : pauseVal > 1.0 ? 3
+    : pauseVal > 0.5 ? 2
+    : pauseVal >= 0.2 ? 1
+    : 0
 
   return (
     <React.Fragment>
@@ -81,27 +79,13 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
         onClick={handleClick}
         style={{ ...baseStyle, ...stressedStyle }}
       >
-        {displayWord}
+        {w.word}
       </span>
-      {/* Time-pill badge for significant pauses (>0.5s) */}
-      {showTimePill && (
-        <span style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '0.65rem',
-          color: 'var(--text-faded)',
-          backgroundColor: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: '12px',
-          padding: '0 6px',
-          height: '18px',
-          marginRight: '0.35rem',
-          marginLeft: '0.1rem',
-          verticalAlign: 'middle',
-          fontFamily: 'monospace'
-        }}>
-          {pauseVal.toFixed(1)}s
+      {dotCount > 0 && (
+        <span className="pause-dots" title={`${pauseVal.toFixed(2)}s pause`}>
+          {Array.from({ length: dotCount }, (_, i) => (
+            <span key={i} className="pause-dot" />
+          ))}
         </span>
       )}
     </React.Fragment>
@@ -281,16 +265,25 @@ export default function SummaryState({ result, onReset }) {
             <span>indicates ASR score</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: 'var(--text-muted)' }}>,</span>
-            <span>indicates micro pause (0.2–0.5s)</span>
+            <span className="pause-dots" style={{ animation: 'none' }}>
+              <span className="pause-dot" style={{ opacity: 1, transform: 'none', animation: 'none' }} />
+            </span>
+            <span>micro pause (0.2–0.5s)</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.65rem', color: 'var(--text-faded)', backgroundColor: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '0 6px', height: '18px', fontFamily: 'monospace'
-            }}>0.8s</span>
-            <span>indicates pause &gt; 0.5s</span>
+            <span className="pause-dots" style={{ animation: 'none' }}>
+              <span className="pause-dot" style={{ opacity: 1, transform: 'none', animation: 'none' }} />
+              <span className="pause-dot" style={{ opacity: 1, transform: 'none', animation: 'none' }} />
+            </span>
+            <span>medium pause (0.5–1.0s)</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span className="pause-dots" style={{ animation: 'none' }}>
+              <span className="pause-dot" style={{ opacity: 1, transform: 'none', animation: 'none' }} />
+              <span className="pause-dot" style={{ opacity: 1, transform: 'none', animation: 'none' }} />
+              <span className="pause-dot" style={{ opacity: 1, transform: 'none', animation: 'none' }} />
+            </span>
+            <span>long pause (&gt; 1.0s)</span>
           </div>
         </div>
 
