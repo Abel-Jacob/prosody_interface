@@ -153,6 +153,7 @@ class Worker:
                                     w.pitch_mean = inton_words[i].get("pitch_mean")
                                     w.pitch_direction = inton_words[i].get("pitch_direction")
                                     w.pitch_range = inton_words[i].get("pitch_range", 0.0)
+                                    w.pitch_contour = inton_words[i].get("pitch_contour", [])
                             # Sentence-level intonation pattern
                             if "intonation_pattern" in res:
                                 phrase.intonation_pattern = res["intonation_pattern"]

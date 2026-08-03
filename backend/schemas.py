@@ -30,6 +30,7 @@ class WordResult(BaseModel):
     pitch_mean: Optional[float] = Field(default=None, description="Average F0 pitch in Hz over the word")
     pitch_direction: Optional[str] = Field(default=None, description="Pitch direction: rising, falling, flat, or unvoiced")
     pitch_range: float = Field(default=0.0, description="F0 range (max - min) in Hz across the word")
+    pitch_contour: list[float] = Field(default_factory=list, description="Per-character F0 values for letter-level pitch visualization")
 
 
 class PhraseResult(BaseModel):

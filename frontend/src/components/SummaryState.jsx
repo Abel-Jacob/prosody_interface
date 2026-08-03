@@ -27,7 +27,7 @@ function preprocessWords(words) {
 }
 
 // Helper component to render each word and its ref
-function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord, pitchOffset }) {
+function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord, phraseMinPitch, phraseMaxPitch }) {
   const wordRef = useRef(null)
   const dotsRef = useRef(null)
   const [dotsHovered, setDotsHovered] = useState(false)
@@ -50,8 +50,7 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord, pitchOffs
     display: 'inline-block',
     marginRight: isLast ? '0' : '0.25rem',
     textDecoration: isInspected ? 'underline' : 'none',
-    transition: 'filter 0.2s, opacity 0.2s, transform 0.3s ease',
-    transform: pitchOffset !== 0 ? `translateY(${pitchOffset}px)` : 'none',
+    transition: 'filter 0.2s, opacity 0.2s',
   }
 
   const stressedStyle = w.stressed ? {
@@ -87,7 +86,7 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord, pitchOffs
         onClick={handleClick}
         style={{ ...baseStyle, ...stressedStyle }}
       >
-        {displayWord}
+        {renderWordContent(displayWord, w, phraseMinPitch, phraseMaxPitch)}
       </span>
       {dotCount > 0 && (
         <span
@@ -108,6 +107,34 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord, pitchOffs
   )
 }
 
+/**
+ * Render word content — either plain text or per-letter pitch-scaled spans.
+ * Each character gets a fontSize proportional to its F0 value from the contour.
+ */
+function renderWordContent(displayWord, w, phraseMinPitch, phraseMaxPitch) {
+  const contour = w.pitch_contour
+  const hasContour = contour && contour.length > 0 && phraseMinPitch != null && phraseMaxPitch != null
+
+  if (!hasContour) return displayWord
+
+  const MIN_SCALE = 0.55
+  const MAX_SCALE = 2.2
+  const pitchSpan = Math.max(phraseMaxPitch - phraseMinPitch, 20) // floor at 20Hz to avoid extreme scaling
+
+  return displayWord.split('').map((char, i) => {
+    // Map char to contour index (clamp for any trailing punct the frontend may add)
+    const ci = Math.min(i, contour.length - 1)
+    const f0 = contour[ci]
+    const scale = MIN_SCALE + ((f0 - phraseMinPitch) / pitchSpan) * (MAX_SCALE - MIN_SCALE)
+
+    return (
+      <span key={i} style={{ fontSize: `${scale.toFixed(2)}em`, lineHeight: 1 }}>
+        {char}
+      </span>
+    )
+  })
+}
+
 export default function SummaryState({ result, onReset }) {
   // Feature 3: Track inspected word for tooltip
   const [inspectedWord, setInspectedWord] = useState(null)
@@ -121,30 +148,17 @@ export default function SummaryState({ result, onReset }) {
     return phrases.map(p => {
       const words = preprocessWords(p.words)
 
-      // Compute per-phrase pitch average for vertical offset
-      const voicedPitches = words
-        .map(w => w.pitch_mean)
-        .filter(v => v != null && v > 0)
-      const phrasePitchMean = voicedPitches.length > 0
-        ? voicedPitches.reduce((a, b) => a + b, 0) / voicedPitches.length
-        : 0
-      // Std-dev to normalise offsets
-      const phrasePitchStd = voicedPitches.length >= 2
-        ? Math.sqrt(voicedPitches.reduce((sum, v) => sum + (v - phrasePitchMean) ** 2, 0) / voicedPitches.length)
-        : 1 // prevent division by zero
-
-      // Attach normalised offset to each word (-8px to +8px range)
-      // Positive offset means lower on screen (lower pitch), negative means higher (higher pitch)
-      const MAX_PX = 8
-      const wordsWithOffset = words.map(w => {
-        if (w.pitch_mean == null || phrasePitchStd === 0) return { ...w, _pitchOffset: 0 }
-        const zScore = (w.pitch_mean - phrasePitchMean) / phrasePitchStd
-        // Invert: higher pitch → move up (negative translateY)
-        const offset = Math.max(-MAX_PX, Math.min(MAX_PX, -zScore * (MAX_PX / 2)))
-        return { ...w, _pitchOffset: Math.round(offset * 10) / 10 }
+      // Collect all pitch contour values across the phrase for min/max normalization
+      const allPitchValues = []
+      words.forEach(w => {
+        if (w.pitch_contour && w.pitch_contour.length > 0) {
+          allPitchValues.push(...w.pitch_contour)
+        }
       })
+      const _phraseMinPitch = allPitchValues.length > 0 ? Math.min(...allPitchValues) : null
+      const _phraseMaxPitch = allPitchValues.length > 0 ? Math.max(...allPitchValues) : null
 
-      return { ...p, words: wordsWithOffset }
+      return { ...p, words, _phraseMinPitch, _phraseMaxPitch }
     })
   }, [phrases])
   
@@ -214,7 +228,8 @@ export default function SummaryState({ result, onReset }) {
                   isLast={wIndex === phrase.words.length - 1} 
                   inspectedWord={inspectedWord}
                   setInspectedWord={setInspectedWord}
-                  pitchOffset={w._pitchOffset || 0}
+                  phraseMinPitch={phrase._phraseMinPitch}
+                  phraseMaxPitch={phrase._phraseMaxPitch}
                 />
               ))}
             </div>
@@ -336,12 +351,12 @@ export default function SummaryState({ result, onReset }) {
             </span>
             <span>long pause</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '1px', fontSize: '0.75rem' }}>
-              <span style={{ transform: 'translateY(-2px)', display: 'inline-block', color: 'var(--text-muted)' }}>high</span>
-              <span style={{ transform: 'translateY(2px)', display: 'inline-block', color: 'var(--text-muted)' }}>low</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '0px' }}>
+              <span style={{ fontSize: '0.55em', color: 'var(--text-muted)' }}>a</span>
+              <span style={{ fontSize: '1.4em', color: 'var(--text-muted)', lineHeight: 1 }}>A</span>
             </span>
-            <span>pitch melody</span>
+            <span>letter size = pitch</span>
           </div>
         </div>
 

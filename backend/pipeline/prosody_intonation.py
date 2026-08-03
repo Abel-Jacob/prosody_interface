@@ -104,6 +104,7 @@ class IntonationAnalyzer(ProsodyAnalyzer):
                         "pitch_end": None,
                         "pitch_direction": "unvoiced",
                         "pitch_range": 0.0,
+                        "pitch_contour": [],
                     })
                     continue
 
@@ -127,6 +128,7 @@ class IntonationAnalyzer(ProsodyAnalyzer):
                     "pitch_end": round(pitch_end, 1),
                     "pitch_direction": direction,
                     "pitch_range": round(pitch_range, 1),
+                    "pitch_contour": self._resample_contour(word_f0, pitch_mean, len(w["word"])),
                 })
 
             # --- Sentence-level intonation pattern ---------------------
@@ -178,3 +180,32 @@ class IntonationAnalyzer(ProsodyAnalyzer):
                 return "rise-fall"
 
         return final["pitch_direction"]  # "rising", "falling", or "flat"
+
+    @staticmethod
+    def _resample_contour(word_f0: np.ndarray, fallback_mean: float, n_chars: int) -> list[float]:
+        """
+        Resample a word's raw F0 array (with NaN gaps) to one value per character.
+
+        1. Interpolate through unvoiced (NaN) gaps.
+        2. Resample to exactly n_chars points via linear interpolation.
+        """
+        if n_chars < 1 or len(word_f0) == 0:
+            return []
+
+        valid = ~np.isnan(word_f0)
+        n_valid = int(np.sum(valid))
+
+        if n_valid >= 2:
+            indices = np.arange(len(word_f0))
+            interp_f0 = np.interp(indices, indices[valid], word_f0[valid])
+        elif n_valid == 1:
+            interp_f0 = np.full(len(word_f0), float(word_f0[valid][0]))
+        else:
+            # All unvoiced — fill with the word's mean pitch
+            return [round(fallback_mean, 1)] * n_chars
+
+        # Resample to exactly n_chars values
+        x_old = np.linspace(0, 1, len(interp_f0))
+        x_new = np.linspace(0, 1, n_chars)
+        contour = np.interp(x_new, x_old, interp_f0)
+        return [round(float(v), 1) for v in contour]
