@@ -27,7 +27,7 @@ function preprocessWords(words) {
 }
 
 // Helper component to render each word and its ref
-function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
+function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord, pitchOffset }) {
   const wordRef = useRef(null)
   const dotsRef = useRef(null)
   const [dotsHovered, setDotsHovered] = useState(false)
@@ -50,7 +50,8 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
     display: 'inline-block',
     marginRight: isLast ? '0' : '0.25rem',
     textDecoration: isInspected ? 'underline' : 'none',
-    transition: 'filter 0.2s, opacity 0.2s'
+    transition: 'filter 0.2s, opacity 0.2s, transform 0.3s ease',
+    transform: pitchOffset ? `translateY(${pitchOffset}px)` : 'none',
   }
 
   const stressedStyle = w.stressed ? {
@@ -117,10 +118,34 @@ export default function SummaryState({ result, onReset }) {
 
   // Pre-process: absorb hesitation words into pauses for each phrase
   const processedPhrases = useMemo(() => {
-    return phrases.map(p => ({
-      ...p,
-      words: preprocessWords(p.words)
-    }))
+    return phrases.map(p => {
+      const words = preprocessWords(p.words)
+
+      // Compute per-phrase pitch average for vertical offset
+      const voicedPitches = words
+        .map(w => w.pitch_mean)
+        .filter(v => v != null && v > 0)
+      const phrasePitchMean = voicedPitches.length > 0
+        ? voicedPitches.reduce((a, b) => a + b, 0) / voicedPitches.length
+        : 0
+      // Std-dev to normalise offsets
+      const phrasePitchStd = voicedPitches.length >= 2
+        ? Math.sqrt(voicedPitches.reduce((sum, v) => sum + (v - phrasePitchMean) ** 2, 0) / voicedPitches.length)
+        : 1 // prevent division by zero
+
+      // Attach normalised offset to each word (-8px to +8px range)
+      // Positive offset means lower on screen (lower pitch), negative means higher (higher pitch)
+      const MAX_PX = 8
+      const wordsWithOffset = words.map(w => {
+        if (w.pitch_mean == null || phrasePitchStd === 0) return { ...w, _pitchOffset: 0 }
+        const zScore = (w.pitch_mean - phrasePitchMean) / phrasePitchStd
+        // Invert: higher pitch → move up (negative translateY)
+        const offset = Math.max(-MAX_PX, Math.min(MAX_PX, -zScore * (MAX_PX / 2)))
+        return { ...w, _pitchOffset: Math.round(offset * 10) / 10 }
+      })
+
+      return { ...p, words: wordsWithOffset }
+    })
   }, [phrases])
   
   // Feature 4: Calculate total average confidence (from processed words)
@@ -189,6 +214,7 @@ export default function SummaryState({ result, onReset }) {
                   isLast={wIndex === phrase.words.length - 1} 
                   inspectedWord={inspectedWord}
                   setInspectedWord={setInspectedWord}
+                  pitchOffset={w._pitchOffset || 0}
                 />
               ))}
             </div>
@@ -264,6 +290,21 @@ export default function SummaryState({ result, onReset }) {
               ASR Score
             </span>
           </div>
+
+          {result.pitch_variation > 0 && (
+            <>
+              <div style={{ width: '1px', height: '1.2rem', backgroundColor: 'var(--text-faded)' }} />
+
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '6rem' }}>
+                <span style={{ fontSize: '1.2rem', fontWeight: 300, color: 'var(--text-primary)' }}>
+                  {Math.round(result.pitch_variation)} Hz
+                </span>
+                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: '0.3rem' }}>
+                  Pitch Var
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Legend */}
@@ -294,6 +335,13 @@ export default function SummaryState({ result, onReset }) {
               <span className="pause-dot" style={{ opacity: 1, transform: 'none', animation: 'none' }} />
             </span>
             <span>long pause</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '1px', fontSize: '0.75rem' }}>
+              <span style={{ transform: 'translateY(-2px)', display: 'inline-block', color: 'var(--text-muted)' }}>high</span>
+              <span style={{ transform: 'translateY(2px)', display: 'inline-block', color: 'var(--text-muted)' }}>low</span>
+            </span>
+            <span>pitch melody</span>
           </div>
         </div>
 
