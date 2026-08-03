@@ -51,7 +51,7 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord, pitchOffs
     marginRight: isLast ? '0' : '0.25rem',
     textDecoration: isInspected ? 'underline' : 'none',
     transition: 'filter 0.2s, opacity 0.2s, transform 0.3s ease',
-    transform: pitchOffset ? `translateY(${pitchOffset}px)` : 'none',
+    transform: pitchOffset !== 0 ? `translateY(${pitchOffset}px)` : 'none',
   }
 
   const stressedStyle = w.stressed ? {
