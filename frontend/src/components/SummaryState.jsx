@@ -1,7 +1,16 @@
 import React, { useState, useRef, useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import WordTooltip from './WordTooltip'
 import PauseTooltip from './PauseTooltip'
+
+/* Spring configs migrated from legacy stiffness/damping API to
+   duration/bounce API per the apple-design skill's mapping table.
+   All critically damped (bounce: 0) since no gesture/momentum precedes. */
+const transcriptSpring = { type: 'spring', duration: 0.4, bounce: 0 }
+const panelSpring = { type: 'spring', duration: 0.45, bounce: 0, delay: 0.25 }
+
+/* Finding 2: whileTap spring for interactive elements */
+const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
 
 /**
  * Pre-process a phrase's word list:
@@ -81,13 +90,16 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord, phraseMin
 
   return (
     <React.Fragment>
-      <span
+      {/* Finding 2: whileTap scale-down on word click */}
+      <motion.span
         ref={wordRef}
         onClick={handleClick}
+        whileTap={{ scale: 0.97 }}
+        transition={tapSpring}
         style={{ ...baseStyle, ...stressedStyle }}
       >
         {renderWordContent(displayWord, w, phraseMinPitch, phraseMaxPitch)}
-      </span>
+      </motion.span>
       {dotCount > 0 && (
         <span
           ref={dotsRef}
@@ -100,9 +112,12 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord, phraseMin
           ))}
         </span>
       )}
-      {dotsHovered && dotCount > 0 && (
-        <PauseTooltip pauseVal={pauseVal} dotsRef={dotsRef} />
-      )}
+      {/* Finding 6: AnimatePresence for PauseTooltip exit animation */}
+      <AnimatePresence>
+        {dotsHovered && dotCount > 0 && (
+          <PauseTooltip key="pause-tooltip" pauseVal={pauseVal} dotsRef={dotsRef} />
+        )}
+      </AnimatePresence>
     </React.Fragment>
   )
 }
@@ -196,11 +211,11 @@ export default function SummaryState({ result, onReset }) {
       }}
     >
       
-      {/* Transcript View */}
+      {/* Transcript View — spring config migrated from stiffness/damping */}
       <motion.div 
         initial={{ y: 30, opacity: 0.85 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+        transition={transcriptSpring}
         style={{
           maxWidth: '48rem',
           width: '100%',
@@ -237,20 +252,23 @@ export default function SummaryState({ result, onReset }) {
         </div>
       </motion.div>
 
-      {/* Feature 2: Render Word Tooltip */}
-      {inspectedWord && (
-        <WordTooltip 
-          wordData={inspectedWord.data} 
-          wordRef={inspectedWord.ref} 
-          onClose={() => setInspectedWord(null)} 
-        />
-      )}
+      {/* Feature 2: Render Word Tooltip — Finding 6: AnimatePresence for exit */}
+      <AnimatePresence>
+        {inspectedWord && (
+          <WordTooltip 
+            key="word-tooltip"
+            wordData={inspectedWord.data} 
+            wordRef={inspectedWord.ref} 
+            onClose={() => setInspectedWord(null)} 
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Summary Panel */}
+      {/* Summary Panel — spring config migrated */}
       <motion.div
         initial={{ y: 25, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 100, damping: 18, delay: 0.25 }}
+        transition={panelSpring}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -360,8 +378,11 @@ export default function SummaryState({ result, onReset }) {
           </div>
         </div>
 
-        <button
+        {/* Finding 2: whileTap on "Start New Session" button */}
+        <motion.button
           onClick={onReset}
+          whileTap={{ scale: 0.97 }}
+          transition={tapSpring}
           style={{
             background: 'none',
             border: 'none',
@@ -379,7 +400,7 @@ export default function SummaryState({ result, onReset }) {
           onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
         >
           Start New Session
-        </button>
+        </motion.button>
       </motion.div>
     </div>
   )
