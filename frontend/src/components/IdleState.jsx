@@ -1,4 +1,9 @@
 import React, { useEffect } from 'react'
+import { motion } from 'framer-motion'
+
+/* Finding 2: whileTap spring — instant scale-down on pointer-down.
+   Critically damped (bounce: 0), response ~0.15s for snappy feel. */
+const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
 
 export default function IdleState({ onStart }) {
   useEffect(() => {
@@ -13,9 +18,11 @@ export default function IdleState({ onStart }) {
   }, [onStart])
 
   return (
-    <div 
+    <motion.div 
       className="idle-container" 
       onClick={onStart}
+      whileTap={{ scale: 0.98 }}
+      transition={tapSpring}
       style={{
         height: '100vh',
         display: 'flex',
@@ -54,6 +61,6 @@ export default function IdleState({ onStart }) {
       >
         click anywhere or press space
       </p>
-    </div>
+    </motion.div>
   )
 }
