@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import CanvasBackground from './components/CanvasBackground'
 import IdleState from './components/IdleState'
 import ListeningState from './components/ListeningState'
@@ -6,6 +7,10 @@ import ProcessingState from './components/ProcessingState'
 import SummaryState from './components/SummaryState'
 import './index.css'
 import { BACKEND_DOMAIN, setBackendDomain } from './apiConfig'
+
+/* Cross-fade transition shared by all state wrappers.
+   Critically damped (bounce: 0), ~200ms — system-driven, not gesture. */
+const stateTransition = { type: 'spring', duration: 0.2, bounce: 0 }
 
 function App() {
   // state: 'idle' | 'listening' | 'processing' | 'summary'
@@ -19,6 +24,9 @@ function App() {
   }
 
   const handleStopListening = (response) => {
+    // Finding 11(b): haptic pulse when recording stops & hands off
+    if (navigator.vibrate) navigator.vibrate(10)
+
     if (response && response.result) {
       setFinalResult(response.result)
       setAppState('summary')
@@ -43,27 +51,64 @@ function App() {
     <>
       <CanvasBackground active={appState === 'listening'} />
       
-      {appState === 'idle' && (
-        <IdleState onStart={handleStartListening} />
-      )}
-      
-      {appState === 'listening' && (
-        <ListeningState onStop={handleStopListening} />
-      )}
-      
-      {appState === 'processing' && (
-        <ProcessingState 
-          jobId={jobId} 
-          onComplete={handleProcessingComplete} 
-        />
-      )}
-      
-      {appState === 'summary' && (
-        <SummaryState 
-          result={finalResult} 
-          onReset={handleReset} 
-        />
-      )}
+      {/* Finding 1: AnimatePresence cross-fade around state mount/unmount.
+          mode="wait" ensures exiting state fully fades before entering state
+          fades in, preventing DOM overlap. Keys must be unique per state. */}
+      <AnimatePresence mode="wait">
+        {appState === 'idle' && (
+          <motion.div
+            key="idle"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={stateTransition}
+          >
+            <IdleState onStart={handleStartListening} />
+          </motion.div>
+        )}
+        
+        {appState === 'listening' && (
+          <motion.div
+            key="listening"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={stateTransition}
+          >
+            <ListeningState onStop={handleStopListening} />
+          </motion.div>
+        )}
+        
+        {appState === 'processing' && (
+          <motion.div
+            key="processing"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={stateTransition}
+          >
+            <ProcessingState 
+              jobId={jobId} 
+              onComplete={handleProcessingComplete} 
+            />
+          </motion.div>
+        )}
+        
+        {appState === 'summary' && (
+          <motion.div
+            key="summary"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={stateTransition}
+          >
+            <SummaryState 
+              result={finalResult} 
+              onReset={handleReset} 
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Backend Configuration UI */}
       <div style={{
@@ -78,7 +123,8 @@ function App() {
         alignItems: 'center',
         gap: '8px'
       }}>
-        <label style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-secondary)' }}>Tunnel URL:</label>
+        {/* Finding 10 audit: converted px font-sizes to rem */}
+        <label style={{ fontSize: '0.625rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-secondary)' }}>Tunnel URL:</label>
         <input 
           type="text" 
           value={backendUrl}
@@ -93,7 +139,7 @@ function App() {
             color: '#ccc',
             padding: '4px 8px',
             borderRadius: '4px',
-            fontSize: '11px',
+            fontSize: '0.6875rem',
             fontFamily: 'monospace',
             width: '240px',
             outline: 'none'
