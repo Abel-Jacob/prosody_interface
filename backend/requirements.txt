@@ -16,10 +16,9 @@ faster-whisper>=1.0.0
 librosa>=0.10.0
 soundfile>=0.12.0
 numpy>=1.24.0
-numba>=0.60.0,<0.62.0    # Pinned for Google Colab compatibility (cuml/cudf conflicts)
 
 # Pitch stylization (MAE algorithm)
-libf0==1.0.2             # Pinned to 1.0.2 to avoid numba>=0.63 requirement (Colab uses <0.62)
+pysptk>=0.2.0            # SWIPE pitch extraction (C extension, preferred for Colab/Linux)
 PyWavelets>=1.4.0        # Wavelet-based K estimation
 scipy>=1.10.0            # MAE linear programming solver (HiGHS)
 

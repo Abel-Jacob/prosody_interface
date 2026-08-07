@@ -42,7 +42,7 @@ K_MAX = 8  # maximum pieces per voiced segment
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  Module 1 — Pitch Extraction (SWIPE via libf0)
+#  Module 1 — Pitch Extraction (SWIPE via pysptk)
 # ═══════════════════════════════════════════════════════════════════
 
 def extract_pitch(signal: np.ndarray, sr: int, hop_length: int,
@@ -55,23 +55,27 @@ def extract_pitch(signal: np.ndarray, sr: int, hop_length: int,
     without temporal smoothing (unlike PYIN's HMM), which is important
     because the MAE criterion itself handles outlier robustness.
 
-    Uses libf0's pure-Python SWIPE implementation (Camacho & Harris, 2008).
-    Requires: pip install libf0
+    Requires: pip install pysptk
 
     Returns raw F0 array where unvoiced frames = 0.
     """
-    from libf0 import swipe as libf0_swipe
+    try:
+        import pysptk
+    except ImportError:
+        raise ImportError(
+            "pysptk is required for SWIPE pitch extraction. "
+            "Install it with: pip install pysptk\n"
+            "On Windows, you may also need Visual Studio Build Tools."
+        )
 
-    f0, t, strength = libf0_swipe(
-        x=np.asarray(signal, dtype=np.float64),
-        Fs=sr,
-        H=hop_length,
-        F_min=float(fmin),
-        F_max=float(fmax),
-        strength_threshold=0,  # keep all frames, we filter later
+    f0 = pysptk.sptk.swipe(
+        np.asarray(signal, dtype=np.float64),
+        sr,
+        hopsize=hop_length,
+        min=float(fmin),
+        max=float(fmax),
+        otype="f0",
     )
-    # libf0 returns 0 for unvoiced frames (same convention we need)
-    f0 = np.asarray(f0, dtype=np.float64)
     logger.debug(
         f"SWIPE pitch extracted: {len(f0)} frames, "
         f"{int(np.sum(f0 > 0))} voiced ({100 * np.mean(f0 > 0):.1f}%)"

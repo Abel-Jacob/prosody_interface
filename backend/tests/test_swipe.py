@@ -1,4 +1,4 @@
-"""Quick test: verify SWIPE pitch extraction via libf0 on a synthetic tone."""
+"""Quick test: verify SWIPE pitch extraction via pysptk on a synthetic tone."""
 import sys, io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 sys.path.insert(0, ".")
