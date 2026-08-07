@@ -17,6 +17,7 @@ from pipeline.prosody_base import ProsodyAnalyzer
 from pipeline.prosody_stress import StressAnalyzer
 from pipeline.prosody_pause import PauseAnalyzer
 from pipeline.prosody_pitch import PitchAnalyzer
+from pipeline.prosody_intonation import IntonationAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,9 @@ logger = logging.getLogger(__name__)
 ANALYZER_CLASSES: list[type[ProsodyAnalyzer]] = [
     StressAnalyzer,
     PauseAnalyzer,
-    # PitchAnalyzer is registered but run separately on full audio
-    # (not per-sentence like the others). See worker.py.
+    IntonationAnalyzer,
+    # Future modules:
+    # RhythmAnalyzer,       # inter-word timing statistics
 ]
 
 # Analyzers that need the full audio (not per-sentence chunks)

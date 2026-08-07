@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 import './WordTooltip.css';
+
+/* Finding 6: materialize spring — scale + opacity + blur, anchored to trigger.
+   Critically damped (~0.25s response). Exit mirrors entry. */
+const materializeSpring = { type: 'spring', duration: 0.25, bounce: 0 }
 
 export default function WordTooltip({ wordData, wordRef, onClose }) {
   const [position, setPosition] = useState({ top: 0, left: 0, position: 'above' });
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     if (!wordRef.current) return;
@@ -33,10 +39,34 @@ export default function WordTooltip({ wordData, wordRef, onClose }) {
 
   if (!wordData) return null;
 
+  /* Finding 6: transform-origin points toward the trigger element.
+     "above" → scale originates from center-bottom (toward the word below).
+     "below" → scale originates from center-top (toward the word above). */
+  const transformOrigin = position.position === 'above' ? 'center bottom' : 'center top';
+
+  /* Finding 8: reduced-motion fallback — opacity-only, no scale/blur. */
+  const initialAnim = prefersReducedMotion
+    ? { opacity: 0 }
+    : { opacity: 0, scale: 0.85, filter: 'blur(4px)' };
+  const animateAnim = prefersReducedMotion
+    ? { opacity: 1 }
+    : { opacity: 1, scale: 1, filter: 'blur(0px)' };
+  const exitAnim = prefersReducedMotion
+    ? { opacity: 0 }
+    : { opacity: 0, scale: 0.85, filter: 'blur(4px)' };
+
   const tooltipContent = (
-    <div 
+    <motion.div
       className={`word-tooltip-container ${position.position}`}
-      style={{ top: position.top, left: position.left }}
+      style={{
+        top: position.top,
+        left: position.left,
+        transformOrigin,
+      }}
+      initial={initialAnim}
+      animate={animateAnim}
+      exit={exitAnim}
+      transition={materializeSpring}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="word-tooltip-content">
@@ -66,8 +96,16 @@ export default function WordTooltip({ wordData, wordRef, onClose }) {
             </span>
           </div>
         )}
+        {wordData.pitch_mean != null && (
+          <div className="tooltip-row">
+            <span className="tooltip-label">Pitch:</span>
+            <span className="tooltip-value">
+              {Math.round(wordData.pitch_mean)} Hz {wordData.pitch_direction === 'rising' ? '↗' : wordData.pitch_direction === 'falling' ? '↘' : wordData.pitch_direction === 'flat' ? '→' : ''}
+            </span>
+          </div>
+        )}
       </div>
-    </div>
+    </motion.div>
   );
 
   return createPortal(tooltipContent, document.body);

@@ -1,12 +1,15 @@
 /* =========================================
    WordTooltip.css
    ========================================= */
+
+/* Finding 6: CSS keyframe animation removed — framer-motion now handles
+   materialize entrance/exit on the motion.div wrapper. The CSS here is
+   structural positioning only. */
+
 .word-tooltip-container {
   position: absolute;
   z-index: 9999;
   pointer-events: auto;
-  /* Slight bounce animation on enter */
-  animation: tooltipFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Base translation centers the tooltip horizontally over the word */
@@ -57,11 +60,3 @@
 }
 .tooltip-label { color: #888; font-weight: 500; }
 .tooltip-value { font-weight: 600; font-family: monospace; }
-
-/* Subtle entry animation */
-@keyframes tooltipFadeIn {
-  from { opacity: 0; transform: translate(-50%, calc(var(--y-offset, 0) + 4px)); }
-  to { opacity: 1; transform: translate(-50%, var(--y-offset, 0)); }
-}
-.word-tooltip-container.above { --y-offset: -100%; }
-.word-tooltip-container.below { --y-offset: 0%; }

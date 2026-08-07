@@ -27,6 +27,10 @@ class WordResult(BaseModel):
     stress_score: float = Field(default=0.0, description="Stress probability 0-1")
     pause_after: float = Field(default=0.0, description="Silent pause duration after this word in seconds")
     is_hesitation: bool = Field(default=False, description="Whether this word is a vocalized hesitation (e.g. um, uh)")
+    pitch_mean: Optional[float] = Field(default=None, description="Average F0 pitch in Hz over the word")
+    pitch_direction: Optional[str] = Field(default=None, description="Pitch direction: rising, falling, flat, or unvoiced")
+    pitch_range: float = Field(default=0.0, description="F0 range (max - min) in Hz across the word")
+    pitch_contour: list[float] = Field(default_factory=list, description="Per-character F0 values for letter-level pitch visualization")
 
     # Pitch prosody (from MAE stylized contour)
     mean_pitch: Optional[float] = Field(default=None, description="Mean MAE-stylized pitch in Hz")
@@ -50,6 +54,7 @@ class PhraseResult(BaseModel):
     start_time: float = Field(description="Phrase start time (absolute)")
     end_time: float = Field(description="Phrase end time (absolute)")
     chunk_index: int = Field(description="Which VAD chunk this came from")
+    intonation_pattern: Optional[str] = Field(default=None, description="Sentence-level intonation: rising, falling, flat, or rise-fall")
 
 
 class JobResult(BaseModel):
@@ -59,6 +64,7 @@ class JobResult(BaseModel):
     word_count: int = 0
     wpm: float = 0.0
     stress_ratio: float = Field(default=0.0, description="Fraction of stressed words")
+    pitch_variation: float = Field(default=0.0, description="Standard deviation of pitch_mean values across all voiced words (Hz)")
 
 
 class JobResponse(BaseModel):

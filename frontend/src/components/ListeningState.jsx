@@ -1,5 +1,15 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import { AudioService } from '../services/audioService'
+
+/* Finding 2: whileTap spring for the click-to-stop area */
+const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
+
+/* Finding 3: word entrance spring (critically damped, ~0.3s response) */
+const wordEntranceSpring = { type: 'spring', duration: 0.3, bounce: 0 }
+
+/* Finding 7: status dot color crossfade (~150-200ms) */
+const dotColorTransition = { duration: 0.18, ease: 'easeOut' }
 
 export default function ListeningState({ onStop }) {
   const [error, setError] = useState(null)
@@ -13,6 +23,8 @@ export default function ListeningState({ onStop }) {
   const animationFrameRef = useRef(null)
   // Use a ref for the stopping guard — refs are not affected by stale closures
   const isStoppingRef = useRef(false)
+
+  const prefersReducedMotion = useReducedMotion()
 
   const handleStop = useCallback(async () => {
     // Guard: if already stopping, do nothing. Uses a ref so it works
@@ -55,7 +67,11 @@ export default function ListeningState({ onStop }) {
             }
           },
           () => {
-            if (mounted) setIsConnected(true)
+            if (mounted) {
+              setIsConnected(true)
+              // Finding 11(a): haptic pulse when recording successfully starts
+              if (navigator.vibrate) navigator.vibrate(10)
+            }
           },
           (err) => {
             if (mounted) setError("Connection lost")
@@ -113,6 +129,24 @@ export default function ListeningState({ onStop }) {
     const bufferLength = analyserRef.current.frequencyBinCount
     const dataArray = new Uint8Array(bufferLength)
 
+    /* Finding 9: check reduced-motion at draw time. If active, draw a
+       single static line and return — do not start the rAF loop. */
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    if (reducedMotion) {
+      // Static low-amplitude line
+      ctx.clearRect(0, 0, width, height)
+      ctx.lineWidth = 1.5
+      ctx.strokeStyle = 'rgba(196, 149, 106, 0.6)'
+      ctx.beginPath()
+      ctx.moveTo(0, height / 2)
+      for (let i = 0; i < width; i += 20) {
+        ctx.lineTo(i, height / 2 + Math.sin(i * 0.05) * 2)
+      }
+      ctx.stroke()
+      return
+    }
+
     const draw = () => {
       animationFrameRef.current = requestAnimationFrame(draw)
 
@@ -158,75 +192,100 @@ export default function ListeningState({ onStop }) {
     draw()
   }
 
+  /* Finding 7: derive dot color for animated transition */
+  const dotColor = error
+    ? 'var(--error)'
+    : isConnected
+      ? 'var(--accent)'
+      : 'var(--text-faded)'
+
+  /* Finding 5: translucent overlay material styles */
+  const overlayStyle = {
+    background: 'rgba(22, 21, 20, 0.6)',
+    WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+    backdropFilter: 'blur(16px) saturate(160%)',
+    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+  }
+
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Overlays */}
-      <div style={{
-        position: 'fixed',
-        top: '2rem',
-        right: '2rem',
-        backgroundColor: 'var(--overlay-bg)',
-        border: '1px solid var(--overlay-border)',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-        padding: '0.4rem 0.6rem',
-        borderRadius: '3px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        zIndex: 10
-      }}>
-        <div style={{
-          width: '5px',
-          height: '5px',
-          borderRadius: '50%',
-          backgroundColor: error ? 'var(--error)' : (isConnected ? 'var(--accent)' : 'var(--text-faded)')
-        }} />
+      {/* Overlays — Finding 5: translucent materials */}
+      <div
+        className="overlay-material"
+        style={{
+          position: 'fixed',
+          top: '2rem',
+          right: '2rem',
+          ...overlayStyle,
+          padding: '0.4rem 0.6rem',
+          borderRadius: '3px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          zIndex: 10
+        }}
+      >
+        {/* Finding 7: animated status dot color */}
+        <motion.div
+          animate={{ backgroundColor: dotColor }}
+          transition={dotColorTransition}
+          style={{
+            width: '5px',
+            height: '5px',
+            borderRadius: '50%',
+          }}
+        />
+        {/* Finding 5: slightly higher contrast text on translucent surface */}
         <span style={{
           fontSize: '0.6rem',
           letterSpacing: '0.15em',
           textTransform: 'uppercase',
-          color: 'var(--text-faded)'
+          color: 'var(--text-muted)'
         }}>
           {error ? 'ERROR' : (isConnected ? 'LIVE' : 'CONNECTING')}
         </span>
       </div>
 
-      <div style={{
-        position: 'fixed',
-        bottom: '2rem',
-        left: '2rem',
-        backgroundColor: 'var(--overlay-bg)',
-        border: '1px solid var(--overlay-border)',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-        padding: '0.4rem 0.6rem',
-        borderRadius: '3px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.4rem',
-        zIndex: 10
-      }}>
+      <div
+        className="overlay-material"
+        style={{
+          position: 'fixed',
+          bottom: '2rem',
+          left: '2rem',
+          ...overlayStyle,
+          padding: '0.4rem 0.6rem',
+          borderRadius: '3px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.4rem',
+          zIndex: 10
+        }}
+      >
         <span style={{
           fontSize: '0.6rem',
           letterSpacing: '0.15em',
           textTransform: 'uppercase',
-          color: 'var(--text-faded)'
+          color: 'var(--text-muted)'
         }}>
-          MIC: <span style={{ color: 'var(--text-muted)' }}>ACTIVE</span>
+          MIC: <span style={{ color: 'var(--text-primary)' }}>ACTIVE</span>
         </span>
         <span style={{
           fontSize: '0.6rem',
           letterSpacing: '0.15em',
           textTransform: 'uppercase',
-          color: 'var(--text-faded)'
+          color: 'var(--text-muted)'
         }}>
-          STREAM: <span style={{ color: 'var(--text-muted)' }}>{isConnected ? 'OK' : 'WAIT'}</span>
+          STREAM: <span style={{ color: 'var(--text-primary)' }}>{isConnected ? 'OK' : 'WAIT'}</span>
         </span>
       </div>
 
-      {/* Main Content Area */}
-      <div
+      {/* Main Content Area — Finding 2: whileTap on click-to-stop area */}
+      <motion.div
         onClick={handleStop}
+        whileTap={{ scale: 0.98 }}
+        transition={tapSpring}
         style={{
           flex: 1,
           display: 'flex',
@@ -284,10 +343,8 @@ export default function ListeningState({ onStop }) {
 
                 const baseStyle = {
                   filter,
-                  opacity,
                   display: 'inline-block',
                   marginRight: '0.25rem',
-                  transition: 'filter 0.2s, opacity 0.2s'
                 }
 
                 const stressedStyle = w.stressed ? {
@@ -298,10 +355,23 @@ export default function ListeningState({ onStop }) {
                   textShadow: '0 0 12px var(--accent-dim)'
                 } : {}
 
+                /* Finding 3: keyed by word start-time + index for stable identity.
+                   Reduced-motion: fall back to opacity-only crossfade. */
+                const stableKey = `${w.start || 0}-${index}`
+
                 return (
-                  <span key={index} style={{ ...baseStyle, ...stressedStyle }}>
+                  <motion.span
+                    key={stableKey}
+                    initial={prefersReducedMotion
+                      ? { opacity: 0 }
+                      : { opacity: 0, y: 8, scale: 1.08 }
+                    }
+                    animate={{ opacity, y: 0, scale: 1 }}
+                    transition={wordEntranceSpring}
+                    style={{ ...baseStyle, ...stressedStyle }}
+                  >
                     {w.word}
-                  </span>
+                  </motion.span>
                 )
               })
             ) : (
@@ -313,7 +383,7 @@ export default function ListeningState({ onStop }) {
         {error && (
           <p style={{ color: 'var(--error)', marginTop: '2rem' }}>{error}</p>
         )}
-      </div>
+      </motion.div>
 
       {/* Listening Line Canvas */}
       <div style={{

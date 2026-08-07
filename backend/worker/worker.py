@@ -145,6 +145,18 @@ class Worker:
                                 if i < len(pause_words):
                                     w.pause_after = pause_words[i].get("pause_after", 0.0)
                                     w.is_hesitation = pause_words[i].get("is_hesitation", False)
+                        # Apply intonation / pitch results
+                        if "word_intonation" in res:
+                            inton_words = res["word_intonation"]
+                            for i, w in enumerate(phrase.words):
+                                if i < len(inton_words):
+                                    w.pitch_mean = inton_words[i].get("pitch_mean")
+                                    w.pitch_direction = inton_words[i].get("pitch_direction")
+                                    w.pitch_range = inton_words[i].get("pitch_range", 0.0)
+                                    w.pitch_contour = inton_words[i].get("pitch_contour", [])
+                            # Sentence-level intonation pattern
+                            if "intonation_pattern" in res:
+                                phrase.intonation_pattern = res["intonation_pattern"]
                     except Exception as ae:
                         logger.warning(f"Job {job_id}: analyzer '{analyzer.name}' failed on sentence {idx+1}: {ae}")
 
@@ -258,10 +270,15 @@ class Worker:
         wpm = word_count / minutes if minutes > 0 else 0.0
         stress_ratio = stressed_count / word_count if word_count > 0 else 0.0
 
+        # Pitch variation: std-dev of pitch_mean across all voiced words
+        pitch_means = [w.pitch_mean for w in all_words if w.pitch_mean is not None]
+        pitch_variation = float(np.std(pitch_means)) if len(pitch_means) >= 2 else 0.0
+
         return JobResult(
             phrases=[p for p in phrases],
             total_duration=duration,
             word_count=word_count,
             wpm=wpm,
             stress_ratio=stress_ratio,
+            pitch_variation=round(pitch_variation, 1),
         )

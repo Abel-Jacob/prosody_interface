@@ -1,5 +1,11 @@
 import React from 'react'
+import { motion } from 'framer-motion'
 import { useJobPolling } from '../services/useJobPolling'
+
+/* Finding 4: spring-driven progress bar width.
+   Critically damped (bounce: 0), ~0.4s response — smooth even if
+   progress value updates rapidly or out of order. */
+const progressSpring = { type: 'spring', duration: 0.4, bounce: 0 }
 
 export default function ProcessingState({ jobId, onComplete }) {
   const { progress, error, status } = useJobPolling(jobId, onComplete)
@@ -43,13 +49,18 @@ export default function ProcessingState({ jobId, onComplete }) {
             borderRadius: '0px',
             overflow: 'hidden'
           }}>
-            <div style={{
-              height: '100%',
-              backgroundColor: 'var(--accent)',
-              width: `${progressPercent}%`,
-              transition: 'width 0.3s ease-out',
-              borderRadius: '0px'
-            }} />
+            {/* Finding 4: replaced CSS transition with framer-motion spring.
+                This is a justified width animation (determinate fill bar)
+                rather than a transform-friendly property. */}
+            <motion.div
+              animate={{ width: `${progressPercent}%` }}
+              transition={progressSpring}
+              style={{
+                height: '100%',
+                backgroundColor: 'var(--accent)',
+                borderRadius: '0px'
+              }}
+            />
           </div>
           
           <div style={{

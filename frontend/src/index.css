@@ -168,3 +168,49 @@ body {
 .pause-dot:nth-child(3) {
   animation-delay: 0.3s;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   ACCESSIBILITY MEDIA QUERIES
+   ═══════════════════════════════════════════════════════════ */
+
+/* --- Reduced Motion ---
+   Disable CSS keyframe animations. Component-level JS uses
+   useReducedMotion() from framer-motion for spring fallbacks. */
+@media (prefers-reduced-motion: reduce) {
+  .canvas-bg.active {
+    animation: none;
+  }
+
+  .pause-dot {
+    animation: none !important;
+    opacity: 0.7;
+    transform: none;
+  }
+
+  /* Disable the CSS-animation-based tooltip entrance; framer-motion
+     handles its own reduced-motion fallback in the component. */
+  .word-tooltip-container {
+    animation: none !important;
+  }
+}
+
+/* --- Reduced Transparency ---
+   Raise overlay backgrounds to near-opaque, drop backdrop-filter. */
+@media (prefers-reduced-transparency) {
+  .overlay-material {
+    background: rgba(22, 21, 20, 0.92) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* --- High Contrast ---
+   Near-solid overlay backgrounds with a clearly defined border. */
+@media (prefers-contrast: more) {
+  .overlay-material {
+    background: rgba(22, 21, 20, 0.95) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  }
+}
