@@ -18,7 +18,7 @@ soundfile>=0.12.0
 numpy>=1.24.0
 
 # Pitch stylization (MAE algorithm)
-pysptk>=0.2.0            # SWIPE pitch extraction (C extension)
+libf0>=1.1.0              # SWIPE pitch extraction (pure Python, no C compiler needed)
 PyWavelets>=1.4.0        # Wavelet-based K estimation
 scipy>=1.10.0            # MAE linear programming solver (HiGHS)
 

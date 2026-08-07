@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { motion, useReducedMotion } from 'framer-motion'
 import './WordTooltip.css'
 
 /**
@@ -10,8 +11,12 @@ import './WordTooltip.css'
  * When pitch data is absent, falls back to the existing tooltip content:
  *   - Timing, ASR score, stress, pause
  * 
- * Reuses WordTooltip.css for consistent styling.
+ * Uses motion.div for materialize/dematerialize animation consistent
+ * with WordTooltip and PauseTooltip.
  */
+
+/* Finding 6: materialize spring — same config as WordTooltip for consistency */
+const materializeSpring = { type: 'spring', duration: 0.25, bounce: 0 }
 
 // Human-readable trend labels
 const TREND_LABELS = {
@@ -24,6 +29,7 @@ const TREND_LABELS = {
 
 export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
   const [position, setPosition] = useState({ top: 0, left: 0, position: 'above' })
+  const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
     if (!wordRef.current) return
@@ -64,10 +70,32 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
     ? (TREND_LABELS[wordData.pitch_trend] || wordData.pitch_trend)
     : null
 
+  /* Finding 6: transform-origin points toward the trigger element */
+  const transformOrigin = position.position === 'above' ? 'center bottom' : 'center top'
+
+  /* Finding 8: reduced-motion fallback — opacity-only, no scale/blur */
+  const initialAnim = prefersReducedMotion
+    ? { opacity: 0 }
+    : { opacity: 0, scale: 0.85, filter: 'blur(4px)' }
+  const animateAnim = prefersReducedMotion
+    ? { opacity: 1 }
+    : { opacity: 1, scale: 1, filter: 'blur(0px)' }
+  const exitAnim = prefersReducedMotion
+    ? { opacity: 0 }
+    : { opacity: 0, scale: 0.85, filter: 'blur(4px)' }
+
   const tooltipContent = (
-    <div
+    <motion.div
       className={`word-tooltip-container ${position.position}`}
-      style={{ top: position.top, left: position.left }}
+      style={{
+        top: position.top,
+        left: position.left,
+        transformOrigin,
+      }}
+      initial={initialAnim}
+      animate={animateAnim}
+      exit={exitAnim}
+      transition={materializeSpring}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="word-tooltip-content">
@@ -195,7 +223,7 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   )
 
   return createPortal(tooltipContent, document.body)

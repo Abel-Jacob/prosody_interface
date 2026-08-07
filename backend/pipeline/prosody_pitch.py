@@ -42,57 +42,40 @@ K_MAX = 8  # maximum pieces per voiced segment
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  Module 1 — Pitch Extraction
+#  Module 1 — Pitch Extraction (SWIPE via libf0)
 # ═══════════════════════════════════════════════════════════════════
-
-def _extract_pitch_swipe(signal: np.ndarray, sr: int, hop_length: int,
-                         fmin: float, fmax: float) -> np.ndarray:
-    """Extract F0 using SWIPE (via pysptk). Returns raw F0 array."""
-    import pysptk
-    f0 = pysptk.sptk.swipe(
-        np.asarray(signal, dtype=np.float64),
-        sr,
-        hopsize=hop_length,
-        min=float(fmin),
-        max=float(fmax),
-        otype="f0",
-    )
-    return f0
-
-
-def _extract_pitch_pyin(signal: np.ndarray, sr: int, hop_length: int,
-                        fmin: float, fmax: float) -> np.ndarray:
-    """Fallback: extract F0 using librosa's PYIN. Returns raw F0 array."""
-    import librosa
-    f0, voiced_flag, _ = librosa.pyin(
-        signal,
-        fmin=fmin,
-        fmax=fmax,
-        sr=sr,
-        hop_length=hop_length,
-    )
-    # PYIN returns NaN for unvoiced; convert to 0 for consistency with SWIPE
-    f0 = np.where(np.isnan(f0), 0.0, f0)
-    return f0
-
 
 def extract_pitch(signal: np.ndarray, sr: int, hop_length: int,
                   fmin: float, fmax: float) -> np.ndarray:
     """
-    Extract pitch with SWIPE (preferred) or PYIN (fallback).
+    Extract pitch using SWIPE (Sawtooth-Waveform Inspired Pitch Estimator).
+
+    SWIPE is the pitch tracker used in the original MAE stylization paper
+    (Yarra & Ghosh, Interspeech 2021). It produces frame-level F0 estimates
+    without temporal smoothing (unlike PYIN's HMM), which is important
+    because the MAE criterion itself handles outlier robustness.
+
+    Uses libf0's pure-Python SWIPE implementation (Camacho & Harris, 2008).
+    Requires: pip install libf0
+
     Returns raw F0 array where unvoiced frames = 0.
     """
-    try:
-        f0 = _extract_pitch_swipe(signal, sr, hop_length, fmin, fmax)
-        logger.debug("Pitch extracted using SWIPE (pysptk)")
-        return f0
-    except ImportError:
-        logger.warning("pysptk not available — falling back to librosa PYIN")
-    except Exception as e:
-        logger.warning(f"SWIPE failed ({e}) — falling back to librosa PYIN")
+    from libf0 import swipe as libf0_swipe
 
-    f0 = _extract_pitch_pyin(signal, sr, hop_length, fmin, fmax)
-    logger.debug("Pitch extracted using PYIN (librosa)")
+    f0, t, strength = libf0_swipe(
+        x=np.asarray(signal, dtype=np.float64),
+        Fs=sr,
+        H=hop_length,
+        F_min=float(fmin),
+        F_max=float(fmax),
+        strength_threshold=0,  # keep all frames, we filter later
+    )
+    # libf0 returns 0 for unvoiced frames (same convention we need)
+    f0 = np.asarray(f0, dtype=np.float64)
+    logger.debug(
+        f"SWIPE pitch extracted: {len(f0)} frames, "
+        f"{int(np.sum(f0 > 0))} voiced ({100 * np.mean(f0 > 0):.1f}%)"
+    )
     return f0
 
 

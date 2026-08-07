@@ -17,7 +17,6 @@ from pipeline.prosody_base import ProsodyAnalyzer
 from pipeline.prosody_stress import StressAnalyzer
 from pipeline.prosody_pause import PauseAnalyzer
 from pipeline.prosody_pitch import PitchAnalyzer
-from pipeline.prosody_intonation import IntonationAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +28,13 @@ logger = logging.getLogger(__name__)
 ANALYZER_CLASSES: list[type[ProsodyAnalyzer]] = [
     StressAnalyzer,
     PauseAnalyzer,
-    IntonationAnalyzer,
-    # Future modules:
-    # RhythmAnalyzer,       # inter-word timing statistics
+    # PitchAnalyzer is NOT listed here — it needs full audio,
+    # not per-sentence chunks. See FULL_AUDIO_ANALYZER_CLASSES.
 ]
 
-# Analyzers that need the full audio (not per-sentence chunks)
+# Analyzers that need the full audio (not per-sentence chunks).
+# These run once after all sentences are processed, on the complete
+# audio with all words.
 FULL_AUDIO_ANALYZER_CLASSES: list[type[ProsodyAnalyzer]] = [
     PitchAnalyzer,
 ]
@@ -86,4 +86,3 @@ def get_full_audio_analyzers(models: dict) -> list[ProsodyAnalyzer]:
                 logger.error(f"Failed to initialize {cls.__name__}: {e}")
 
     return _cached_full_audio_analyzers
-

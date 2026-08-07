@@ -37,24 +37,41 @@ function preprocessWords(words) {
 }
 
 // Helper component to render each word and its ref
-function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord, phraseMinPitch, phraseMaxPitch }) {
+function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
   const wordRef = useRef(null)
   const dotsRef = useRef(null)
   const [dotsHovered, setDotsHovered] = useState(false)
   
   const isInspected = inspectedWord && inspectedWord.data.word === w.word && inspectedWord.data.start === w.start
 
-  const appliedFilter = isInspected ? 'none' : (
-    (w.confidence || 1) < 0.85
-      ? `blur(${Math.min(1.4, (0.85 - (w.confidence || 1)) * 4).toFixed(2)}px)`
-      : 'none'
-  )
-  
-  const appliedOpacity = isInspected ? 1 : (
-    (w.confidence || 1) < 0.95
-      ? Math.max(0.5, 0.4 + (w.confidence || 1) * 0.6)
-      : 1
-  )
+  const handleClick = (e) => {
+    e.stopPropagation()
+    setInspectedWord({ data: w, ref: wordRef })
+  }
+
+  // Determine pause visualization
+  const pauseVal = w.pause_after || 0
+  const dotCount = isLast ? 0
+    : pauseVal > 1.0 ? 3
+    : pauseVal > 0.5 ? 2
+    : 0
+  const showComma = dotCount === 0 && pauseVal >= 0.2 && pauseVal <= 0.5 && !isLast
+
+  const wordText = w.word
+  const alreadyHasPunct = /[.,!?;:]$/.test(wordText)
+  const displayWord = (showComma && !alreadyHasPunct) ? wordText + ',' : wordText
+
+  // Use ProsodyWord for character-level pitch deformation when MAE pitch data is available
+  const hasPitchData = w.char_pitches && w.char_pitches.length > 0
+
+  // Confidence-based visual effects
+  const conf = w.confidence !== undefined ? w.confidence : 1
+  const opacity = conf < 0.95 ? Math.max(0.5, 0.4 + conf * 0.6) : 1
+  const blurVal = conf < 0.85 ? Math.min(1.4, (0.85 - conf) * 4) : 0
+  const filter = blurVal > 0.05 ? `blur(${blurVal.toFixed(2)}px)` : 'none'
+
+  const appliedFilter = isInspected ? 'none' : filter
+  const appliedOpacity = isInspected ? 1 : opacity
 
   const baseStyle = {
     filter: appliedFilter,
@@ -74,52 +91,32 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord, phraseMin
     textShadow: '0 0 12px var(--accent-dim)'
   } : {}
 
-  const handleClick = (e) => {
-    e.stopPropagation()
-    setInspectedWord({ data: w, ref: wordRef })
-  }
-
-  // Determine pause visualization
-  const pauseVal = w.pause_after || 0
-  const dotCount = isLast ? 0
-    : pauseVal > 1.0 ? 3
-    : pauseVal > 0.5 ? 2
-    : 0
-  const showComma = dotCount === 0 && pauseVal >= 0.2 && pauseVal <= 0.5 && !isLast
-
-  const wordText = w.word
-  const alreadyHasPunct = /[.,!?;:]$/.test(wordText)
-  const displayWord = (showComma && !alreadyHasPunct) ? wordText + ',' : wordText
-
-  // Use ProsodyWord for character-level pitch deformation when pitch data is available
-  const hasPitchData = w.char_pitches && w.char_pitches.length > 0
-
   return (
     <React.Fragment>
-      <motion.span
-        ref={wordRef}
-        onClick={handleClick}
-        whileTap={{ scale: 0.97 }}
-        transition={tapSpring}
-        style={{ display: 'inline-block', marginRight: isLast ? '0' : '0.25rem' }}
-      >
-        {hasPitchData ? (
+      {hasPitchData ? (
+        /* MAE-stylized pitch rendering: character-level scaleY deformation */
+        <span ref={wordRef} style={{ display: 'inline-block', marginRight: isLast ? '0' : '0.25rem' }}>
           <ProsodyWord
             word={displayWord}
             charPitches={w.char_pitches}
             stressed={w.stressed}
             isInspected={isInspected}
             onClick={handleClick}
-            confidence={w.confidence !== undefined ? w.confidence : 1}
+            confidence={conf}
           />
-        ) : (
-          <span
-            style={{ ...baseStyle, ...stressedStyle }}
-          >
-            {renderWordContent(displayWord, w, phraseMinPitch, phraseMaxPitch)}
-          </span>
-        )}
-      </motion.span>
+        </span>
+      ) : (
+        /* Fallback: plain text rendering (for unvoiced words or when pitch data unavailable) */
+        <motion.span
+          ref={wordRef}
+          onClick={handleClick}
+          whileTap={{ scale: 0.97 }}
+          transition={tapSpring}
+          style={{ ...baseStyle, ...stressedStyle }}
+        >
+          {displayWord}
+        </motion.span>
+      )}
       {dotCount > 0 && (
         <span
           ref={dotsRef}
@@ -142,34 +139,6 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord, phraseMin
   )
 }
 
-/**
- * Render word content — either plain text or per-letter pitch-scaled spans.
- * Each character gets a fontSize proportional to its F0 value from the contour.
- */
-function renderWordContent(displayWord, w, phraseMinPitch, phraseMaxPitch) {
-  const contour = w.pitch_contour
-  const hasContour = contour && contour.length > 0 && phraseMinPitch != null && phraseMaxPitch != null
-
-  if (!hasContour) return displayWord
-
-  const MIN_SCALE = 0.55
-  const MAX_SCALE = 2.2
-  const pitchSpan = Math.max(phraseMaxPitch - phraseMinPitch, 20) // floor at 20Hz to avoid extreme scaling
-
-  return displayWord.split('').map((char, i) => {
-    // Map char to contour index (clamp for any trailing punct the frontend may add)
-    const ci = Math.min(i, contour.length - 1)
-    const f0 = contour[ci]
-    const scale = MIN_SCALE + ((f0 - phraseMinPitch) / pitchSpan) * (MAX_SCALE - MIN_SCALE)
-
-    return (
-      <span key={i} style={{ fontSize: `${scale.toFixed(2)}em`, lineHeight: 1 }}>
-        {char}
-      </span>
-    )
-  })
-}
-
 export default function SummaryState({ result, onReset }) {
   // Feature 3: Track inspected word for tooltip
   const [inspectedWord, setInspectedWord] = useState(null)
@@ -180,21 +149,10 @@ export default function SummaryState({ result, onReset }) {
 
   // Pre-process: absorb hesitation words into pauses for each phrase
   const processedPhrases = useMemo(() => {
-    return phrases.map(p => {
-      const words = preprocessWords(p.words)
-
-      // Collect all pitch contour values across the phrase for min/max normalization
-      const allPitchValues = []
-      words.forEach(w => {
-        if (w.pitch_contour && w.pitch_contour.length > 0) {
-          allPitchValues.push(...w.pitch_contour)
-        }
-      })
-      const _phraseMinPitch = allPitchValues.length > 0 ? Math.min(...allPitchValues) : null
-      const _phraseMaxPitch = allPitchValues.length > 0 ? Math.max(...allPitchValues) : null
-
-      return { ...p, words, _phraseMinPitch, _phraseMaxPitch }
-    })
+    return phrases.map(p => ({
+      ...p,
+      words: preprocessWords(p.words)
+    }))
   }, [phrases])
   
   // Feature 4: Calculate total average confidence (from processed words)
@@ -263,8 +221,6 @@ export default function SummaryState({ result, onReset }) {
                   isLast={wIndex === phrase.words.length - 1} 
                   inspectedWord={inspectedWord}
                   setInspectedWord={setInspectedWord}
-                  phraseMinPitch={phrase._phraseMinPitch}
-                  phraseMaxPitch={phrase._phraseMaxPitch}
                 />
               ))}
             </div>
@@ -273,6 +229,7 @@ export default function SummaryState({ result, onReset }) {
       </motion.div>
 
       {/* Feature 2: Render Prosody Tooltip (with pitch data when available) */}
+      {/* Finding 6: AnimatePresence for tooltip exit animation */}
       <AnimatePresence>
         {inspectedWord && (
           <ProsodyTooltip 
@@ -343,21 +300,6 @@ export default function SummaryState({ result, onReset }) {
               ASR Score
             </span>
           </div>
-
-          {result.pitch_variation > 0 && (
-            <>
-              <div style={{ width: '1px', height: '1.2rem', backgroundColor: 'var(--text-faded)' }} />
-
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '6rem' }}>
-                <span style={{ fontSize: '1.2rem', fontWeight: 300, color: 'var(--text-primary)' }}>
-                  {Math.round(result.pitch_variation)} Hz
-                </span>
-                <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: '0.3rem' }}>
-                  Pitch Var
-                </span>
-              </div>
-            </>
-          )}
         </div>
 
         {/* Legend */}
@@ -396,13 +338,6 @@ export default function SummaryState({ result, onReset }) {
               <span className="pause-dot" style={{ opacity: 1, transform: 'none', animation: 'none' }} />
             </span>
             <span>long pause</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '0px' }}>
-              <span style={{ fontSize: '0.55em', color: 'var(--text-muted)' }}>a</span>
-              <span style={{ fontSize: '1.4em', color: 'var(--text-muted)', lineHeight: 1 }}>A</span>
-            </span>
-            <span>letter size = pitch</span>
           </div>
         </div>
 
