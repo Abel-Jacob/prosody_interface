@@ -1,0 +1,82 @@
+/* =========================================
+   ProsodyWord.css — Character-level pitch deformation
+   
+   Each character in a word is individually scaled vertically
+   based on the MAE-stylized pitch contour. Rising pitch causes
+   characters to grow taller; falling pitch compresses them.
+   
+   Transform origin is BOTTOM so the baseline never moves.
+   ========================================= */
+
+/* Container for a single word's characters */
+.prosody-word {
+  display: inline-block;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+}
+
+/* Individual character span */
+.prosody-char {
+  display: inline-block;
+  transform-origin: bottom center;
+  transition: transform var(--pitch-deform-duration, 0.6s) cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+/* Initial state before animation: all chars at normal scale */
+.prosody-word.animating .prosody-char {
+  transform: scaleY(1) !important;
+}
+
+/* After animation completes, chars settle to their final pitch-driven scale.
+   The actual scaleY is set inline via React. */
+
+/* Subtle hover effect: slightly brighten the word */
+.prosody-word:hover .prosody-char {
+  filter: brightness(1.1);
+  transition: transform var(--pitch-deform-duration, 0.6s) cubic-bezier(0.22, 1, 0.36, 1),
+              filter 0.2s ease;
+}
+
+/* Inspected/selected word — underline indicator */
+.prosody-word.inspected {
+  text-decoration: underline;
+  text-decoration-color: var(--accent, #c4956a);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+}
+
+/* Animation keyframes for the reveal effect */
+@keyframes revealPitchChar {
+  0% {
+    transform: scaleY(1);
+    opacity: 0.85;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    /* Final scaleY is set via CSS custom property --final-scale */
+    transform: scaleY(var(--final-scale, 1));
+    opacity: 1;
+  }
+}
+
+/* Each character gets a staggered animation delay */
+.prosody-word.reveal .prosody-char {
+  animation: revealPitchChar var(--pitch-deform-duration, 0.6s) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Stagger delays: each successive character starts slightly later */
+.prosody-word.reveal .prosody-char:nth-child(1) { animation-delay: 0.00s; }
+.prosody-word.reveal .prosody-char:nth-child(2) { animation-delay: 0.03s; }
+.prosody-word.reveal .prosody-char:nth-child(3) { animation-delay: 0.06s; }
+.prosody-word.reveal .prosody-char:nth-child(4) { animation-delay: 0.09s; }
+.prosody-word.reveal .prosody-char:nth-child(5) { animation-delay: 0.12s; }
+.prosody-word.reveal .prosody-char:nth-child(6) { animation-delay: 0.15s; }
+.prosody-word.reveal .prosody-char:nth-child(7) { animation-delay: 0.18s; }
+.prosody-word.reveal .prosody-char:nth-child(8) { animation-delay: 0.21s; }
+.prosody-word.reveal .prosody-char:nth-child(9) { animation-delay: 0.24s; }
+.prosody-word.reveal .prosody-char:nth-child(10) { animation-delay: 0.27s; }
+.prosody-word.reveal .prosody-char:nth-child(n+11) { animation-delay: 0.30s; }

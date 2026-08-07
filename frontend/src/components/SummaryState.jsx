@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import WordTooltip from './WordTooltip'
+import ProsodyWord from './ProsodyWord'
+import ProsodyTooltip from './ProsodyTooltip'
 import PauseTooltip from './PauseTooltip'
 
 /**
@@ -32,34 +33,7 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
   const dotsRef = useRef(null)
   const [dotsHovered, setDotsHovered] = useState(false)
   
-  // Feature 1: Confidence-Based Text Blur
-  const conf = w.confidence !== undefined ? w.confidence : 1
-  const opacity = conf < 0.95 ? Math.max(0.5, 0.4 + conf * 0.6) : 1
-  const blurVal = conf < 0.85 ? Math.min(1.4, (0.85 - conf) * 4) : 0
-  const filter = blurVal > 0.05 ? `blur(${blurVal.toFixed(2)}px)` : 'none'
-  
   const isInspected = inspectedWord && inspectedWord.data.word === w.word && inspectedWord.data.start === w.start
-
-  const appliedFilter = isInspected ? 'none' : filter
-  const appliedOpacity = isInspected ? 1 : opacity
-
-  const baseStyle = {
-    filter: appliedFilter,
-    opacity: appliedOpacity,
-    cursor: 'pointer',
-    display: 'inline-block',
-    marginRight: isLast ? '0' : '0.25rem',
-    textDecoration: isInspected ? 'underline' : 'none',
-    transition: 'filter 0.2s, opacity 0.2s'
-  }
-
-  const stressedStyle = w.stressed ? {
-    fontWeight: 600,
-    color: 'var(--accent)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em',
-    textShadow: '0 0 12px var(--accent-dim)'
-  } : {}
 
   const handleClick = (e) => {
     e.stopPropagation()
@@ -68,7 +42,6 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
 
   // Determine pause visualization
   const pauseVal = w.pause_after || 0
-  // Commas for micro pauses (0.2–0.5s), breathing dots for longer pauses
   const dotCount = isLast ? 0
     : pauseVal > 1.0 ? 3
     : pauseVal > 0.5 ? 2
@@ -79,14 +52,51 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
   const alreadyHasPunct = /[.,!?;:]$/.test(wordText)
   const displayWord = (showComma && !alreadyHasPunct) ? wordText + ',' : wordText
 
+  // Use ProsodyWord for character-level pitch deformation when pitch data is available
+  const hasPitchData = w.char_pitches && w.char_pitches.length > 0
+
   return (
     <React.Fragment>
-      <span
-        ref={wordRef}
-        onClick={handleClick}
-        style={{ ...baseStyle, ...stressedStyle }}
-      >
-        {displayWord}
+      <span ref={wordRef} style={{ display: 'inline-block', marginRight: isLast ? '0' : '0.25rem' }}>
+        {hasPitchData ? (
+          <ProsodyWord
+            word={displayWord}
+            charPitches={w.char_pitches}
+            stressed={w.stressed}
+            isInspected={isInspected}
+            onClick={handleClick}
+            confidence={w.confidence !== undefined ? w.confidence : 1}
+          />
+        ) : (
+          <span
+            onClick={handleClick}
+            style={{
+              filter: isInspected ? 'none' : (
+                (w.confidence || 1) < 0.85
+                  ? `blur(${Math.min(1.4, (0.85 - (w.confidence || 1)) * 4).toFixed(2)}px)`
+                  : 'none'
+              ),
+              opacity: isInspected ? 1 : (
+                (w.confidence || 1) < 0.95
+                  ? Math.max(0.5, 0.4 + (w.confidence || 1) * 0.6)
+                  : 1
+              ),
+              cursor: 'pointer',
+              display: 'inline-block',
+              textDecoration: isInspected ? 'underline' : 'none',
+              transition: 'filter 0.2s, opacity 0.2s',
+              ...(w.stressed ? {
+                fontWeight: 600,
+                color: 'var(--accent)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+                textShadow: '0 0 12px var(--accent-dim)',
+              } : {}),
+            }}
+          >
+            {displayWord}
+          </span>
+        )}
       </span>
       {dotCount > 0 && (
         <span
@@ -196,9 +206,9 @@ export default function SummaryState({ result, onReset }) {
         </div>
       </motion.div>
 
-      {/* Feature 2: Render Word Tooltip */}
+      {/* Feature 2: Render Prosody Tooltip (with pitch data when available) */}
       {inspectedWord && (
-        <WordTooltip 
+        <ProsodyTooltip 
           wordData={inspectedWord.data} 
           wordRef={inspectedWord.ref} 
           onClose={() => setInspectedWord(null)} 
@@ -272,12 +282,20 @@ export default function SummaryState({ result, onReset }) {
           fontSize: '0.75rem', color: 'var(--text-muted)', width: '100%', flexWrap: 'wrap'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'flex-end', gap: '0.5px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+              <span style={{ transform: 'scaleY(0.8)', transformOrigin: 'bottom', display: 'inline-block' }}>a</span>
+              <span style={{ transform: 'scaleY(1.0)', transformOrigin: 'bottom', display: 'inline-block' }}>b</span>
+              <span style={{ transform: 'scaleY(1.2)', transformOrigin: 'bottom', display: 'inline-block' }}>c</span>
+            </span>
+            <span>pitch contour</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ color: 'var(--accent)', fontWeight: 'bold', letterSpacing: '0.04em' }}>CAPS</span>
-            <span>indicates stressed words</span>
+            <span>stressed words</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ filter: 'blur(2px)', color: 'var(--text-faded)', fontWeight: 'bold' }}>blur</span>
-            <span>indicates ASR score</span>
+            <span>ASR score</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

@@ -150,11 +150,59 @@ class Worker:
 
                 update_job_progress(
                     job_id,
-                    0.20 + (0.75 * (idx + 1) / max(1, total_sentences)),
+                    0.20 + (0.55 * (idx + 1) / max(1, total_sentences)),
                     idx + 1,
                     current_stage=f"analyzing_sentence_{idx+1}_of_{total_sentences}",
                     partial_result=self._build_result(grammatical_phrases[:idx+1], duration).model_dump(),
                 )
+
+            # Stage 3.5: Full-audio pitch stylization (MAE algorithm)
+            # PitchAnalyzer needs the complete audio to build a globally coherent
+            # stylized contour, so it runs once on all words after per-sentence analysis.
+            update_job_progress(job_id, 0.78, total_sentences, current_stage="pitch_stylization")
+            from pipeline.prosody_registry import get_full_audio_analyzers
+            full_audio_analyzers = get_full_audio_analyzers(self.models)
+
+            # Gather all words across all phrases for full-audio analysis
+            all_words_dicts = []
+            for phrase in grammatical_phrases:
+                all_words_dicts.extend([w.model_dump() for w in phrase.words])
+
+            for analyzer in full_audio_analyzers:
+                try:
+                    logger.info(f"Job {job_id}: running full-audio '{analyzer.name}' analyzer...")
+                    res = await asyncio.to_thread(
+                        analyzer.analyze, audio, all_words_dicts
+                    )
+                    # Apply pitch results back to word objects
+                    if "word_pitch" in res and res["word_pitch"]:
+                        pitch_data = res["word_pitch"]
+                        # Build a flat list of all WordResult objects in order
+                        all_word_objs = []
+                        for phrase in grammatical_phrases:
+                            all_word_objs.extend(phrase.words)
+                        # Match pitch data to words by index
+                        for i, w in enumerate(all_word_objs):
+                            if i < len(pitch_data):
+                                pd = pitch_data[i]
+                                w.mean_pitch = pd.get("mean_pitch")
+                                w.max_pitch = pd.get("max_pitch")
+                                w.min_pitch = pd.get("min_pitch")
+                                w.start_pitch = pd.get("start_pitch")
+                                w.end_pitch = pd.get("end_pitch")
+                                w.pitch_slope = pd.get("pitch_slope")
+                                w.pitch_range = pd.get("pitch_range")
+                                w.normalized_pitch = pd.get("normalized_pitch")
+                                w.pitch_trend = pd.get("pitch_trend")
+                                w.char_pitches = pd.get("char_pitches")
+                                w.voiced_segment_index = pd.get("voiced_segment_index")
+                        logger.info(
+                            f"Job {job_id}: pitch analysis complete — "
+                            f"{sum(1 for pd in pitch_data if pd.get('mean_pitch') is not None)} "
+                            f"words with pitch data"
+                        )
+                except Exception as ae:
+                    logger.warning(f"Job {job_id}: full-audio analyzer '{analyzer.name}' failed: {ae}", exc_info=True)
 
             # Free audio buffer
             del audio

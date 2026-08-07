@@ -28,6 +28,19 @@ class WordResult(BaseModel):
     pause_after: float = Field(default=0.0, description="Silent pause duration after this word in seconds")
     is_hesitation: bool = Field(default=False, description="Whether this word is a vocalized hesitation (e.g. um, uh)")
 
+    # Pitch prosody (from MAE stylized contour)
+    mean_pitch: Optional[float] = Field(default=None, description="Mean MAE-stylized pitch in Hz")
+    max_pitch: Optional[float] = Field(default=None, description="Maximum pitch in Hz within word")
+    min_pitch: Optional[float] = Field(default=None, description="Minimum pitch in Hz within word")
+    start_pitch: Optional[float] = Field(default=None, description="Pitch at word onset in Hz")
+    end_pitch: Optional[float] = Field(default=None, description="Pitch at word offset in Hz")
+    pitch_slope: Optional[float] = Field(default=None, description="Hz change across word duration")
+    pitch_range: Optional[float] = Field(default=None, description="max_pitch - min_pitch in Hz")
+    normalized_pitch: Optional[float] = Field(default=None, description="0-1 normalized within utterance range")
+    pitch_trend: Optional[str] = Field(default=None, description="Pitch direction: ↑ ↓ → ↗ ↘")
+    char_pitches: Optional[list[float]] = Field(default=None, description="Per-character normalized pitch for rendering")
+    voiced_segment_index: Optional[int] = Field(default=None, description="Index of the voiced segment this word belongs to")
+
 
 class PhraseResult(BaseModel):
     """A phrase/sentence derived from one VAD chunk."""
