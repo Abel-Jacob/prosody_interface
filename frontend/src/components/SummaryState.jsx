@@ -95,7 +95,7 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
     <React.Fragment>
       {hasPitchData ? (
         /* MAE-stylized pitch rendering: character-level scaleY deformation */
-        <span ref={wordRef} style={{ display: 'inline-block', verticalAlign: 'bottom', marginRight: isLast ? '0' : '0.25rem' }}>
+        <span ref={wordRef} style={{ display: 'inline-block', verticalAlign: 'baseline', marginRight: isLast ? '0' : '0.25rem' }}>
           <ProsodyWord
             word={displayWord}
             charPitches={w.char_pitches}

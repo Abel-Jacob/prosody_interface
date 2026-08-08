@@ -11,15 +11,14 @@
    • .prosody-word   → display: inline  (flows with surrounding inline text,
                         never creates a new block box that could shift)
    • .prosody-char   → display: inline-block  (needs a box for scaleY)
-                        vertical-align: bottom  (aligns the BOTTOM edge of
-                        each char to the shared line box baseline)
-                        line-height: 1          (prevents descender space
-                        from affecting the transform reference point)
-                        transform-origin: bottom center  (scaleY grows upward)
+                        vertical-align: baseline (keeps character exactly aligned
+                        with standard text baselines)
+                        transform-origin: center (scaleY grows symmetrically
+                        up and down like a music waveform)
 
-   Result: a character scaled to 1.3× grows upward only; the bottom of
-   every character stays flush with the bottom of every plain letter
-   on the same line.
+   Result: a character scaled to 1.3× grows upward and downward equally.
+   The visual center remains aligned, resembling a waveform amplitude,
+   without ever breaking the baseline alignment of the paragraph.
    ========================================= */
 
 /* ── Word container ────────────────────────────────────────────────
@@ -34,15 +33,13 @@
 
 /* ── Per-character span ────────────────────────────────────────────
    inline-block so scaleY works.
-   vertical-align: bottom  →  bottom of char box sits on the text baseline.
-   line-height: 1          →  no extra leading below the glyph that would
-                              shift the transform reference point.
-   transform-origin: bottom center  →  scaleY stretches upward only. */
+   vertical-align: baseline → keeps character on the exact text baseline.
+   transform-origin: center → scaleY stretches character symmetrically
+                              up and down, like a music waveform. */
 .prosody-char {
   display: inline-block;
-  vertical-align: bottom;
-  line-height: 1;
-  transform-origin: bottom center;
+  vertical-align: baseline;
+  transform-origin: center;
   transition: transform var(--pitch-deform-duration, 0.6s) cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
 }

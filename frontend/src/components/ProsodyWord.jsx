@@ -9,8 +9,9 @@ import './ProsodyWord.css'
  * them. All words — pitched or plain — sit on the SAME text baseline:
  *
  *   .prosody-word  → display: inline   (never shifts the word off its line)
- *   .prosody-char  → vertical-align: bottom + transform-origin: bottom center
- *                     so scaleY only grows characters upward, never downward.
+ *   .prosody-char  → vertical-align: baseline + transform-origin: center
+ *                     so scaleY grows characters symmetrically up and down
+ *                     like a music waveform, without moving the layout baseline.
  *
  * Props:
  *   word        — The word text to display
