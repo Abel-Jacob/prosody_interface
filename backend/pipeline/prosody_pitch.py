@@ -582,7 +582,7 @@ def run_pitch_stylization(
         K = seg["K"]
 
         try:
-            mae_stylized, mae_boundaries, mae_cost = dp_stylize(x_seg, K, P, mae_fit)
+            mae_stylized, mae_boundaries, mae_cost = dp_stylize(x_seg, K, P, fast_fit)
         except Exception as e:
             logger.warning(f"MAE stylization failed for segment {seg_idx}: {e}")
             # Fall back to raw contour if MAE fails
