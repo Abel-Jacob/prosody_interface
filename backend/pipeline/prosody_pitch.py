@@ -12,7 +12,7 @@ Pipeline:
   4. Contiguous voiced segment extraction
   5. Automatic K estimation (wavelet complexity)
   6. Dynamic programming segmentation
-  7. Piecewise polynomial fitting — MSE (baseline) and MAE (production)
+  7. Piecewise polynomial fitting — MAE
   8. Full contour reconstruction
   9. Word-level prosodic feature extraction from MAE contour
   10. Per-character pitch normalization for typographic rendering
@@ -42,7 +42,7 @@ K_MAX = 8  # maximum pieces per voiced segment
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  Module 1 — Pitch Extraction (SWIPE via pysptk)
+#  Module 1 — Pitch Extraction (SWIPE via libf0)
 # ═══════════════════════════════════════════════════════════════════
 
 def extract_pitch(signal: np.ndarray, sr: int, hop_length: int,
@@ -55,27 +55,23 @@ def extract_pitch(signal: np.ndarray, sr: int, hop_length: int,
     without temporal smoothing (unlike PYIN's HMM), which is important
     because the MAE criterion itself handles outlier robustness.
 
-    Requires: pip install pysptk
+    Uses libf0's pure-Python SWIPE implementation (Camacho & Harris, 2008).
+    Requires: pip install libf0
 
     Returns raw F0 array where unvoiced frames = 0.
     """
-    try:
-        import pysptk
-    except ImportError:
-        raise ImportError(
-            "pysptk is required for SWIPE pitch extraction. "
-            "Install it with: pip install pysptk\n"
-            "On Windows, you may also need Visual Studio Build Tools."
-        )
+    from libf0 import swipe as libf0_swipe
 
-    f0 = pysptk.sptk.swipe(
-        np.asarray(signal, dtype=np.float64),
-        sr,
-        hopsize=hop_length,
-        min=float(fmin),
-        max=float(fmax),
-        otype="f0",
+    f0, t, strength = libf0_swipe(
+        x=np.asarray(signal, dtype=np.float64),
+        Fs=sr,
+        H=hop_length,
+        F_min=float(fmin),
+        F_max=float(fmax),
+        strength_threshold=0,  # keep all frames, we filter later
     )
+    # libf0 returns 0 for unvoiced frames (same convention we need)
+    f0 = np.asarray(f0, dtype=np.float64)
     logger.debug(
         f"SWIPE pitch extracted: {len(f0)} frames, "
         f"{int(np.sum(f0 > 0))} voiced ({100 * np.mean(f0 > 0):.1f}%)"
@@ -198,46 +194,7 @@ def _eval_poly(alpha: np.ndarray, n: np.ndarray) -> np.ndarray:
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  Module 8a — MSE Fit (Least Squares, baseline)
-# ═══════════════════════════════════════════════════════════════════
-
-def mse_fit(x_seg: np.ndarray, s: int, r: int, P: int,
-            boundary: Optional[tuple] = None) -> tuple[np.ndarray, float]:
-    """
-    Least-squares polynomial fit over 1-indexed frame range [s, r].
-    With optional continuity constraint via KKT system.
-    """
-    idx = np.arange(s, r + 1)
-    x = x_seg[s - 1:r]
-    A = _vandermonde(idx, P)
-
-    if boundary is None:
-        AtA = A.T @ A
-        Atx = A.T @ x
-        alpha = np.linalg.solve(AtA, Atx)
-    else:
-        n0, b_val = boundary
-        h = np.array([n0 ** p for p in range(P + 1)], dtype=float)
-        AtA = A.T @ A
-        Atx = A.T @ x
-        n_alpha = P + 1
-        KKT = np.zeros((n_alpha + 1, n_alpha + 1))
-        KKT[:n_alpha, :n_alpha] = 2 * AtA
-        KKT[:n_alpha, n_alpha] = h
-        KKT[n_alpha, :n_alpha] = h
-        rhs = np.zeros(n_alpha + 1)
-        rhs[:n_alpha] = 2 * Atx
-        rhs[n_alpha] = b_val
-        sol = np.linalg.solve(KKT, rhs)
-        alpha = sol[:n_alpha]
-
-    residual = x - A @ alpha
-    mse_error = float(np.sum(residual ** 2))
-    return alpha, mse_error
-
-
-# ═══════════════════════════════════════════════════════════════════
-#  Module 8b — MAE Fit (Linear Programming, production)
+#  Module 8 — MAE Fit (Linear Programming, production)
 # ═══════════════════════════════════════════════════════════════════
 
 def mae_fit(x_seg: np.ndarray, s: int, r: int, P: int,
@@ -309,7 +266,7 @@ def dp_stylize(x_seg: np.ndarray, K: int, P: int,
         x_seg:    1-D pitch array for one voiced segment.
         K:        number of segments (pieces).
         P:        polynomial order (1 = linear).
-        fit_func: mae_fit or mse_fit.
+        fit_func: mae_fit.
 
     Returns:
         (stylized_contour, boundaries, total_cost)
@@ -589,7 +546,7 @@ def run_pitch_stylization(
     for seg in voiced_segments:
         seg["K"] = compute_K_wavelet(seg["x"], wavelet="db1", level=3)
 
-    # ── Step 6–9: DP stylization with MAE and MSE ──────────────────
+    # ── Step 6–9: DP stylization with MAE ──────────────────────────
     P = POLY_ORDER
     segment_results = []
 
@@ -598,19 +555,12 @@ def run_pitch_stylization(
         K = seg["K"]
 
         try:
-            mse_stylized, mse_boundaries, mse_cost = dp_stylize(x_seg, K, P, mse_fit)
-        except Exception as e:
-            logger.warning(f"MSE stylization failed for segment {seg_idx}: {e}")
-            mse_stylized = x_seg.copy()
-            mse_boundaries, mse_cost = [], 0.0
-
-        try:
             mae_stylized, mae_boundaries, mae_cost = dp_stylize(x_seg, K, P, mae_fit)
         except Exception as e:
             logger.warning(f"MAE stylization failed for segment {seg_idx}: {e}")
-            # Fall back to MSE if MAE fails
-            mae_stylized = mse_stylized.copy()
-            mae_boundaries, mae_cost = mse_boundaries, mse_cost
+            # Fall back to raw contour if MAE fails
+            mae_stylized = x_seg.copy()
+            mae_boundaries, mae_cost = [], 0.0
 
         segment_results.append({
             "segment_index": seg_idx,
@@ -618,20 +568,17 @@ def run_pitch_stylization(
             "end_frame": seg["end_frame"],
             "x": x_seg,
             "K": K,
-            "mse_stylized": mse_stylized,
             "mae_stylized": mae_stylized,
-            "mse_cost": mse_cost,
             "mae_cost": mae_cost,
         })
 
         logger.debug(
             f"Segment {seg_idx}: N={len(x_seg)}, K={K} → "
-            f"MSE cost={mse_cost:.2f}, MAE cost={mae_cost:.2f}"
+            f"MAE cost={mae_cost:.2f}"
         )
 
     # ── Step 10: Full contour reconstruction ───────────────────────
     mae_full = build_full_contour(segment_results, "mae_stylized", n_frames)
-    mse_full = build_full_contour(segment_results, "mse_stylized", n_frames)
 
     # Compute global pitch range from voiced frames of MAE contour
     voiced_mae = mae_full[~np.isnan(mae_full)]

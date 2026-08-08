@@ -3,14 +3,18 @@ import './ProsodyWord.css'
 
 /**
  * ProsodyWord — Renders a single word with character-level pitch deformation.
- * 
- * Each character is individually scaled vertically based on the MAE-stylized
- * pitch contour. Rising pitch stretches characters taller; falling pitch
- * compresses them. The baseline never moves (transform-origin: bottom center).
- * 
+ *
+ * The MAE-stylized pitch contour from the backend drives per-character scaleY
+ * transforms. Rising pitch stretches characters taller; falling pitch compresses
+ * them. All words — pitched or plain — sit on the SAME text baseline:
+ *
+ *   .prosody-word  → display: inline   (never shifts the word off its line)
+ *   .prosody-char  → vertical-align: bottom + transform-origin: bottom center
+ *                     so scaleY only grows characters upward, never downward.
+ *
  * Props:
  *   word        — The word text to display
- *   charPitches — Array of normalized pitch values (0-1) per character
+ *   charPitches — Array of normalized pitch values (0–1) per character
  *   stressed    — Whether this word is stressed (for styling)
  *   isInspected — Whether this word is currently inspected/selected
  *   onClick     — Click handler

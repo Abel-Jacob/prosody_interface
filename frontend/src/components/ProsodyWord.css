@@ -1,45 +1,65 @@
 /* =========================================
    ProsodyWord.css — Character-level pitch deformation
-   
-   Each character in a word is individually scaled vertically
-   based on the MAE-stylized pitch contour. Rising pitch causes
-   characters to grow taller; falling pitch compresses them.
-   
-   Transform origin is BOTTOM so the baseline never moves.
+
+   Design principle:
+   ─────────────────
+   Characters only STRETCH or SHRINK vertically (scaleY).  They never
+   move up or down relative to the surrounding text — every word stays
+   pinned to the same text baseline as unvoiced/plain words.
+
+   How this is achieved:
+   • .prosody-word   → display: inline  (flows with surrounding inline text,
+                        never creates a new block box that could shift)
+   • .prosody-char   → display: inline-block  (needs a box for scaleY)
+                        vertical-align: bottom  (aligns the BOTTOM edge of
+                        each char to the shared line box baseline)
+                        line-height: 1          (prevents descender space
+                        from affecting the transform reference point)
+                        transform-origin: bottom center  (scaleY grows upward)
+
+   Result: a character scaled to 1.3× grows upward only; the bottom of
+   every character stays flush with the bottom of every plain letter
+   on the same line.
    ========================================= */
 
-/* Container for a single word's characters */
+/* ── Word container ────────────────────────────────────────────────
+   display:inline keeps this span on the same text line as neighbours.
+   white-space:nowrap prevents a word's characters from wrapping mid-word.
+   The outer wrapper in SummaryState supplies the right margin. */
 .prosody-word {
-  display: inline-block;
+  display: inline;
   cursor: pointer;
-  position: relative;
   white-space: nowrap;
 }
 
-/* Individual character span */
+/* ── Per-character span ────────────────────────────────────────────
+   inline-block so scaleY works.
+   vertical-align: bottom  →  bottom of char box sits on the text baseline.
+   line-height: 1          →  no extra leading below the glyph that would
+                              shift the transform reference point.
+   transform-origin: bottom center  →  scaleY stretches upward only. */
 .prosody-char {
   display: inline-block;
+  vertical-align: bottom;
+  line-height: 1;
   transform-origin: bottom center;
   transition: transform var(--pitch-deform-duration, 0.6s) cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
 }
 
-/* Initial state before animation: all chars at normal scale */
+/* Before the reveal animation fires all chars sit at scale 1 */
 .prosody-word.animating .prosody-char {
   transform: scaleY(1) !important;
 }
 
-/* After animation completes, chars settle to their final pitch-driven scale.
-   The actual scaleY is set inline via React. */
-
-/* Subtle hover effect: slightly brighten the word */
+/* Hover: subtle brightness lift on the whole word */
 .prosody-word:hover .prosody-char {
-  filter: brightness(1.1);
+  filter: brightness(1.12);
   transition: transform var(--pitch-deform-duration, 0.6s) cubic-bezier(0.22, 1, 0.36, 1),
               filter 0.2s ease;
 }
 
-/* Inspected/selected word — underline indicator */
+/* Inspected / selected word — underline indicator */
 .prosody-word.inspected {
   text-decoration: underline;
   text-decoration-color: var(--accent, #c4956a);
@@ -47,7 +67,10 @@
   text-decoration-thickness: 1.5px;
 }
 
-/* Animation keyframes for the reveal effect */
+/* ── Reveal animation ──────────────────────────────────────────────
+   Chars animate from scaleY(1) → their final pitch-driven value.
+   The target scale is stored in the CSS custom property --final-scale
+   and also set as an inline transform by React after the animation. */
 @keyframes revealPitchChar {
   0% {
     transform: scaleY(1);
@@ -57,26 +80,24 @@
     opacity: 1;
   }
   100% {
-    /* Final scaleY is set via CSS custom property --final-scale */
     transform: scaleY(var(--final-scale, 1));
     opacity: 1;
   }
 }
 
-/* Each character gets a staggered animation delay */
 .prosody-word.reveal .prosody-char {
   animation: revealPitchChar var(--pitch-deform-duration, 0.6s) cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* Stagger delays: each successive character starts slightly later */
-.prosody-word.reveal .prosody-char:nth-child(1) { animation-delay: 0.00s; }
-.prosody-word.reveal .prosody-char:nth-child(2) { animation-delay: 0.03s; }
-.prosody-word.reveal .prosody-char:nth-child(3) { animation-delay: 0.06s; }
-.prosody-word.reveal .prosody-char:nth-child(4) { animation-delay: 0.09s; }
-.prosody-word.reveal .prosody-char:nth-child(5) { animation-delay: 0.12s; }
-.prosody-word.reveal .prosody-char:nth-child(6) { animation-delay: 0.15s; }
-.prosody-word.reveal .prosody-char:nth-child(7) { animation-delay: 0.18s; }
-.prosody-word.reveal .prosody-char:nth-child(8) { animation-delay: 0.21s; }
-.prosody-word.reveal .prosody-char:nth-child(9) { animation-delay: 0.24s; }
+/* Staggered per-character delays so the deformation ripples across the word */
+.prosody-word.reveal .prosody-char:nth-child(1)  { animation-delay: 0.00s; }
+.prosody-word.reveal .prosody-char:nth-child(2)  { animation-delay: 0.03s; }
+.prosody-word.reveal .prosody-char:nth-child(3)  { animation-delay: 0.06s; }
+.prosody-word.reveal .prosody-char:nth-child(4)  { animation-delay: 0.09s; }
+.prosody-word.reveal .prosody-char:nth-child(5)  { animation-delay: 0.12s; }
+.prosody-word.reveal .prosody-char:nth-child(6)  { animation-delay: 0.15s; }
+.prosody-word.reveal .prosody-char:nth-child(7)  { animation-delay: 0.18s; }
+.prosody-word.reveal .prosody-char:nth-child(8)  { animation-delay: 0.21s; }
+.prosody-word.reveal .prosody-char:nth-child(9)  { animation-delay: 0.24s; }
 .prosody-word.reveal .prosody-char:nth-child(10) { animation-delay: 0.27s; }
 .prosody-word.reveal .prosody-char:nth-child(n+11) { animation-delay: 0.30s; }
