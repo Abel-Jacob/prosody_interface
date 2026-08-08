@@ -37,8 +37,10 @@ FMIN_NOTE = "C2"  # ~65 Hz
 FMAX_NOTE = "C6"  # ~1047 Hz
 MIN_VOICED_RUN = 3  # frames — shorter runs are treated as spurious
 MIN_SEGMENT_LEN = 8  # frames — minimum length for a voiced segment
+MAX_SEGMENT_FRAMES = 500  # ~5s — cap segment length to keep DP tractable
 POLY_ORDER = 1  # first-order polynomial (piecewise linear)
 K_MAX = 8  # maximum pieces per voiced segment
+SWIPE_STRENGTH_THRESH = 0.2  # filter out weakly-voiced frames
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -68,7 +70,7 @@ def extract_pitch(signal: np.ndarray, sr: int, hop_length: int,
         H=hop_length,
         F_min=float(fmin),
         F_max=float(fmax),
-        strength_threshold=0,  # keep all frames, we filter later
+        strength_threshold=SWIPE_STRENGTH_THRESH,
     )
     # libf0 returns 0 for unvoiced frames (same convention we need)
     f0 = np.asarray(f0, dtype=np.float64)
@@ -112,13 +114,15 @@ def clean_short_voiced_runs(f0_raw: np.ndarray, voiced_flag_raw: np.ndarray,
 # ═══════════════════════════════════════════════════════════════════
 
 def extract_voiced_segments(f0: np.ndarray, voiced_flag: np.ndarray,
-                            min_len: int = MIN_SEGMENT_LEN) -> list[dict]:
+                            min_len: int = MIN_SEGMENT_LEN,
+                            max_len: int = MAX_SEGMENT_FRAMES) -> list[dict]:
     """
     Split the full pitch track into contiguous voiced runs.
     Returns list of dicts: {start_frame, end_frame, x}.
     `min_len` discards runs too short to fit a first-order polynomial.
+    `max_len` splits oversized segments so the DP stays tractable.
     """
-    segments = []
+    raw_segments = []
     n = len(f0)
     i = 0
     while i < n:
@@ -127,7 +131,7 @@ def extract_voiced_segments(f0: np.ndarray, voiced_flag: np.ndarray,
             while j < n and voiced_flag[j] and not np.isnan(f0[j]):
                 j += 1
             if (j - i) >= min_len:
-                segments.append({
+                raw_segments.append({
                     "start_frame": i,
                     "end_frame": j - 1,
                     "x": f0[i:j].astype(float),
@@ -135,6 +139,29 @@ def extract_voiced_segments(f0: np.ndarray, voiced_flag: np.ndarray,
             i = j
         else:
             i += 1
+
+    # Split oversized segments to cap DP complexity at O(K * max_len^2)
+    segments = []
+    for seg in raw_segments:
+        seg_len = len(seg["x"])
+        if seg_len <= max_len:
+            segments.append(seg)
+        else:
+            n_splits = (seg_len + max_len - 1) // max_len
+            chunk_size = seg_len // n_splits
+            for k in range(n_splits):
+                start = k * chunk_size
+                end = seg_len if k == n_splits - 1 else (k + 1) * chunk_size
+                if (end - start) >= min_len:
+                    segments.append({
+                        "start_frame": seg["start_frame"] + start,
+                        "end_frame": seg["start_frame"] + end - 1,
+                        "x": seg["x"][start:end].copy(),
+                    })
+            logger.debug(
+                f"Split oversized segment ({seg_len} frames) into "
+                f"{n_splits} sub-segments of ~{chunk_size} frames"
+            )
     return segments
 
 
