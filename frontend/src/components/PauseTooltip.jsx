@@ -38,15 +38,16 @@ export default function PauseTooltip({ pauseVal, dotsRef }) {
   const transformOrigin = position.position === 'above' ? 'center bottom' : 'center top'
 
   /* Finding 8: reduced-motion fallback — opacity-only */
+  const yTranslate = position.position === 'above' ? '-100%' : '0%'
   const initialAnim = prefersReducedMotion
-    ? { opacity: 0 }
-    : { opacity: 0, scale: 0.85, filter: 'blur(4px)' }
+    ? { opacity: 0, x: '-50%', y: yTranslate }
+    : { opacity: 0, scale: 0.85, filter: 'blur(4px)', x: '-50%', y: yTranslate }
   const animateAnim = prefersReducedMotion
-    ? { opacity: 1 }
-    : { opacity: 1, scale: 1, filter: 'blur(0px)' }
+    ? { opacity: 1, x: '-50%', y: yTranslate }
+    : { opacity: 1, scale: 1, filter: 'blur(0px)', x: '-50%', y: yTranslate }
   const exitAnim = prefersReducedMotion
-    ? { opacity: 0 }
-    : { opacity: 0, scale: 0.85, filter: 'blur(4px)' }
+    ? { opacity: 0, x: '-50%', y: yTranslate }
+    : { opacity: 0, scale: 0.85, filter: 'blur(4px)', x: '-50%', y: yTranslate }
 
   return createPortal(
     <motion.div

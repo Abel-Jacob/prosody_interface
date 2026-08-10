@@ -12,12 +12,13 @@
   pointer-events: auto;
 }
 
-/* Base translation centers the tooltip horizontally over the word */
+/* Horizontal centering and vertical positioning handled by framer-motion x/y
+   to avoid transform conflicts with scale animation */
 .word-tooltip-container.above {
-  transform: translate(-50%, -100%);
+  /* framer-motion: x='-50%', y='-100%' */
 }
 .word-tooltip-container.below {
-  transform: translate(-50%, 0);
+  /* framer-motion: x='-50%', y='0%' */
 }
 
 .word-tooltip-content {
