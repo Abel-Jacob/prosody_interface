@@ -74,33 +74,38 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
   const transformOrigin = position.position === 'above' ? 'center bottom' : 'center top'
 
   /* Finding 8: reduced-motion fallback — opacity-only, no scale/blur */
-  const yTranslate = position.position === 'above' ? '-100%' : '0%'
   const initialAnim = prefersReducedMotion
-    ? { opacity: 0, x: '-50%', y: yTranslate }
-    : { opacity: 0, scale: 0.85, filter: 'blur(4px)', x: '-50%', y: yTranslate }
+    ? { opacity: 0 }
+    : { opacity: 0, scale: 0.85, filter: 'blur(4px)' }
   const animateAnim = prefersReducedMotion
-    ? { opacity: 1, x: '-50%', y: yTranslate }
-    : { opacity: 1, scale: 1, filter: 'blur(0px)', x: '-50%', y: yTranslate }
+    ? { opacity: 1 }
+    : { opacity: 1, scale: 1, filter: 'blur(0px)' }
   const exitAnim = prefersReducedMotion
-    ? { opacity: 0, x: '-50%', y: yTranslate }
-    : { opacity: 0, scale: 0.85, filter: 'blur(4px)', x: '-50%', y: yTranslate }
+    ? { opacity: 0 }
+    : { opacity: 0, scale: 0.85, filter: 'blur(4px)' }
 
   const tooltipContent = (
-    <motion.div
-      className={`word-tooltip-container ${position.position}`}
-      style={{
-        top: position.top,
-        left: position.left,
-        transformOrigin,
-      }}
-      initial={initialAnim}
-      animate={animateAnim}
-      exit={exitAnim}
-      transition={materializeSpring}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="word-tooltip-content">
-        {/* Word header */}
+    <div style={{
+      position: 'fixed',
+      top: position.top,
+      left: position.left,
+      zIndex: 9999,
+      pointerEvents: 'none',
+    }}>
+      <motion.div
+        initial={initialAnim}
+        animate={animateAnim}
+        exit={exitAnim}
+        transition={materializeSpring}
+        style={{ transformOrigin }}
+      >
+        <div
+          className={`word-tooltip-container ${position.position}`}
+          style={{ position: 'absolute', pointerEvents: 'auto' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="word-tooltip-content">
+            {/* Word header */}
         <div className="tooltip-row" style={{ marginBottom: '4px' }}>
           <span className="tooltip-label" style={{ 
             color: 'var(--text-primary, #e5e5e5)', 
@@ -223,8 +228,10 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
             </span>
           </div>
         )}
-      </div>
-    </motion.div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
   )
 
   return createPortal(tooltipContent, document.body)

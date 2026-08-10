@@ -38,40 +38,46 @@ export default function PauseTooltip({ pauseVal, dotsRef }) {
   const transformOrigin = position.position === 'above' ? 'center bottom' : 'center top'
 
   /* Finding 8: reduced-motion fallback — opacity-only */
-  const yTranslate = position.position === 'above' ? '-100%' : '0%'
   const initialAnim = prefersReducedMotion
-    ? { opacity: 0, x: '-50%', y: yTranslate }
-    : { opacity: 0, scale: 0.85, filter: 'blur(4px)', x: '-50%', y: yTranslate }
+    ? { opacity: 0 }
+    : { opacity: 0, scale: 0.85, filter: 'blur(4px)' }
   const animateAnim = prefersReducedMotion
-    ? { opacity: 1, x: '-50%', y: yTranslate }
-    : { opacity: 1, scale: 1, filter: 'blur(0px)', x: '-50%', y: yTranslate }
+    ? { opacity: 1 }
+    : { opacity: 1, scale: 1, filter: 'blur(0px)' }
   const exitAnim = prefersReducedMotion
-    ? { opacity: 0, x: '-50%', y: yTranslate }
-    : { opacity: 0, scale: 0.85, filter: 'blur(4px)', x: '-50%', y: yTranslate }
+    ? { opacity: 0 }
+    : { opacity: 0, scale: 0.85, filter: 'blur(4px)' }
 
   return createPortal(
-    <motion.div
-      className={`word-tooltip-container ${position.position}`}
-      style={{
-        top: position.top,
-        left: position.left,
-        pointerEvents: 'none',
-        transformOrigin,
-      }}
-      initial={initialAnim}
-      animate={animateAnim}
-      exit={exitAnim}
-      transition={materializeSpring}
-    >
-      <div className="word-tooltip-content">
-        <div className="tooltip-row">
-          <span className="tooltip-label">Pause:</span>
+    <div style={{
+      position: 'fixed',
+      top: position.top,
+      left: position.left,
+      zIndex: 9999,
+      pointerEvents: 'none',
+    }}>
+      <motion.div
+        initial={initialAnim}
+        animate={animateAnim}
+        exit={exitAnim}
+        transition={materializeSpring}
+        style={{ transformOrigin }}
+      >
+        <div
+          className={`word-tooltip-container ${position.position}`}
+          style={{ position: 'absolute', pointerEvents: 'auto' }}
+        >
+          <div className="word-tooltip-content">
+            <div className="tooltip-row">
+              <span className="tooltip-label">Pause:</span>
           <span className="tooltip-value" style={{ color: '#f97316' }}>
             {pauseVal.toFixed(2)}s
           </span>
+            </div>
+          </div>
         </div>
-      </div>
-    </motion.div>,
+      </motion.div>
+    </div>,
     document.body
   )
 }
