@@ -129,12 +129,9 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
           ))}
         </span>
       )}
-      {/* Finding 6: AnimatePresence for PauseTooltip exit animation */}
-      <AnimatePresence>
-        {dotsHovered && dotCount > 0 && (
-          <PauseTooltip key="pause-tooltip" pauseVal={pauseVal} dotsRef={dotsRef} />
-        )}
-      </AnimatePresence>
+      {dotsHovered && dotCount > 0 && (
+        <PauseTooltip pauseVal={pauseVal} dotsRef={dotsRef} />
+      )}
     </React.Fragment>
   )
 }

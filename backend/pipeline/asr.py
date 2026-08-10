@@ -79,7 +79,7 @@ def transcribe_chunk(
         "language": language,
         "word_timestamps": True,
         "beam_size": 5,
-        "best_of": 5,
+        "best_of": 3,
         "vad_filter": True,
         "vad_parameters": dict(min_silence_duration_ms=200),
         "condition_on_previous_text": True if (initial_prompt and initial_prompt.strip()) else False,
@@ -87,7 +87,7 @@ def transcribe_chunk(
         "compression_ratio_threshold": 2.4,
         "log_prob_threshold": -1.0,
         "no_repeat_ngram_size": 0,
-        "temperature": [0.0, 0.2, 0.4],
+        "temperature": [0.0, 0.2],
     }
 
     if is_live:

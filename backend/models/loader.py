@@ -48,8 +48,15 @@ def load_all_models() -> dict:
     try:
         from pipeline.asr import load_asr_model
         from config import ASR_MODEL_SIZE_PREVIEW, ASR_MODEL_SIZE_FINAL
-        models["asr_preview"] = load_asr_model(ASR_MODEL_SIZE_PREVIEW)
-        models["asr_final"] = load_asr_model(ASR_MODEL_SIZE_FINAL)
+        if ASR_MODEL_SIZE_PREVIEW == ASR_MODEL_SIZE_FINAL:
+            # Same model size — load once, reuse for both (saves ~1.5 GB VRAM)
+            logger.info(f"Preview and final use same model '{ASR_MODEL_SIZE_PREVIEW}' — loading once")
+            shared_model = load_asr_model(ASR_MODEL_SIZE_PREVIEW)
+            models["asr_preview"] = shared_model
+            models["asr_final"] = shared_model
+        else:
+            models["asr_preview"] = load_asr_model(ASR_MODEL_SIZE_PREVIEW)
+            models["asr_final"] = load_asr_model(ASR_MODEL_SIZE_FINAL)
     except Exception as e:
         logger.error(f"Failed to load ASR models: {e}", exc_info=True)
         models["asr_preview"] = None

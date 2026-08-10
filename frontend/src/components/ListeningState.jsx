@@ -150,6 +150,9 @@ export default function ListeningState({ onStop }) {
     const draw = () => {
       animationFrameRef.current = requestAnimationFrame(draw)
 
+      // Skip rendering when tab is backgrounded to save CPU
+      if (document.hidden) return
+
       analyserRef.current.getByteTimeDomainData(dataArray)
 
       ctx.clearRect(0, 0, width, height)

@@ -117,18 +117,22 @@ class Worker:
 
             # Stage 3: Analyze prosody (word stress) on each grammatical sentence
             prosody_analyzers = get_active_analyzers(self.models)
+            sr = self.models.get("sample_rate", 16000)
             for idx, phrase in enumerate(grammatical_phrases):
                 phrase.phrase_index = idx
                 phrase.chunk_index = idx
                 
-                start_sample = max(0, int(phrase.start_time * self.models.get("sample_rate", 16000)))
-                end_sample = min(len(audio), int(phrase.end_time * self.models.get("sample_rate", 16000)))
+                start_sample = max(0, int(phrase.start_time * sr))
+                end_sample = min(len(audio), int(phrase.end_time * sr))
                 sentence_audio = audio[start_sample:end_sample]
+
+                # Pre-serialize word dicts once — reused by all analyzers
+                word_dicts = [w.model_dump() for w in phrase.words]
 
                 for analyzer in prosody_analyzers:
                     try:
                         res = await asyncio.to_thread(
-                            analyzer.analyze, sentence_audio, [w.model_dump() for w in phrase.words]
+                            analyzer.analyze, sentence_audio, word_dicts
                         )
                         # Apply stress results
                         if "word_stress" in res:
@@ -160,13 +164,24 @@ class Worker:
                     except Exception as ae:
                         logger.warning(f"Job {job_id}: analyzer '{analyzer.name}' failed on sentence {idx+1}: {ae}")
 
-                update_job_progress(
-                    job_id,
-                    0.20 + (0.55 * (idx + 1) / max(1, total_sentences)),
-                    idx + 1,
-                    current_stage=f"analyzing_sentence_{idx+1}_of_{total_sentences}",
-                    partial_result=self._build_result(grammatical_phrases[:idx+1], duration).model_dump(),
-                )
+                # Emit partial results every 3 sentences (or on the last one)
+                # to avoid O(N²) serialization from rebuilding the full result each time
+                is_last = (idx == total_sentences - 1)
+                if is_last or (idx + 1) % 3 == 0:
+                    update_job_progress(
+                        job_id,
+                        0.20 + (0.55 * (idx + 1) / max(1, total_sentences)),
+                        idx + 1,
+                        current_stage=f"analyzing_sentence_{idx+1}_of_{total_sentences}",
+                        partial_result=self._build_result(grammatical_phrases[:idx+1], duration).model_dump(),
+                    )
+                else:
+                    update_job_progress(
+                        job_id,
+                        0.20 + (0.55 * (idx + 1) / max(1, total_sentences)),
+                        idx + 1,
+                        current_stage=f"analyzing_sentence_{idx+1}_of_{total_sentences}",
+                    )
 
             # Stage 3.5: Full-audio pitch stylization (MAE algorithm)
             # PitchAnalyzer needs the complete audio to build a globally coherent

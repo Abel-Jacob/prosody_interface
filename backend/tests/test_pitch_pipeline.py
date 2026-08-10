@@ -9,7 +9,7 @@ sys.path.insert(0, ".")
 import numpy as np
 from pipeline.prosody_pitch import (
     clean_short_voiced_runs, extract_voiced_segments,
-    compute_K_wavelet, mse_fit, mae_fit, dp_stylize,
+    compute_K_wavelet, fast_fit, mae_fit, dp_stylize,
     build_full_contour, compute_word_pitch_features
 )
 
@@ -41,11 +41,11 @@ for seg in segments:
 # DP stylization with MAE and MSE
 for i, seg in enumerate(segments):
     mae_stylized, mae_bounds, mae_cost = dp_stylize(seg["x"], seg["K"], 1, mae_fit)
-    mse_stylized, mse_bounds, mse_cost = dp_stylize(seg["x"], seg["K"], 1, mse_fit)
+    mse_stylized, mse_bounds, mse_cost = dp_stylize(seg["x"], seg["K"], 1, fast_fit)
     seg["mae_stylized"] = mae_stylized
     seg["mse_stylized"] = mse_stylized
     seg["segment_index"] = i
-    print(f"  Segment {i}: MAE cost={mae_cost:.2f}, MSE cost={mse_cost:.2f}")
+    print(f"  Segment {i}: MAE cost={mae_cost:.2f}, FAST cost={mse_cost:.2f}")
     assert len(mae_stylized) == len(seg["x"]), "Stylized length mismatch"
     assert mae_cost >= 0, "Cost must be non-negative"
 
