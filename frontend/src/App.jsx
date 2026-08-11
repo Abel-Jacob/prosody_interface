@@ -5,18 +5,20 @@ import IdleState from './components/IdleState'
 import ListeningState from './components/ListeningState'
 import ProcessingState from './components/ProcessingState'
 import SummaryState from './components/SummaryState'
+import AnnotationReport from './components/AnnotationReport'
 import './index.css'
-import { BACKEND_DOMAIN, setBackendDomain } from './apiConfig'
+import { BACKEND_DOMAIN, setBackendDomain, getHttpUrl } from './apiConfig'
 
 /* Cross-fade transition shared by all state wrappers.
    Critically damped (bounce: 0), ~200ms — system-driven, not gesture. */
 const stateTransition = { type: 'spring', duration: 0.2, bounce: 0 }
 
 function App() {
-  // state: 'idle' | 'listening' | 'processing' | 'summary'
+  // state: 'idle' | 'listening' | 'processing' | 'summary' | 'annotation'
   const [appState, setAppState] = useState('idle')
   const [jobId, setJobId] = useState(null)
   const [finalResult, setFinalResult] = useState(null)
+  const [annotationData, setAnnotationData] = useState(null)
   const [backendUrl, setBackendUrl] = useState(BACKEND_DOMAIN)
 
   const handleStartListening = () => {
@@ -28,6 +30,7 @@ function App() {
     if (navigator.vibrate) navigator.vibrate(10)
 
     if (response && response.result) {
+      setJobId(response.jobId || null)
       setFinalResult(response.result)
       setAppState('summary')
     } else {
@@ -41,9 +44,26 @@ function App() {
     setAppState('summary')
   }
 
+  const handleViewAnnotation = async (id) => {
+    if (!id) return
+    try {
+      const response = await fetch(getHttpUrl(`/api/jobs/${id}/annotation`))
+      if (!response.ok) {
+        throw new Error(`Failed to fetch annotation: ${response.statusText}`)
+      }
+      const data = await response.json()
+      setAnnotationData(data)
+      setAppState('annotation')
+    } catch (err) {
+      console.error(err)
+      alert(`Error loading annotation: ${err.message}`)
+    }
+  }
+
   const handleReset = () => {
     setJobId(null)
     setFinalResult(null)
+    setAnnotationData(null)
     setAppState('idle')
   }
 
@@ -104,7 +124,24 @@ function App() {
           >
             <SummaryState 
               result={finalResult} 
+              jobId={jobId}
               onReset={handleReset} 
+              onViewAnnotation={handleViewAnnotation}
+            />
+          </motion.div>
+        )}
+
+        {appState === 'annotation' && (
+          <motion.div
+            key="annotation"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={stateTransition}
+          >
+            <AnnotationReport 
+              data={annotationData} 
+              onBack={() => setAppState('summary')} 
             />
           </motion.div>
         )}

@@ -136,11 +136,17 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
   )
 }
 
-export default function SummaryState({ result, onReset }) {
+export default function SummaryState({ result, jobId, onReset, onViewAnnotation }) {
   // Feature 3: Track inspected word for tooltip
   const [inspectedWord, setInspectedWord] = useState(null)
 
   if (!result) return null
+
+  const handleViewAnnotation = () => {
+    if (onViewAnnotation && jobId) {
+      onViewAnnotation(jobId)
+    }
+  }
 
   const phrases = result.phrases || []
 
@@ -338,29 +344,60 @@ export default function SummaryState({ result, onReset }) {
           </div>
         </div>
 
-        {/* Finding 2: whileTap on "Start New Session" button */}
-        <motion.button
-          onClick={onReset}
-          whileTap={{ scale: 0.97 }}
-          transition={tapSpring}
-          style={{
-            background: 'none',
-            border: 'none',
-            fontSize: '0.65rem',
-            color: 'var(--text-muted)',
-            letterSpacing: '0.15em',
-            textTransform: 'uppercase',
-            cursor: 'pointer',
-            padding: '0.5rem',
-            marginTop: '1rem',
-            fontFamily: 'var(--font-secondary)',
-            transition: 'color var(--transition-base)'
-          }}
-          onMouseEnter={(e) => e.target.style.color = 'var(--text-primary)'}
-          onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
-        >
-          Start New Session
-        </motion.button>
+        <div style={{
+          display: 'flex',
+          gap: '2rem',
+          marginTop: '1rem',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          {jobId && (
+            <motion.button
+              onClick={handleViewAnnotation}
+              whileTap={{ scale: 0.97 }}
+              transition={tapSpring}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '0.65rem',
+                color: 'var(--text-muted)',
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                padding: '0.5rem',
+                fontFamily: 'var(--font-secondary)',
+                transition: 'color var(--transition-base)'
+              }}
+              onMouseEnter={(e) => e.target.style.color = 'var(--text-primary)'}
+              onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
+            >
+              View Annotation
+            </motion.button>
+          )}
+
+          {/* Finding 2: whileTap on "Start New Session" button */}
+          <motion.button
+            onClick={onReset}
+            whileTap={{ scale: 0.97 }}
+            transition={tapSpring}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '0.65rem',
+              color: 'var(--text-muted)',
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              padding: '0.5rem',
+              fontFamily: 'var(--font-secondary)',
+              transition: 'color var(--transition-base)'
+            }}
+            onMouseEnter={(e) => e.target.style.color = 'var(--text-primary)'}
+            onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
+          >
+            Start New Session
+          </motion.button>
+        </div>
       </motion.div>
     </div>
   )
