@@ -13,6 +13,7 @@ const TREND_ARROWS = {
 
 export default function AnnotationReport({ data, onBack }) {
   const [expandedWordIndex, setExpandedWordIndex] = useState(null)
+  const [viewMode, setViewMode] = useState('transcript') // 'transcript' | 'table'
 
   if (!data) {
     return (
@@ -161,13 +162,146 @@ export default function AnnotationReport({ data, onBack }) {
     setExpandedWordIndex(null)
   }
 
+  // Complete structured grid of all properties from the JSON file
+  const renderWordDetailGrid = (w) => {
+    const hasIntonation = w.intonation != null
+    return (
+      <div className="detail-grid-container">
+        {/* Left Column: Word Properties */}
+        <div>
+          <div className="detail-section-title">Word Properties</div>
+          <table className="property-details-table">
+            <tbody>
+              <tr>
+                <td className="prop-key">word_index</td>
+                <td className="prop-val">{w.word_index}</td>
+              </tr>
+              <tr>
+                <td className="prop-key">word</td>
+                <td className="prop-val">"{w.word}"</td>
+              </tr>
+              <tr>
+                <td className="prop-key">start_time</td>
+                <td className="prop-val">{w.start_time.toFixed(3)}s</td>
+              </tr>
+              <tr>
+                <td className="prop-key">end_time</td>
+                <td className="prop-val">{w.end_time.toFixed(3)}s</td>
+              </tr>
+              <tr>
+                <td className="prop-key">phrase_index</td>
+                <td className="prop-val">{w.phrase_index}</td>
+              </tr>
+              <tr>
+                <td className="prop-key">asr_confidence</td>
+                <td className="prop-val">{w.asr_confidence !== undefined ? w.asr_confidence.toFixed(3) : 'null'}</td>
+              </tr>
+              <tr>
+                <td className="prop-key">stressed</td>
+                <td className="prop-val">{w.stressed ? 'true' : 'false'}</td>
+              </tr>
+              <tr>
+                <td className="prop-key">stress_score</td>
+                <td className="prop-val">{w.stress_score !== undefined ? w.stress_score.toFixed(3) : 'null'}</td>
+              </tr>
+              <tr>
+                <td className="prop-key">pause_after</td>
+                <td className="prop-val">{w.pause_after !== undefined ? w.pause_after.toFixed(3) + 's' : '0.000s'}</td>
+              </tr>
+              <tr>
+                <td className="prop-key">is_hesitation</td>
+                <td className="prop-val">{w.is_hesitation ? 'true' : 'false'}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Right Column: Intonation Properties */}
+        <div>
+          <div className="detail-section-title">Intonation Properties</div>
+          {hasIntonation ? (
+            <>
+              <table className="property-details-table">
+                <tbody>
+                  <tr>
+                    <td className="prop-key">mean_pitch</td>
+                    <td className="prop-val">{w.intonation.mean_pitch?.toFixed(1)} Hz</td>
+                  </tr>
+                  <tr>
+                    <td className="prop-key">pitch_trend</td>
+                    <td className="prop-val">"{w.intonation.pitch_trend}"</td>
+                  </tr>
+                  <tr>
+                    <td className="prop-key">pitch_slope</td>
+                    <td className="prop-val">{w.intonation.pitch_slope?.toFixed(2)} Hz/s</td>
+                  </tr>
+                  <tr>
+                    <td className="prop-key">pitch_range</td>
+                    <td className="prop-val">{w.intonation.pitch_range?.toFixed(1)} Hz</td>
+                  </tr>
+                  <tr>
+                    <td className="prop-key">normalized_pitch</td>
+                    <td className="prop-val">
+                      {w.intonation.normalized_pitch !== undefined && w.intonation.normalized_pitch !== null
+                        ? w.intonation.normalized_pitch.toFixed(3)
+                        : 'null'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="prop-key">start_pitch</td>
+                    <td className="prop-val">{w.intonation.start_pitch?.toFixed(1)} Hz</td>
+                  </tr>
+                  <tr>
+                    <td className="prop-key">end_pitch</td>
+                    <td className="prop-val">{w.intonation.end_pitch?.toFixed(1)} Hz</td>
+                  </tr>
+                  <tr>
+                    <td className="prop-key">max_pitch</td>
+                    <td className="prop-val">{w.intonation.max_pitch?.toFixed(1)} Hz</td>
+                  </tr>
+                  <tr>
+                    <td className="prop-key">min_pitch</td>
+                    <td className="prop-val">{w.intonation.min_pitch?.toFixed(1)} Hz</td>
+                  </tr>
+                  <tr>
+                    <td className="prop-key">voiced_segment_index</td>
+                    <td className="prop-val">
+                      {w.intonation.voiced_segment_index !== undefined && w.intonation.voiced_segment_index !== null
+                        ? w.intonation.voiced_segment_index
+                        : 'null'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="prop-key">char_pitches</td>
+                    <td className="prop-val" style={{ fontSize: '0.6rem', whiteSpace: 'normal', wordBreak: 'break-all' }}>
+                      [{w.intonation.char_pitches ? w.intonation.char_pitches.map((p) => p.toFixed(2)).join(', ') : ''}]
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div className="detail-sparkline-container" style={{ padding: '0 0.5rem' }}>
+                <div className="sparkline-title">Pitch Contour</div>
+                {renderSparkline(w.intonation.char_pitches)}
+              </div>
+            </>
+          ) : (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-faded)', fontSize: '0.75rem', fontFamily: 'monospace' }}>
+              "intonation": null <br />
+              (unvoiced consonant, filler, or silence)
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="annotation-report-container" onClick={handlePageClick}>
       {/* Header controls & stats */}
       <header className="report-header">
         <div className="header-title-section">
           <h1>Annotation Report</h1>
-          
+
           <div className="metadata-row">
             <span className="metadata-item">
               Duration: <strong>{recording?.audio_duration_sec?.toFixed(1) || 0}s</strong>
@@ -189,6 +323,28 @@ export default function AnnotationReport({ data, onBack }) {
         </div>
 
         <div className="header-controls">
+          {/* View Mode Toggle Controls */}
+          <div className="view-toggle-container">
+            <button
+              className={`toggle-btn ${viewMode === 'transcript' ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                setViewMode('transcript')
+              }}
+            >
+              Transcript
+            </button>
+            <button
+              className={`toggle-btn ${viewMode === 'table' ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                setViewMode('table')
+              }}
+            >
+              Table View
+            </button>
+          </div>
+
           <button className="control-btn primary" onClick={handleDownloadCSV}>
             Download CSV
           </button>
@@ -229,140 +385,150 @@ export default function AnnotationReport({ data, onBack }) {
                   </span>
                 </header>
 
-                <div className="phrase-words-container">
-                  {phraseWords.length === 0 ? (
-                    <span style={{ color: 'var(--text-faded)', fontStyle: 'italic', fontSize: '0.8rem' }}>
-                      No words processed in this phrase
-                    </span>
-                  ) : (
-                    phraseWords.map((w) => {
-                      const isExpanded = expandedWordIndex === w.word_index
-                      const hasIntonation = w.intonation != null
-                      const stressOpacity = w.stress_score != null ? Math.max(0.4, w.stress_score) : 1.0
+                {viewMode === 'transcript' ? (
+                  // Mode A: Transcript Inline View
+                  <div className="phrase-words-container">
+                    {phraseWords.length === 0 ? (
+                      <span style={{ color: 'var(--text-faded)', fontStyle: 'italic', fontSize: '0.8rem' }}>
+                        No words processed in this phrase
+                      </span>
+                    ) : (
+                      phraseWords.map((w) => {
+                        const isExpanded = expandedWordIndex === w.word_index
+                        const hasIntonation = w.intonation != null
+                        const stressOpacity = w.stress_score != null ? Math.max(0.4, w.stress_score) : 1.0
 
-                      // Check for meaningful pause (> 0.3 seconds)
-                      const isSignificantPause = w.pause_after && w.pause_after > 0.3
-                      const isLongPause = w.pause_after && w.pause_after > 0.8
+                        // Check for meaningful pause (> 0.3 seconds)
+                        const isSignificantPause = w.pause_after && w.pause_after > 0.3
+                        const isLongPause = w.pause_after && w.pause_after > 0.8
 
-                      return (
-                        <React.Fragment key={w.word_index}>
-                          <div className="word-inline-wrapper">
-                            <div
-                              onClick={(e) => handleWordClick(w.word_index, e)}
-                              className={`word-default-view ${w.stressed ? 'is-stressed' : ''} ${
-                                w.is_hesitation ? 'is-hesitation' : ''
-                              } ${isExpanded ? 'expanded-word' : ''}`}
-                            >
-                              <span className="word-text">{w.word}</span>
-                              {w.stressed && (
-                                <span
-                                  className="stress-dot"
-                                  style={{ opacity: stressOpacity }}
-                                />
-                              )}
-                              {hasIntonation && w.intonation.pitch_trend && (
-                                <span className="pitch-trend-arrow">
-                                  {TREND_ARROWS[w.intonation.pitch_trend] || w.intonation.pitch_trend}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Render visual pause marker if present */}
-                          {isSignificantPause && (
-                            <span
-                              className={`word-pause-spacer ${isLongPause ? 'long-pause' : ''}`}
-                              title={`Pause: ${w.pause_after.toFixed(2)}s`}
-                            />
-                          )}
-
-                          {/* Expandable inline card */}
-                          <AnimatePresence>
-                            {isExpanded && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0, scaleY: 0.95 }}
-                                animate={{ height: 'auto', opacity: 1, scaleY: 1 }}
-                                exit={{ height: 0, opacity: 0, scaleY: 0.95 }}
-                                transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
-                                className="word-detail-drawer"
-                                onClick={(e) => e.stopPropagation()}
+                        return (
+                          <React.Fragment key={w.word_index}>
+                            <div className="word-inline-wrapper">
+                              <div
+                                onClick={(e) => handleWordClick(w.word_index, e)}
+                                className={`word-default-view ${w.stressed ? 'is-stressed' : ''} ${
+                                  w.is_hesitation ? 'is-hesitation' : ''
+                                } ${isExpanded ? 'expanded-word' : ''}`}
                               >
-                                <div className="word-detail-card-content">
-                                  {/* Timing Column */}
-                                  <div>
-                                    <div className="sparkline-title" style={{ marginBottom: '4px' }}>Details</div>
-                                    <div className="detail-row">
-                                      <span className="detail-label">Start Time</span>
-                                      <span className="detail-value">{w.start_time.toFixed(2)}s</span>
-                                    </div>
-                                    <div className="detail-row">
-                                      <span className="detail-label">End Time</span>
-                                      <span className="detail-value">{w.end_time.toFixed(2)}s</span>
-                                    </div>
-                                    <div className="detail-row">
-                                      <span className="detail-label">ASR Score</span>
-                                      <span className="detail-value">{Math.round((w.asr_confidence || 0) * 100)}%</span>
-                                    </div>
-                                  </div>
+                                <span className="word-text">{w.word}</span>
+                                {w.stressed && (
+                                  <span className="stress-dot" style={{ opacity: stressOpacity }} />
+                                )}
+                                {hasIntonation && w.intonation.pitch_trend && (
+                                  <span className="pitch-trend-arrow">
+                                    {TREND_ARROWS[w.intonation.pitch_trend] || w.intonation.pitch_trend}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
 
-                                  {/* Stress Column */}
-                                  <div>
-                                    <div className="sparkline-title" style={{ marginBottom: '4px' }}>Stress & Pauses</div>
-                                    <div className="detail-row">
-                                      <span className="detail-label">Stressed</span>
-                                      <span className="detail-value">{w.stressed ? 'Yes' : 'No'}</span>
-                                    </div>
-                                    <div className="detail-row">
-                                      <span className="detail-label">Stress Score</span>
-                                      <span className="detail-value">{Math.round((w.stress_score || 0) * 100)}%</span>
-                                    </div>
-                                    <div className="detail-row">
-                                      <span className="detail-label">Pause After</span>
-                                      <span className="detail-value">
-                                        {w.pause_after && w.pause_after > 0 ? `${w.pause_after.toFixed(2)}s` : '0.00s'}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {/* Pitch/Intonation Column */}
-                                  {hasIntonation ? (
-                                    <div>
-                                      <div className="sparkline-title" style={{ marginBottom: '4px' }}>Intonation</div>
-                                      <div className="detail-row">
-                                        <span className="detail-label">Mean Pitch</span>
-                                        <span className="detail-value">{w.intonation.mean_pitch?.toFixed(1)} Hz</span>
-                                      </div>
-                                      <div className="detail-row">
-                                        <span className="detail-label">Pitch Slope</span>
-                                        <span className="detail-value">{w.intonation.pitch_slope?.toFixed(1)} Hz/s</span>
-                                      </div>
-                                      <div className="detail-row">
-                                        <span className="detail-label">Pitch Range</span>
-                                        <span className="detail-value">{w.intonation.pitch_range?.toFixed(1)} Hz</span>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.65rem' }}>
-                                      No pitch data available (unvoiced)
-                                    </div>
-                                  )}
-
-                                  {/* Sparkline Column */}
-                                  {hasIntonation && (
-                                    <div className="detail-sparkline-container">
-                                      <div className="sparkline-title">Pitch Contour</div>
-                                      {renderSparkline(w.intonation.char_pitches)}
-                                    </div>
-                                  )}
-                                </div>
-                              </motion.div>
+                            {/* Render visual pause marker if present */}
+                            {isSignificantPause && (
+                              <span
+                                className={`word-pause-spacer ${isLongPause ? 'long-pause' : ''}`}
+                                title={`Pause: ${w.pause_after.toFixed(2)}s`}
+                              />
                             )}
-                          </AnimatePresence>
-                        </React.Fragment>
-                      )
-                    })
-                  )}
-                </div>
+
+                            {/* Expandable inline card */}
+                            <AnimatePresence>
+                              {isExpanded && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0, scaleY: 0.95 }}
+                                  animate={{ height: 'auto', opacity: 1, scaleY: 1 }}
+                                  exit={{ height: 0, opacity: 0, scaleY: 0.95 }}
+                                  transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
+                                  className="word-detail-drawer"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <div className="word-detail-card-content">
+                                    {renderWordDetailGrid(w)}
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </React.Fragment>
+                        )
+                      })
+                    )}
+                  </div>
+                ) : (
+                  // Mode B: Table List View
+                  <div className="phrase-table-container">
+                    <table className="phrase-data-table">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th>Word</th>
+                          <th>Time Range</th>
+                          <th>Confidence</th>
+                          <th>Stressed</th>
+                          <th>Pause After</th>
+                          <th>Pitch Trend</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {phraseWords.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} style={{ color: 'var(--text-faded)', fontStyle: 'italic', textAlign: 'center' }}>
+                              No words processed in this phrase
+                            </td>
+                          </tr>
+                        ) : (
+                          phraseWords.map((w) => {
+                            const isExpanded = expandedWordIndex === w.word_index
+                            const hasIntonation = w.intonation != null
+
+                            return (
+                              <React.Fragment key={w.word_index}>
+                                <tr
+                                  className={`clickable-row ${isExpanded ? 'row-expanded' : ''}`}
+                                  onClick={(e) => handleWordClick(w.word_index, e)}
+                                >
+                                  <td>{w.word_index}</td>
+                                  <td style={w.stressed ? { color: 'var(--accent)', fontWeight: 600, textTransform: 'uppercase' } : {}}>
+                                    {w.word}
+                                  </td>
+                                  <td style={{ fontFamily: 'monospace' }}>
+                                    {w.start_time.toFixed(3)}s – {w.end_time.toFixed(3)}s
+                                  </td>
+                                  <td>{Math.round((w.asr_confidence || 0) * 100)}%</td>
+                                  <td>
+                                    {w.stressed ? `YES (${Math.round((w.stress_score || 0) * 100)}%)` : 'NO'}
+                                  </td>
+                                  <td>
+                                    {w.pause_after && w.pause_after > 0 ? `${w.pause_after.toFixed(3)}s` : '-'}
+                                  </td>
+                                  <td style={{ fontFamily: 'monospace' }}>
+                                    {hasIntonation && w.intonation.pitch_trend ? w.intonation.pitch_trend : 'unvoiced'}
+                                  </td>
+                                </tr>
+                                {isExpanded && (
+                                  <tr onClick={(e) => e.stopPropagation()}>
+                                    <td colSpan={7} style={{ padding: '0.8rem 1.2rem', backgroundColor: 'rgba(22, 21, 20, 0.25)', borderBottom: '1px solid var(--overlay-border)' }}>
+                                      <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
+                                        style={{ overflow: 'hidden' }}
+                                      >
+                                        <div style={{ padding: '0.4rem 0' }}>
+                                          {renderWordDetailGrid(w)}
+                                        </div>
+                                      </motion.div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            )
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </section>
             )
           })
