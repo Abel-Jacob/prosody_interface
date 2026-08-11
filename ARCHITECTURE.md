@@ -136,10 +136,10 @@ class ProsodyAnalyzer(ABC):
 
 Current modules:
 - `prosody_stress.py` — WhiStress-based stress detection
+- `prosody_pause.py` — Pause and hesitation detection based on ASR timestamps and silence gaps
+- `prosody_pitch.py` — Intonation and pitch stylization (F0 extraction via SWIPE + Mean Absolute Error DP polynomial fitting)
 
 Planned future modules (designed to slot in without touching existing code):
-- Intonation/pitch via `librosa.pyin` (F0 extraction) — signal processing, no neural model
-- Pause detection via VAD-identified gaps — already available from chunking
 - Rhythm via inter-word timing statistics from ASR timestamps — pure computation
 
 ## Frontend State Machine
@@ -174,3 +174,5 @@ See `implementation_plan.md` for complete directory tree.
    1-2s polling interval is perfectly fine for a progress bar.
 4. **Vendored WhiStress**: Copied as-is from the original repo, clearly 
    separated in `vendor/` to avoid accidental modification.
+5. **Pitch DP Optimization (O(1) prefix sums)**: The raw MAE DP pitch stylization took minutes due to O(N^3) array allocations in the inner loop. Using pre-computed cumulative sums reduced this to purely scalar math, making it run in seconds.
+6. **Model Deduplication**: ASR model sizes configured similarly (e.g. `medium.en` for preview and final) are loaded exactly once and shared by reference, saving ~1.5GB VRAM and cutting startup time significantly.

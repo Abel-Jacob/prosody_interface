@@ -41,6 +41,7 @@ The backend has an asynchronous background worker (`worker.py`) that constantly 
 4. **Prosody Pipeline:** The transcription and audio are passed to the Prosody Analyzers (`pipeline/prosody_base.py`).
    - `StressAnalyzer`: Uses WhiStress to assign a stress score (0.0 to 1.0) and boolean flag to each word.
    - `PauseAnalyzer`: Uses the timestamps of the words to calculate `pause_before` and `pause_after` for each word.
+   - `PitchAnalyzer`: Uses SWIPE to extract fundamental frequency (F0), then applies a Dynamic Programming algorithm to fit a piecewise linear polynomial minimizing Mean Absolute Error (MAE). Extracts the global intonation trend, calculating `mean_pitch`, `pitch_trend` (Rising/Falling/Level), and character-level pitch deformations for the UI.
 5. **Database:** The final results are saved to SQLite via `database.py`.
 6. **Client Notification:** The worker emits a `chunk_completed` Socket.IO event back to the client with the final text, stress data, and pause data.
 
@@ -50,7 +51,7 @@ While the worker is waiting for a silence boundary, it periodically runs a small
 ## 4. Database Schema (`schemas.py` & `database.py`)
 - **Record:** Represents a single recording session (has `id`, `session_id`, `created_at`).
 - **AudioChunk:** Represents a single utterance/chunk within a session (has `id`, `recording_id`, `final_text`, `status`, `start_time`, `end_time`).
-- **WordLevelData:** Represents a single word in a chunk (has `id`, `chunk_id`, `word`, `start_time`, `end_time`, `confidence`, `stress_score`, `is_stressed`, `pause_before`, `is_pause_after`).
+- **WordLevelData:** Represents a single word in a chunk (has `id`, `chunk_id`, `word`, `start_time`, `end_time`, `confidence`, `stress_score`, `is_stressed`, `pause_before`, `is_pause_after`, `pitch_mean`, `pitch_trend`, `pitch_slope`, `pitch_range`, `char_pitches`).
 
 ## 5. File Structure
 ```
@@ -73,7 +74,8 @@ prosody_interface/
 │   │   ├── vad_chunking.py   # Silero VAD wrapper
 │   │   ├── prosody_base.py   # Base class for analyzers
 │   │   ├── stress.py         # StressAnalyzer (WhiStress)
-│   │   └── pause.py          # PauseAnalyzer (calculates silences)
+│   │   ├── pause.py          # PauseAnalyzer (calculates silences)
+│   │   └── prosody_pitch.py  # PitchAnalyzer (SWIPE + MAE DP)
 │   ├── vendor/               # Third-party models (e.g. WhiStress logic)
 │   └── requirements.txt      # Python dependencies
 ├── LLM_CONTEXT.md            # This file
@@ -82,7 +84,12 @@ prosody_interface/
 ```
 
 ## 6. Recent Updates
-- **Pause Integration:** The backend now fully tracks pauses. It computes `pause_before` (float duration of silence before the word) and `is_pause_after` (boolean, if there is a significant pause after). These are saved in the database under `WordLevelData` and sent to the frontend.
+- **Pause Integration:** The backend tracks pauses. It computes `pause_before` and `pause_after` for each word. These are saved in the database under `WordLevelData` and sent to the frontend.
+- **Pitch Stylization (MAE):** Integrated a `PitchAnalyzer` that extracts F0 via SWIPE and applies a Dynamic Programming algorithm to fit a piecewise linear polynomial (P=1) minimizing Mean Absolute Error (MAE). This extracts the global intonation trend.
+- **Performance Optimization:** 
+  - **DP Inner Loop:** Replaced thousands of inner-loop array allocations with O(1) prefix sums, reducing pitch processing time from minutes to seconds.
+  - **ASR & Worker:** Tuned Whisper parameters (reduced `best_of` and fallback passes), deduplicated model loading (shared memory between preview and final models), and reduced the frequency of JSON serialization in the worker loop.
+- **UI Tooltips & Pitch Deformation:** Added character-level pitch stretching (`ProsodyWord`) and detailed tooltips (`ProsodyTooltip` and `PauseTooltip`) using a robust layout structure (CSS fixed wrapper + framer-motion) to avoid transform conflicts.
 
 ## 7. How to Work on This Project
 - **Frontend changes:** Usually involve editing components in `frontend/src/`. To test, run `npm run dev`.
