@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import './WordTooltip.css'
@@ -29,6 +29,7 @@ const TREND_LABELS = {
 
 export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
   const [position, setPosition] = useState({ top: 0, left: 0, position: 'above' })
+  const tooltipRef = useRef(null)
   const prefersReducedMotion = useReducedMotion()
 
   useEffect(() => {
@@ -37,7 +38,15 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
     const updatePosition = () => {
       if (!wordRef.current) return
       const rect = wordRef.current.getBoundingClientRect()
-      const isTooCloseToTop = rect.top < 120 // slightly more room for the larger tooltip
+
+      // Measure tooltip height if already rendered, otherwise use a generous estimate
+      const tooltipHeight = tooltipRef.current
+        ? tooltipRef.current.getBoundingClientRect().height
+        : 250
+
+      // If the tooltip would clip above the viewport, flip it below
+      const spaceAbove = rect.top - 8
+      const isTooCloseToTop = spaceAbove < tooltipHeight
 
       setPosition({
         top: isTooCloseToTop ? rect.bottom + 8 : rect.top - 8,
@@ -47,6 +56,8 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
     }
 
     updatePosition()
+    // Re-measure after a frame to account for actual rendered height
+    requestAnimationFrame(updatePosition)
 
     window.addEventListener('resize', updatePosition)
     window.addEventListener('scroll', updatePosition, true)
@@ -100,6 +111,7 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
         style={{ transformOrigin }}
       >
         <div
+          ref={tooltipRef}
           className={`word-tooltip-container ${position.position}`}
           style={{ position: 'absolute', pointerEvents: 'auto' }}
           onClick={(e) => e.stopPropagation()}
