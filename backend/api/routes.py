@@ -2,19 +2,24 @@
 REST API Routes
 
 Endpoints:
-- POST /api/jobs          — Create a job from uploaded audio
-- GET  /api/jobs/{job_id} — Poll job status and progress (frontend polls every 1-2s)
+- POST /api/jobs                          — Create a job from uploaded audio
+- GET  /api/jobs/{job_id}                 — Poll job status and progress
+- GET  /api/jobs/{job_id}/annotation      — Get canonical annotation document
+- GET  /api/jobs/{job_id}/annotation/download — Download annotation as .json file
 """
 
+import json
 import uuid
 import shutil
 import logging
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.responses import JSONResponse, FileResponse
 
 from database import create_job, get_job
-from config import AUDIO_UPLOADS_DIR
+from config import AUDIO_UPLOADS_DIR, ANNOTATIONS_DIR
 from schemas import JobResponse, JobCreateResponse, JobStatus, JobResult
+from pipeline.annotation import build_annotation
 
 logger = logging.getLogger(__name__)
 
@@ -87,4 +92,89 @@ async def get_job_status(job_id: str):
         current_stage=job.get("current_stage", ""),
         result=result,
         error=job.get("error", ""),
+    )
+
+@router.get("/jobs/{job_id}/annotation")
+async def get_annotation(job_id: str):
+    """
+    Generate and return the canonical annotation document for a completed job.
+
+    The annotation is built on-the-fly from the stored JobResult — it's a
+    pure reshaping, not a re-computation. Sub-millisecond.
+
+    Returns:
+        200: The annotation JSON document.
+        404: Job not found.
+        409: Job not yet complete (includes current status and progress).
+    """
+    job = get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    if job["status"] != "complete":
+        return JSONResponse(
+            status_code=409,
+            content={
+                "detail": f"Job not yet complete (status: {job['status']})",
+                "status": job["status"],
+                "progress": job.get("progress", 0.0),
+                "error": job.get("error", ""),
+            },
+        )
+
+    try:
+        annotation = build_annotation(job)
+    except Exception as e:
+        logger.error(f"Failed to build annotation for job {job_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Annotation generation failed: {e}")
+
+    # Persist to disk for future downloads
+    annotation_path = ANNOTATIONS_DIR / f"{job_id}.json"
+    try:
+        with open(annotation_path, "w", encoding="utf-8") as f:
+            json.dump(annotation, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logger.warning(f"Failed to persist annotation file: {e}")
+
+    return JSONResponse(content=annotation)
+
+
+@router.get("/jobs/{job_id}/annotation/download")
+async def download_annotation(job_id: str):
+    """
+    Download the annotation document as a .json file.
+
+    If the file already exists on disk, serves it directly.
+    Otherwise, generates it first (same as the /annotation endpoint).
+    """
+    job = get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    if job["status"] != "complete":
+        return JSONResponse(
+            status_code=409,
+            content={
+                "detail": f"Job not yet complete (status: {job['status']})",
+                "status": job["status"],
+                "progress": job.get("progress", 0.0),
+            },
+        )
+
+    annotation_path = ANNOTATIONS_DIR / f"{job_id}.json"
+
+    # Generate if not already on disk
+    if not annotation_path.exists():
+        try:
+            annotation = build_annotation(job)
+            with open(annotation_path, "w", encoding="utf-8") as f:
+                json.dump(annotation, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logger.error(f"Failed to generate annotation for download: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Annotation generation failed: {e}")
+
+    return FileResponse(
+        path=str(annotation_path),
+        media_type="application/json",
+        filename=f"annotation_{job_id}.json",
     )

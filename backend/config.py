@@ -12,12 +12,14 @@ from pathlib import Path
 # ── Paths ──────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).parent.resolve()
 AUDIO_UPLOADS_DIR = BASE_DIR / "audio_uploads"
+ANNOTATIONS_DIR = BASE_DIR / "annotations"
 DB_PATH = BASE_DIR / "jobs.db"
 VENDOR_DIR = BASE_DIR / "vendor"
 WHISTRESS_WEIGHTS_DIR = VENDOR_DIR / "whistress_pkg" / "weights"
 
 # Ensure runtime directories exist
 AUDIO_UPLOADS_DIR.mkdir(exist_ok=True)
+ANNOTATIONS_DIR.mkdir(exist_ok=True)
 
 # ── Model Configuration ───────────────────────────────────────
 # faster-whisper: use medium.en for live preview since GPU is being used
