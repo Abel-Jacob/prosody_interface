@@ -60,6 +60,27 @@ function App() {
     }
   }
 
+  const handleUploadAudio = async (file) => {
+    setAppState('processing')
+    const formData = new FormData()
+    formData.append('audio', file)
+    try {
+      const response = await fetch(getHttpUrl('/api/jobs'), {
+        method: 'POST',
+        body: formData,
+      })
+      if (!response.ok) {
+        throw new Error(`Failed to upload audio: ${response.statusText}`)
+      }
+      const data = await response.json()
+      setJobId(data.job_id)
+    } catch (err) {
+      console.error(err)
+      alert(`Error uploading audio: ${err.message}`)
+      setAppState('idle')
+    }
+  }
+
   const handleReset = () => {
     setJobId(null)
     setFinalResult(null)
@@ -83,7 +104,7 @@ function App() {
             exit={{ opacity: 0 }}
             transition={stateTransition}
           >
-            <IdleState onStart={handleStartListening} />
+            <IdleState onStart={handleStartListening} onUpload={handleUploadAudio} />
           </motion.div>
         )}
         
