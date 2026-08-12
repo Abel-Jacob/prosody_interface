@@ -70,15 +70,20 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
 
   if (!wordData) return null
 
-  const hasPitch = wordData.mean_pitch != null
+  const inton = wordData.intonation || wordData
+  const meanPitch = inton.mean_pitch ?? wordData.pitch_mean
+  const pitchSlope = inton.pitch_slope
+  const pitchTrend = inton.pitch_trend || (wordData.pitch_direction === 'rising' ? '↑' : wordData.pitch_direction === 'falling' ? '↓' : null)
+
+  const hasPitch = meanPitch != null
   const duration = wordData.end && wordData.start
     ? Math.round((wordData.end - wordData.start) * 1000)
     : null
-  const pitchChange = wordData.pitch_slope != null
-    ? (wordData.pitch_slope >= 0 ? '+' : '') + wordData.pitch_slope.toFixed(1)
+  const pitchChange = pitchSlope != null
+    ? (pitchSlope >= 0 ? '+' : '') + pitchSlope.toFixed(1)
     : null
-  const trendLabel = wordData.pitch_trend
-    ? (TREND_LABELS[wordData.pitch_trend] || wordData.pitch_trend)
+  const trendLabel = pitchTrend
+    ? (TREND_LABELS[pitchTrend] || pitchTrend)
     : null
 
   /* Finding 6: transform-origin points toward the trigger element */
@@ -108,8 +113,20 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
         animate={animateAnim}
         exit={exitAnim}
         transition={materializeSpring}
-        style={{ transformOrigin }}
+        style={{
+          transformOrigin,
+          boxShadow: 'var(--shadow-lg)',
+          fontFamily: 'var(--font-primary)',
+        }}
+        className="prosody-tooltip"
       >
+        <div className="tooltip-header">
+          <span className="tooltip-word">{wordData.word}</span>
+          {wordData.stressed && (
+            <span className="tooltip-badge stressed-badge">STRESSED</span>
+          )}
+        </div>
+
         <div
           ref={tooltipRef}
           className={`word-tooltip-container ${position.position}`}
@@ -143,7 +160,7 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
             <div className="tooltip-row">
               <span className="tooltip-label">Average Pitch</span>
               <span className="tooltip-value">
-                {Math.round(wordData.mean_pitch)} Hz
+                {Math.round(meanPitch)} Hz
               </span>
             </div>
 
@@ -151,8 +168,8 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
               <div className="tooltip-row">
                 <span className="tooltip-label">Pitch Trend</span>
                 <span className="tooltip-value" style={{
-                  color: wordData.pitch_trend === '↑' ? '#4ade80'
-                    : wordData.pitch_trend === '↓' ? '#f87171'
+                  color: pitchTrend === '↑' ? '#4ade80'
+                    : pitchTrend === '↓' ? '#f87171'
                     : '#94a3b8',
                 }}>
                   {trendLabel}
@@ -164,8 +181,8 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
               <div className="tooltip-row">
                 <span className="tooltip-label">Pitch Change</span>
                 <span className="tooltip-value" style={{
-                  color: wordData.pitch_slope > 0 ? '#4ade80'
-                    : wordData.pitch_slope < 0 ? '#f87171'
+                  color: pitchSlope > 0 ? '#4ade80'
+                    : pitchSlope < 0 ? '#f87171'
                     : 'inherit',
                 }}>
                   {pitchChange} Hz

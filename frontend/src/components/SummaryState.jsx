@@ -62,7 +62,8 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
   const displayWord = (showComma && !alreadyHasPunct) ? wordText + ',' : wordText
 
   // Use ProsodyWord for character-level pitch deformation when MAE pitch data is available
-  const hasPitchData = w.char_pitches && w.char_pitches.length > 0
+  const hasPitchData = (w.char_pitches && w.char_pitches.length > 0) || (w.intonation && w.intonation.mean_pitch != null)
+  const synthPitches = w.char_pitches || (w.intonation?.pitch_trend === '↑' ? [0.3, 0.5, 0.7] : w.intonation?.pitch_trend === '↓' ? [0.7, 0.5, 0.3] : [0.5, 0.5, 0.5])
 
   // Confidence-based visual effects
   const conf = w.confidence !== undefined ? w.confidence : 1
@@ -98,7 +99,7 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
         <span ref={wordRef} style={{ display: 'inline-block', verticalAlign: 'baseline', marginRight: isLast ? '0' : '0.25rem' }}>
           <ProsodyWord
             word={displayWord}
-            charPitches={w.char_pitches}
+            charPitches={synthPitches}
             stressed={w.stressed}
             isInspected={isInspected}
             onClick={handleClick}

@@ -96,11 +96,11 @@ export default function WordTooltip({ wordData, wordRef, onClose }) {
             </span>
           </div>
         )}
-        {wordData.pitch_mean != null && (
+        {((wordData.intonation?.mean_pitch ?? wordData.pitch_mean) != null) && (
           <div className="tooltip-row">
             <span className="tooltip-label">Pitch:</span>
             <span className="tooltip-value">
-              {Math.round(wordData.pitch_mean)} Hz {wordData.pitch_direction === 'rising' ? '↗' : wordData.pitch_direction === 'falling' ? '↘' : wordData.pitch_direction === 'flat' ? '→' : ''}
+              {Math.round(wordData.intonation?.mean_pitch ?? wordData.pitch_mean)} Hz {(wordData.intonation?.pitch_trend || (wordData.pitch_direction === 'rising' ? '↗' : wordData.pitch_direction === 'falling' ? '↘' : '→'))}
             </span>
           </div>
         )}

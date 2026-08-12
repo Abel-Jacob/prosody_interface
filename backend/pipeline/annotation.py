@@ -107,8 +107,9 @@ def build_annotation(job: dict) -> dict:
         })
 
         # ── Build word entries from this phrase ────────────────────
+        phrase_intonation = phrase.get("intonation")
         for word_data in phrase_words:
-            word_entry = _build_word_entry(word_data, phrase_idx)
+            word_entry = _build_word_entry(word_data, phrase_idx, phrase_intonation)
             all_words.append(word_entry)
 
     # ── Sort words by absolute start_time (safety net) ─────────────
@@ -152,11 +153,13 @@ def build_annotation(job: dict) -> dict:
     return annotation
 
 
-def _build_word_entry(word_data: dict, phrase_index: int) -> dict:
+def _build_word_entry(word_data: dict, phrase_index: int, phrase_intonation: Optional[dict] = None) -> dict:
     """
     Transform a single WordResult dict into an annotation word entry.
-    Word entries carry word-level stress, pause, and confidence data.
+    Word entries carry word-level stress, pause, and confidence data,
+    plus phrase-level intonation context.
     """
+    intonation = word_data.get("intonation") or phrase_intonation
     return {
         "word_index": 0,  # Will be reassigned after sorting
         "word": word_data.get("word", ""),
@@ -168,4 +171,5 @@ def _build_word_entry(word_data: dict, phrase_index: int) -> dict:
         "stress_score": word_data.get("stress_score", 0.0),
         "pause_after": word_data.get("pause_after", 0.0),
         "is_hesitation": word_data.get("is_hesitation", False),
+        "intonation": intonation,
     }
