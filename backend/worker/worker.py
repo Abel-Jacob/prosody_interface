@@ -20,6 +20,7 @@ import time
 import traceback
 import numpy as np
 from typing import Optional
+from pathlib import Path
 
 from database import (
     get_next_queued_job,
