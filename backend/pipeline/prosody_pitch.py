@@ -606,12 +606,15 @@ def compute_phrase_pitch_features(
 
     pitch_trend = _classify_trend(start_pitch, end_pitch, mean_pitch)
 
-    # Find which voiced segment this phrase falls in (most overlapping segment)
+    # Find all voiced segments this phrase falls in (and track dominant segment)
     phrase_frame_indices = np.where(mask)[0]
     best_segment_index = None
     max_overlap = 0
+    overlapping_segment_indices = []
     for seg in segment_results:
         overlap = np.sum((phrase_frame_indices >= seg["start_frame"]) & (phrase_frame_indices <= seg["end_frame"]))
+        if overlap > 0:
+            overlapping_segment_indices.append(seg["segment_index"])
         if overlap > max_overlap:
             max_overlap = overlap
             best_segment_index = seg["segment_index"]
@@ -624,6 +627,7 @@ def compute_phrase_pitch_features(
             seg_end_time = frame_times[seg["end_frame"]]
             if seg_start_time <= phrase_mid <= seg_end_time:
                 best_segment_index = seg["segment_index"]
+                overlapping_segment_indices.append(seg["segment_index"])
                 break
 
     voiced_segment_index = best_segment_index
@@ -639,6 +643,7 @@ def compute_phrase_pitch_features(
         "normalized_pitch": normalized_pitch,
         "pitch_trend": pitch_trend,
         "voiced_segment_index": voiced_segment_index,
+        "voiced_segment_indices": overlapping_segment_indices,
     }
 
 
@@ -780,16 +785,20 @@ def run_pitch_stylization(
         })
 
     # ── Filter and Re-index active voiced segments ────────────────
-    referenced_indices = {
-        p["voiced_segment_index"]
-        for p in phrase_pitch_results
-        if p.get("voiced_segment_index") is not None
-    }
+    referenced_indices = set()
+    for p in phrase_pitch_results:
+        if p.get("voiced_segment_index") is not None:
+            referenced_indices.add(p["voiced_segment_index"])
+        for s_idx in p.get("voiced_segment_indices", []):
+            referenced_indices.add(s_idx)
 
-    active_segments = [
-        seg for seg in voiced_segments_out
-        if seg["segment_index"] in referenced_indices
-    ]
+    if not referenced_indices and voiced_segments_out:
+        active_segments = voiced_segments_out
+    else:
+        active_segments = [
+            seg for seg in voiced_segments_out
+            if seg["segment_index"] in referenced_indices
+        ]
 
     index_mapping = {}
     for new_idx, seg in enumerate(active_segments):
@@ -801,6 +810,10 @@ def run_pitch_stylization(
         old_seg_idx = p.get("voiced_segment_index")
         if old_seg_idx is not None:
             p["voiced_segment_index"] = index_mapping.get(old_seg_idx)
+        if "voiced_segment_indices" in p:
+            p["voiced_segment_indices"] = [
+                index_mapping[s] for s in p["voiced_segment_indices"] if s in index_mapping
+            ]
 
     return {
         "phrase_pitch": phrase_pitch_results,
