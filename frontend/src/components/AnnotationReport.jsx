@@ -157,10 +157,12 @@ export default function AnnotationReport({ data, onBack }) {
   const renderSegmentContourGraph = (seg) => {
     if (!seg || !seg.mae_stylized || seg.mae_stylized.length === 0) return null
 
-    const pitches = seg.mae_stylized
-    const nPoints = pitches.length
-    const minVal = Math.min(...pitches)
-    const maxVal = Math.max(...pitches)
+    const stylizedPitches = seg.mae_stylized || []
+    const rawPitches = seg.raw_contour || []
+    const allPitches = [...stylizedPitches, ...rawPitches]
+
+    const minVal = Math.min(...allPitches)
+    const maxVal = Math.max(...allPitches)
     const rangeMin = Math.max(0, minVal - 20)
     const rangeMax = maxVal + 20
 
@@ -169,9 +171,17 @@ export default function AnnotationReport({ data, onBack }) {
     const paddingX = 45
     const paddingY = 25
 
-    const points = pitches
+    const stylizedPoints = stylizedPitches
       .map((val, idx) => {
-        const x = paddingX + (idx / (nPoints - 1)) * (width - 2 * paddingX)
+        const x = paddingX + (idx / (stylizedPitches.length - 1)) * (width - 2 * paddingX)
+        const y = height - paddingY - ((val - rangeMin) / (rangeMax - rangeMin)) * (height - 2 * paddingY)
+        return `${x},${y}`
+      })
+      .join(' ')
+
+    const rawPoints = rawPitches
+      .map((val, idx) => {
+        const x = paddingX + (idx / (rawPitches.length - 1)) * (width - 2 * paddingX)
         const y = height - paddingY - ((val - rangeMin) / (rangeMax - rangeMin)) * (height - 2 * paddingY)
         return `${x},${y}`
       })
@@ -179,8 +189,8 @@ export default function AnnotationReport({ data, onBack }) {
 
     const areaPoints = [
       `${paddingX},${height - paddingY}`,
-      ...pitches.map((val, idx) => {
-        const x = paddingX + (idx / (nPoints - 1)) * (width - 2 * paddingX)
+      ...stylizedPitches.map((val, idx) => {
+        const x = paddingX + (idx / (stylizedPitches.length - 1)) * (width - 2 * paddingX)
         const y = height - paddingY - ((val - rangeMin) / (rangeMax - rangeMin)) * (height - 2 * paddingY)
         return `${x},${y}`
       }),
@@ -198,8 +208,17 @@ export default function AnnotationReport({ data, onBack }) {
     return (
       <div className="segment-graph-wrapper" style={{ padding: '1rem', background: 'rgba(22, 21, 20, 0.25)', borderRadius: '4px', border: '1px solid var(--overlay-border)', marginTop: '0.8rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          <span>Stylization Contour Graph (P=1)</span>
           <span>Segment range: {seg.start_time.toFixed(2)}s – {seg.end_time.toFixed(2)}s</span>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ display: 'inline-block', width: '12px', height: '2.5px', background: 'var(--accent)' }}></span>
+              Stylized (P=1)
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ display: 'inline-block', width: '12px', height: '0px', borderTop: '2px dashed rgba(255,255,255,0.3)' }}></span>
+              Raw (SWIPE)
+            </span>
+          </div>
         </div>
         <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
           <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="segment-contour-svg">
@@ -224,7 +243,17 @@ export default function AnnotationReport({ data, onBack }) {
 
             <polygon points={areaPoints} fill={`url(#grad-${seg.segment_index})`} />
 
-            <polyline fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
+            {rawPoints && (
+              <polyline
+                fill="none"
+                stroke="rgba(255, 255, 255, 0.2)"
+                strokeWidth="1.5"
+                strokeDasharray="4,4"
+                points={rawPoints}
+              />
+            )}
+
+            <polyline fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={stylizedPoints} />
           </svg>
         </div>
       </div>
@@ -571,7 +600,7 @@ export default function AnnotationReport({ data, onBack }) {
                 Voiced Segments Stylization
               </h2>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1.2rem', lineHeight: 1.5 }}>
-                Contiguous voiced regions extracted globally from SWIPE/pYIN pitch tracking, stylized with first-order polynomial (P=1) MAE criterion. Click on a segment to visualize its stylized pitch contour.
+                Contiguous voiced regions extracted globally from SWIPE pitch tracking, stylized with first-order polynomial (P=1) MAE criterion. Click on a segment to visualize its stylized pitch contour.
               </p>
               
               <table className="voiced-segments-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>

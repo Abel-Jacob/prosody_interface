@@ -79,7 +79,7 @@ def build_annotation(job: dict) -> dict:
         "stress_model": "whistress",
         "stress_backbone": WHISTRESS_WHISPER_BACKBONE,
         "stress_device": WHISTRESS_DEVICE,
-        "pitch_method": "swipe+mae_dp",
+        "pitch_method": "swipe",
         "pitch_polynomial_order": 1,
     }
 

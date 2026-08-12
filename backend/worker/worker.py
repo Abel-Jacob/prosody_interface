@@ -86,6 +86,8 @@ class Worker:
                 self._load_audio, filepath
             )
             logger.info(f"Job {job_id}: loaded audio, duration={duration:.1f}s")
+            
+            is_upload = Path(filepath).name.startswith("upload_")
 
             # Stage 2: Transcribe full audio in one pass for 100% perfect grammar and punctuation
             update_job_progress(job_id, 0.15, 0, current_stage="transcribing_full_audio")
@@ -94,6 +96,7 @@ class Worker:
                 audio,
                 self.models.get("asr_final"),
                 "en",
+                is_live=is_upload,
             )
             
             # Group into natural grammatical sentences based strictly on the model's output punctuation
@@ -130,6 +133,8 @@ class Worker:
                 word_dicts = [w.model_dump() for w in phrase.words]
 
                 for analyzer in prosody_analyzers:
+                    if is_upload and analyzer.name == "stress":
+                        continue
                     try:
                         res = await asyncio.to_thread(
                             analyzer.analyze, sentence_audio, word_dicts

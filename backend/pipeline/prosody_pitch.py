@@ -72,7 +72,7 @@ def extract_pitch(signal: np.ndarray, sr: int, hop_length: int,
     f0 = np.asarray(f0, dtype=np.float64)
 
     logger.debug(
-        f"PYIN pitch extracted: {len(f0)} frames, "
+        f"SWIPE pitch extracted: {len(f0)} frames, "
         f"{int(np.sum(f0 > 0))} voiced ({100 * np.mean(f0 > 0):.1f}%)"
     )
     return f0
@@ -769,6 +769,11 @@ def run_pitch_stylization(
             for val in seg["mae_stylized"]
             if not np.isnan(val)
         ]
+        raw_list = [
+            round(float(val), 1)
+            for val in seg["x"]
+            if not np.isnan(val)
+        ]
         voiced_segments_out.append({
             "segment_index": int(seg["segment_index"]),
             "start_time": round(float(frame_times[seg["start_frame"]]), 2),
@@ -776,11 +781,39 @@ def run_pitch_stylization(
             "frame_count": int(seg["end_frame"] - seg["start_frame"] + 1),
             "k_value": int(seg["K"]),
             "mae_stylized": stylized_list,
+            "raw_contour": raw_list,
         })
+
+    # ── Filter and Re-index active voiced segments ────────────────
+    # Identify which segments are actually referenced by at least one word
+    referenced_indices = {
+        w["voiced_segment_index"]
+        for w in word_pitch_results
+        if w.get("voiced_segment_index") is not None
+    }
+
+    # Filter out empty/noise segments
+    active_segments = [
+        seg for seg in voiced_segments_out
+        if seg["segment_index"] in referenced_indices
+    ]
+
+    # Create mapping from old segment index to new 0-based index
+    index_mapping = {}
+    for new_idx, seg in enumerate(active_segments):
+        old_idx = seg["segment_index"]
+        index_mapping[old_idx] = new_idx
+        seg["segment_index"] = new_idx
+
+    # Update words with their new segment indices
+    for w in word_pitch_results:
+        old_seg_idx = w.get("voiced_segment_index")
+        if old_seg_idx is not None:
+            w["voiced_segment_index"] = index_mapping.get(old_seg_idx)
 
     return {
         "word_pitch": word_pitch_results,
-        "voiced_segments": voiced_segments_out,
+        "voiced_segments": active_segments,
     }
 
 

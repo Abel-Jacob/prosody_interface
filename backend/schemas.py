@@ -65,6 +65,7 @@ class VoicedSegmentDetail(BaseModel):
     frame_count: int = Field(description="Number of pitch frames in this segment")
     k_value: int = Field(description="wavelet complexity K value used for stylization")
     mae_stylized: list[float] = Field(description="MAE stylized pitch values (Hz) for each frame")
+    raw_contour: list[float] = Field(default_factory=list, description="Raw pitch values (Hz) for each frame")
 
 
 class JobResult(BaseModel):
