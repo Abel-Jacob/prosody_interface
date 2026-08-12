@@ -178,3 +178,28 @@ async def download_annotation(job_id: str):
         media_type="application/json",
         filename=f"annotation_{job_id}.json",
     )
+
+
+@router.get("/jobs/{job_id}/audio")
+async def get_job_audio(job_id: str):
+    """
+    Serve the audio file associated with the job.
+    """
+    job = get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    filepath = Path(job["filepath"])
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Audio file not found")
+
+    media_type = "audio/webm"
+    if filepath.suffix == ".wav":
+        media_type = "audio/wav"
+    elif filepath.suffix == ".ogg":
+        media_type = "audio/ogg"
+    elif filepath.suffix == ".mp3":
+        media_type = "audio/mpeg"
+
+    return FileResponse(path=str(filepath), media_type=media_type)
+

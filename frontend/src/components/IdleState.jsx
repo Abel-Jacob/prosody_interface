@@ -1,34 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
+import AudioPlayer from './AudioPlayer'
 
 const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
-
-const formatTime = (secs) => {
-  if (isNaN(secs) || secs === null) return '0:00'
-  const minutes = Math.floor(secs / 60)
-  const seconds = Math.floor(secs % 60)
-  return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`
-}
 
 export default function IdleState({ onStart, onUpload }) {
   const [selectedFile, setSelectedFile] = useState(null)
   const [audioUrl, setAudioUrl] = useState(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
 
   const fileInputRef = useRef(null)
-  const audioRef = useRef(null)
 
   // Listen for spacebar to start speaking *only* when no file is uploaded
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.code === 'Space') {
-        // If a file is selected, spacebar plays/pauses the audio instead of starting recording
-        if (selectedFile) {
-          e.preventDefault()
-          handlePlayPause()
-        } else {
+        if (!selectedFile) {
           e.preventDefault()
           onStart()
         }
@@ -36,7 +22,7 @@ export default function IdleState({ onStart, onUpload }) {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onStart, selectedFile, isPlaying])
+  }, [onStart, selectedFile])
 
   const handleFileChange = (e) => {
     const file = e.target.files[0]
@@ -44,66 +30,12 @@ export default function IdleState({ onStart, onUpload }) {
       setSelectedFile(file)
       const url = URL.createObjectURL(file)
       setAudioUrl(url)
-      setCurrentTime(0)
-      setIsPlaying(false)
     }
   }
 
   const handleTriggerUpload = (e) => {
     e.stopPropagation()
     fileInputRef.current.click()
-  }
-
-  const handlePlayPause = (e) => {
-    if (e) e.stopPropagation()
-    if (!audioRef.current) return
-
-    if (isPlaying) {
-      audioRef.current.pause()
-      setIsPlaying(false)
-    } else {
-      audioRef.current.play()
-      setIsPlaying(true)
-    }
-  }
-
-  const handleRewind = (e) => {
-    if (e) e.stopPropagation()
-    if (!audioRef.current) return
-    audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 5)
-    setCurrentTime(audioRef.current.currentTime)
-  }
-
-  const handleForward = (e) => {
-    if (e) e.stopPropagation()
-    if (!audioRef.current) return
-    audioRef.current.currentTime = Math.min(duration, audioRef.current.currentTime + 5)
-    setCurrentTime(audioRef.current.currentTime)
-  }
-
-  const handleScrub = (e) => {
-    e.stopPropagation()
-    if (!audioRef.current) return
-    const val = parseFloat(e.target.value)
-    audioRef.current.currentTime = val
-    setCurrentTime(val)
-  }
-
-  const handleAudioTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime)
-    }
-  }
-
-  const handleAudioLoadedMetadata = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration)
-    }
-  }
-
-  const handleAudioEnded = () => {
-    setIsPlaying(false)
-    setCurrentTime(0)
   }
 
   const handleProceed = (e) => {
@@ -124,9 +56,6 @@ export default function IdleState({ onStart, onUpload }) {
     }
     setSelectedFile(null)
     setAudioUrl(null)
-    setCurrentTime(0)
-    setDuration(0)
-    setIsPlaying(false)
   }
 
   // Render file player view
@@ -143,14 +72,6 @@ export default function IdleState({ onStart, onUpload }) {
           padding: '0 2rem'
         }}
       >
-        <audio 
-          ref={audioRef}
-          src={audioUrl}
-          onTimeUpdate={handleAudioTimeUpdate}
-          onLoadedMetadata={handleAudioLoadedMetadata}
-          onEnded={handleAudioEnded}
-        />
-
         <div style={{
           width: '100%',
           maxWidth: '24rem',
@@ -185,100 +106,7 @@ export default function IdleState({ onStart, onUpload }) {
             </span>
           </div>
 
-          {/* Time Labels */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            fontSize: '0.7rem',
-            color: 'var(--text-muted)',
-            fontFamily: 'monospace'
-          }}>
-            <span>{formatTime(currentTime)}</span>
-            <span>{formatTime(duration)}</span>
-          </div>
-
-          {/* Scrubber Progress Bar */}
-          <div style={{ width: '100%' }}>
-            <input 
-              type="range"
-              min={0}
-              max={duration || 0}
-              step="0.05"
-              value={currentTime}
-              onChange={handleScrub}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                width: '100%',
-                accentColor: 'var(--accent)',
-                cursor: 'pointer',
-                background: 'var(--text-faded)',
-                height: '4px',
-                borderRadius: '2px',
-                border: 'none',
-                outline: 'none'
-              }}
-            />
-          </div>
-
-          {/* Playback Controls Row */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '2rem'
-          }}>
-            <button
-              onClick={handleRewind}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-                fontFamily: 'var(--font-secondary)'
-              }}
-              onMouseEnter={(e) => e.target.style.color = 'var(--text-primary)'}
-              onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
-            >
-              -5s
-            </button>
-
-            <button
-              onClick={handlePlayPause}
-              style={{
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid var(--text-faded)',
-                color: 'var(--text-primary)',
-                padding: '0.4rem 1.2rem',
-                borderRadius: '3px',
-                cursor: 'pointer',
-                fontSize: '0.7rem',
-                fontFamily: 'var(--font-secondary)',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase'
-              }}
-              onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}
-              onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.05)'}
-            >
-              {isPlaying ? 'pause' : 'play'}
-            </button>
-
-            <button
-              onClick={handleForward}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-                fontFamily: 'var(--font-secondary)'
-              }}
-              onMouseEnter={(e) => e.target.style.color = 'var(--text-primary)'}
-              onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
-            >
-              +5s
-            </button>
-          </div>
+          <AudioPlayer src={audioUrl} style={{ border: 'none', background: 'none', padding: 0, maxWidth: '100%' }} />
 
           <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.05)', margin: '0.4rem 0' }} />
 

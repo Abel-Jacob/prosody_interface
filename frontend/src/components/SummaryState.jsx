@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import ProsodyWord from './ProsodyWord'
 import ProsodyTooltip from './ProsodyTooltip'
 import PauseTooltip from './PauseTooltip'
+import AudioPlayer from './AudioPlayer'
+import { getHttpUrl } from '../apiConfig'
 
 /* Spring configs migrated from legacy stiffness/damping API to
    duration/bounce API per the apple-design skill's mapping table.
@@ -140,15 +142,13 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
   // Feature 3: Track inspected word for tooltip
   const [inspectedWord, setInspectedWord] = useState(null)
 
-  if (!result) return null
-
   const handleViewAnnotation = () => {
     if (onViewAnnotation && jobId) {
       onViewAnnotation(jobId)
     }
   }
 
-  const phrases = result.phrases || []
+  const phrases = result?.phrases || []
 
   // Pre-process: absorb hesitation words into pauses for each phrase
   const processedPhrases = useMemo(() => {
@@ -157,6 +157,8 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
       words: preprocessWords(p.words)
     }))
   }, [phrases])
+
+  if (!result) return null
   
   // Feature 4: Calculate total average confidence (from processed words)
   let wordCount = 0;
@@ -304,6 +306,14 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
             </span>
           </div>
         </div>
+
+        {/* Audio Player for this session */}
+        {jobId && (
+          <AudioPlayer 
+            src={getHttpUrl(`/api/jobs/${jobId}/audio`)} 
+            style={{ width: '100%', maxWidth: '24rem' }} 
+          />
+        )}
 
         {/* Legend */}
         <div style={{

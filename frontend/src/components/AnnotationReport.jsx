@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './AnnotationReport.css'
+import AudioPlayer from './AudioPlayer'
+import { getHttpUrl } from '../apiConfig'
 
 // Arrow icon mapping
 const TREND_ARROWS = {
@@ -166,16 +168,12 @@ export default function AnnotationReport({ data, onBack }) {
   const renderWordDetailGrid = (w) => {
     const hasIntonation = w.intonation != null
     return (
-      <div className="detail-grid-container">
+      <div className="detail-grid-container" style={!hasIntonation ? { gridTemplateColumns: '1fr' } : {}}>
         {/* Left Column: Word Properties */}
         <div>
           <div className="detail-section-title">Word Properties</div>
           <table className="property-details-table">
             <tbody>
-              <tr>
-                <td className="prop-key">word_index</td>
-                <td className="prop-val">{w.word_index}</td>
-              </tr>
               <tr>
                 <td className="prop-key">word</td>
                 <td className="prop-val">"{w.word}"</td>
@@ -189,10 +187,6 @@ export default function AnnotationReport({ data, onBack }) {
                 <td className="prop-val">{w.end_time.toFixed(3)}s</td>
               </tr>
               <tr>
-                <td className="prop-key">phrase_index</td>
-                <td className="prop-val">{w.phrase_index}</td>
-              </tr>
-              <tr>
                 <td className="prop-key">asr_confidence</td>
                 <td className="prop-val">{w.asr_confidence !== undefined ? w.asr_confidence.toFixed(3) : 'null'}</td>
               </tr>
@@ -200,97 +194,78 @@ export default function AnnotationReport({ data, onBack }) {
                 <td className="prop-key">stressed</td>
                 <td className="prop-val">{w.stressed ? 'true' : 'false'}</td>
               </tr>
-              <tr>
-                <td className="prop-key">stress_score</td>
-                <td className="prop-val">{w.stress_score !== undefined ? w.stress_score.toFixed(3) : 'null'}</td>
-              </tr>
-              <tr>
-                <td className="prop-key">pause_after</td>
-                <td className="prop-val">{w.pause_after !== undefined ? w.pause_after.toFixed(3) + 's' : '0.000s'}</td>
-              </tr>
-              <tr>
-                <td className="prop-key">is_hesitation</td>
-                <td className="prop-val">{w.is_hesitation ? 'true' : 'false'}</td>
-              </tr>
             </tbody>
           </table>
         </div>
 
         {/* Right Column: Intonation Properties */}
-        <div>
-          <div className="detail-section-title">Intonation Properties</div>
-          {hasIntonation ? (
-            <>
-              <table className="property-details-table">
-                <tbody>
-                  <tr>
-                    <td className="prop-key">mean_pitch</td>
-                    <td className="prop-val">{w.intonation.mean_pitch?.toFixed(1)} Hz</td>
-                  </tr>
-                  <tr>
-                    <td className="prop-key">pitch_trend</td>
-                    <td className="prop-val">"{w.intonation.pitch_trend}"</td>
-                  </tr>
-                  <tr>
-                    <td className="prop-key">pitch_slope</td>
-                    <td className="prop-val">{w.intonation.pitch_slope?.toFixed(2)} Hz/s</td>
-                  </tr>
-                  <tr>
-                    <td className="prop-key">pitch_range</td>
-                    <td className="prop-val">{w.intonation.pitch_range?.toFixed(1)} Hz</td>
-                  </tr>
-                  <tr>
-                    <td className="prop-key">normalized_pitch</td>
-                    <td className="prop-val">
-                      {w.intonation.normalized_pitch !== undefined && w.intonation.normalized_pitch !== null
-                        ? w.intonation.normalized_pitch.toFixed(3)
-                        : 'null'}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="prop-key">start_pitch</td>
-                    <td className="prop-val">{w.intonation.start_pitch?.toFixed(1)} Hz</td>
-                  </tr>
-                  <tr>
-                    <td className="prop-key">end_pitch</td>
-                    <td className="prop-val">{w.intonation.end_pitch?.toFixed(1)} Hz</td>
-                  </tr>
-                  <tr>
-                    <td className="prop-key">max_pitch</td>
-                    <td className="prop-val">{w.intonation.max_pitch?.toFixed(1)} Hz</td>
-                  </tr>
-                  <tr>
-                    <td className="prop-key">min_pitch</td>
-                    <td className="prop-val">{w.intonation.min_pitch?.toFixed(1)} Hz</td>
-                  </tr>
-                  <tr>
-                    <td className="prop-key">voiced_segment_index</td>
-                    <td className="prop-val">
-                      {w.intonation.voiced_segment_index !== undefined && w.intonation.voiced_segment_index !== null
-                        ? w.intonation.voiced_segment_index
-                        : 'null'}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="prop-key">char_pitches</td>
-                    <td className="prop-val" style={{ fontSize: '0.6rem', whiteSpace: 'normal', wordBreak: 'break-all' }}>
-                      [{w.intonation.char_pitches ? w.intonation.char_pitches.map((p) => p.toFixed(2)).join(', ') : ''}]
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <div className="detail-sparkline-container" style={{ padding: '0 0.5rem' }}>
-                <div className="sparkline-title">Pitch Contour</div>
-                {renderSparkline(w.intonation.char_pitches)}
-              </div>
-            </>
-          ) : (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-faded)', fontSize: '0.75rem', fontFamily: 'monospace' }}>
-              "intonation": null <br />
-              (unvoiced consonant, filler, or silence)
+        {hasIntonation && (
+          <div>
+            <div className="detail-section-title">Intonation Properties</div>
+            <table className="property-details-table">
+              <tbody>
+                <tr>
+                  <td className="prop-key">mean_pitch</td>
+                  <td className="prop-val">{w.intonation.mean_pitch?.toFixed(1)} Hz</td>
+                </tr>
+                <tr>
+                  <td className="prop-key">pitch_trend</td>
+                  <td className="prop-val">"{w.intonation.pitch_trend}"</td>
+                </tr>
+                <tr>
+                  <td className="prop-key">pitch_slope</td>
+                  <td className="prop-val">{w.intonation.pitch_slope?.toFixed(2)} Hz/s</td>
+                </tr>
+                <tr>
+                  <td className="prop-key">pitch_range</td>
+                  <td className="prop-val">{w.intonation.pitch_range?.toFixed(1)} Hz</td>
+                </tr>
+                <tr>
+                  <td className="prop-key">normalized_pitch</td>
+                  <td className="prop-val">
+                    {w.intonation.normalized_pitch !== undefined && w.intonation.normalized_pitch !== null
+                      ? w.intonation.normalized_pitch.toFixed(3)
+                      : 'null'}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="prop-key">start_pitch</td>
+                  <td className="prop-val">{w.intonation.start_pitch?.toFixed(1)} Hz</td>
+                </tr>
+                <tr>
+                  <td className="prop-key">end_pitch</td>
+                  <td className="prop-val">{w.intonation.end_pitch?.toFixed(1)} Hz</td>
+                </tr>
+                <tr>
+                  <td className="prop-key">max_pitch</td>
+                  <td className="prop-val">{w.intonation.max_pitch?.toFixed(1)} Hz</td>
+                </tr>
+                <tr>
+                  <td className="prop-key">min_pitch</td>
+                  <td className="prop-val">{w.intonation.min_pitch?.toFixed(1)} Hz</td>
+                </tr>
+                <tr>
+                  <td className="prop-key">voiced_segment_index</td>
+                  <td className="prop-val">
+                    {w.intonation.voiced_segment_index !== undefined && w.intonation.voiced_segment_index !== null
+                      ? w.intonation.voiced_segment_index
+                      : 'null'}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="prop-key">char_pitches</td>
+                  <td className="prop-val" style={{ fontSize: '0.6rem', whiteSpace: 'normal', wordBreak: 'break-all' }}>
+                    [{w.intonation.char_pitches ? w.intonation.char_pitches.map((p) => p.toFixed(2)).join(', ') : ''}]
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div className="detail-sparkline-container" style={{ padding: '0 0.5rem' }}>
+              <div className="sparkline-title">Pitch Contour</div>
+              {renderSparkline(w.intonation.char_pitches)}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -359,6 +334,12 @@ export default function AnnotationReport({ data, onBack }) {
 
       {/* Main expandable phrase area */}
       <main className="report-content">
+        {recording?.job_id && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+            <AudioPlayer src={getHttpUrl(`/api/jobs/${recording.job_id}/audio`)} />
+          </div>
+        )}
+
         {errors && errors.length > 0 && (
           <div style={{ color: 'var(--error)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>
             {errors.map((err, i) => (
@@ -399,8 +380,8 @@ export default function AnnotationReport({ data, onBack }) {
                         const stressOpacity = w.stress_score != null ? Math.max(0.4, w.stress_score) : 1.0
 
                         // Check for meaningful pause (> 0.3 seconds)
-                        const isSignificantPause = w.pause_after && w.pause_after > 0.3
-                        const isLongPause = w.pause_after && w.pause_after > 0.8
+                        const isSignificantPause = w.pause_after > 0.3
+                        const isLongPause = w.pause_after > 0.8
 
                         return (
                           <React.Fragment key={w.word_index}>
@@ -456,22 +437,21 @@ export default function AnnotationReport({ data, onBack }) {
                 ) : (
                   // Mode B: Table List View
                   <div className="phrase-table-container">
-                    <table className="phrase-data-table">
+                    <table className="phrase-data-table" style={{ tableLayout: 'fixed', width: '100%' }}>
                       <thead>
                         <tr>
-                          <th>#</th>
-                          <th>Word</th>
-                          <th>Time Range</th>
-                          <th>Confidence</th>
-                          <th>Stressed</th>
-                          <th>Pause After</th>
-                          <th>Pitch Trend</th>
+                          <th style={{ width: '8%', textAlign: 'left' }}>#</th>
+                          <th style={{ width: '22%', textAlign: 'left' }}>Word</th>
+                          <th style={{ width: '25%', textAlign: 'left' }}>Time Range</th>
+                          <th style={{ width: '15%', textAlign: 'left' }}>Confidence</th>
+                          <th style={{ width: '15%', textAlign: 'left' }}>Stressed</th>
+                          <th style={{ width: '15%', textAlign: 'left' }}>Pitch Trend</th>
                         </tr>
                       </thead>
                       <tbody>
                         {phraseWords.length === 0 ? (
                           <tr>
-                            <td colSpan={7} style={{ color: 'var(--text-faded)', fontStyle: 'italic', textAlign: 'center' }}>
+                            <td colSpan={6} style={{ color: 'var(--text-faded)', fontStyle: 'italic', textAlign: 'center' }}>
                               No words processed in this phrase
                             </td>
                           </tr>
@@ -486,27 +466,24 @@ export default function AnnotationReport({ data, onBack }) {
                                   className={`clickable-row ${isExpanded ? 'row-expanded' : ''}`}
                                   onClick={(e) => handleWordClick(w.word_index, e)}
                                 >
-                                  <td>{w.word_index}</td>
-                                  <td style={w.stressed ? { color: 'var(--accent)', fontWeight: 600, textTransform: 'uppercase' } : {}}>
+                                  <td style={{ textAlign: 'left' }}>{w.word_index}</td>
+                                  <td style={{ textAlign: 'left', ...(w.stressed ? { color: 'var(--accent)', fontWeight: 600, textTransform: 'uppercase' } : {}) }}>
                                     {w.word}
                                   </td>
-                                  <td style={{ fontFamily: 'monospace' }}>
+                                  <td style={{ textAlign: 'left', fontFamily: 'monospace' }}>
                                     {w.start_time.toFixed(3)}s – {w.end_time.toFixed(3)}s
                                   </td>
-                                  <td>{Math.round((w.asr_confidence || 0) * 100)}%</td>
-                                  <td>
-                                    {w.stressed ? `YES (${Math.round((w.stress_score || 0) * 100)}%)` : 'NO'}
+                                  <td style={{ textAlign: 'left' }}>{Math.round((w.asr_confidence || 0) * 100)}%</td>
+                                  <td style={{ textAlign: 'left' }}>
+                                    {w.stressed ? 'YES' : 'NO'}
                                   </td>
-                                  <td>
-                                    {w.pause_after && w.pause_after > 0 ? `${w.pause_after.toFixed(3)}s` : '-'}
-                                  </td>
-                                  <td style={{ fontFamily: 'monospace' }}>
+                                  <td style={{ textAlign: 'left', fontFamily: 'monospace' }}>
                                     {hasIntonation && w.intonation.pitch_trend ? w.intonation.pitch_trend : 'unvoiced'}
                                   </td>
                                 </tr>
                                 {isExpanded && (
                                   <tr onClick={(e) => e.stopPropagation()}>
-                                    <td colSpan={7} style={{ padding: '0.8rem 1.2rem', backgroundColor: 'rgba(22, 21, 20, 0.25)', borderBottom: '1px solid var(--overlay-border)' }}>
+                                    <td colSpan={6} style={{ padding: '0.8rem 1.2rem', backgroundColor: 'rgba(22, 21, 20, 0.25)', borderBottom: '1px solid var(--overlay-border)' }}>
                                       <motion.div
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: 'auto', opacity: 1 }}
