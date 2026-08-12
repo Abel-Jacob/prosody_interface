@@ -22,11 +22,12 @@ AUDIO_UPLOADS_DIR.mkdir(exist_ok=True)
 ANNOTATIONS_DIR.mkdir(exist_ok=True)
 
 # ── Model Configuration ───────────────────────────────────────
-# faster-whisper: use medium.en for live preview since GPU is being used
-ASR_MODEL_SIZE_PREVIEW = "medium.en"
-ASR_MODEL_SIZE_FINAL = os.getenv("ASR_MODEL_SIZE_FINAL", "medium.en")
 import torch
 _HAS_GPU = torch.cuda.is_available()
+
+# Use base.en on CPU for 5x speedups, medium.en on CUDA GPU
+ASR_MODEL_SIZE_PREVIEW = "medium.en" if _HAS_GPU else "base.en"
+ASR_MODEL_SIZE_FINAL = os.getenv("ASR_MODEL_SIZE_FINAL", "medium.en" if _HAS_GPU else "base.en")
 
 ASR_DEVICE = "cuda" if _HAS_GPU else "cpu"
 ASR_COMPUTE_TYPE = "float16" if _HAS_GPU else "int8"
