@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
+import AudioPlayer from './AudioPlayer'
 
 const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
 
 export default function IdleState({ onStart, onUpload }) {
   const [selectedFile, setSelectedFile] = useState(null)
+  const [audioUrl, setAudioUrl] = useState(null)
 
   const fileInputRef = useRef(null)
 
@@ -26,6 +28,8 @@ export default function IdleState({ onStart, onUpload }) {
     const file = e.target.files[0]
     if (file) {
       setSelectedFile(file)
+      const url = URL.createObjectURL(file)
+      setAudioUrl(url)
     }
   }
 
@@ -37,13 +41,20 @@ export default function IdleState({ onStart, onUpload }) {
   const handleProceed = (e) => {
     e.stopPropagation()
     if (onUpload && selectedFile) {
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl)
+      }
       onUpload(selectedFile)
     }
   }
 
   const handleCancel = (e) => {
     e.stopPropagation()
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl)
+    }
     setSelectedFile(null)
+    setAudioUrl(null)
   }
 
   // Render file player view
@@ -93,6 +104,10 @@ export default function IdleState({ onStart, onUpload }) {
               {selectedFile.name}
             </span>
           </div>
+
+          <AudioPlayer src={audioUrl} style={{ border: 'none', background: 'none', padding: 0, maxWidth: '100%' }} />
+
+          <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.05)', margin: '0.4rem 0' }} />
 
           {/* Action Row */}
           <div style={{

@@ -184,7 +184,7 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
         display: 'flex',
         flexDirection: 'column',
         paddingTop: '2rem',
-        paddingBottom: '8rem',
+        paddingBottom: '3rem',
         alignItems: 'center',
         paddingLeft: '2rem',
         paddingRight: '2rem',
