@@ -288,6 +288,8 @@ def mae_fit(x_seg: np.ndarray, s: int, r: int, P: int,
     Solved as a linear program (HiGHS solver). Robust to pitch
     halving/doubling errors and isolated spikes.
     """
+    import time
+    t0 = time.time()
     from scipy.optimize import linprog
 
     idx = np.arange(s, r + 1)
@@ -334,6 +336,8 @@ def mae_fit(x_seg: np.ndarray, s: int, r: int, P: int,
     alpha = phi[:n_alpha]
     residual = x - A @ alpha
     mae_error = float(np.sum(np.abs(residual)))
+    elapsed = time.time() - t0
+    logger.info(f"    linprog fit segment [{s},{r}] (N={N}) elapsed: {elapsed:.5f}s")
     return alpha, mae_error
 
 
@@ -345,41 +349,32 @@ def dp_stylize(x_seg: np.ndarray, K: int, P: int,
                fit_func) -> tuple[np.ndarray, list, float]:
     """
     Joint segmentation + piecewise polynomial fitting via DP.
-
-    Args:
-        x_seg:    1-D pitch array for one voiced segment.
-        K:        number of segments (pieces).
-        P:        polynomial order (1 = linear).
-        fit_func: mae_fit or fast_fit.
-
-    Returns:
-        (stylized_contour, boundaries, total_cost)
+    Internal search is always optimized via fast analytical OLS prefix sums
+    to avoid O(N^2) linear programming solver calls. The final selected 
+    boundaries are then refit using the target fit_func (e.g. mae_fit).
     """
+    import time
+    t_start = time.time()
     N = len(x_seg)
     K = min(K, max(1, N // (P + 1)))
 
     # Pre-compute cumulative sums for O(1) range queries in the P=1 hot path.
-    # These allow computing sum(x[s:r]), sum(i*x[s:r]), sum(i), sum(i^2)
-    # over any range [s,r] without array allocation.
-    use_precomputed = (P == 1 and fit_func is fast_fit)
-    if use_precomputed:
-        # 1-indexed arrays: indices run from 1..N, x_seg[0..N-1]
-        # cum_x[r] = sum of x_seg[0:r]  (i.e. x_seg[0] + ... + x_seg[r-1])
-        cum_x = np.zeros(N + 1)
-        cum_ix = np.zeros(N + 1)
-        cum_i = np.zeros(N + 1)
-        cum_i2 = np.zeros(N + 1)
-        for j in range(1, N + 1):
-            idx_val = float(j)  # 1-indexed frame index
-            cum_x[j] = cum_x[j-1] + x_seg[j-1]
-            cum_ix[j] = cum_ix[j-1] + idx_val * x_seg[j-1]
-            cum_i[j] = cum_i[j-1] + idx_val
-            cum_i2[j] = cum_i2[j-1] + idx_val * idx_val
+    t_pre = time.time()
+    cum_x = np.zeros(N + 1)
+    cum_ix = np.zeros(N + 1)
+    cum_i = np.zeros(N + 1)
+    cum_i2 = np.zeros(N + 1)
+    for j in range(1, N + 1):
+        idx_val = float(j)  # 1-indexed frame index
+        cum_x[j] = cum_x[j-1] + x_seg[j-1]
+        cum_ix[j] = cum_ix[j-1] + idx_val * x_seg[j-1]
+        cum_i[j] = cum_i[j-1] + idx_val
+        cum_i2[j] = cum_i2[j-1] + idx_val * idx_val
+    t_pre_elapsed = time.time() - t_pre
 
     def _fast_fit_precomputed(s: int, r: int, boundary=None):
         """O(1) linear fit using pre-computed cumulative sums. No array allocation."""
         n_pts = r - s + 1
-        # Range sums via prefix arrays: sum over 1-indexed [s, r]
         sum_x = cum_x[r] - cum_x[s-1]
         sum_ix = cum_ix[r] - cum_ix[s-1]
         sum_i = cum_i[r] - cum_i[s-1]
@@ -388,14 +383,10 @@ def dp_stylize(x_seg: np.ndarray, K: int, P: int,
         if boundary is not None:
             n0, b_val = boundary
             n0f = float(n0)
-            # Constrained: line passes through (n0, b_val)
-            # sum_d2 = sum((i - n0)^2) = sum_i2 - 2*n0*sum_i + n_pts*n0^2
             sum_d2 = sum_i2 - 2.0 * n0f * sum_i + n_pts * n0f * n0f
             if sum_d2 < 1e-12:
                 alpha_1 = 0.0
             else:
-                # sum_dx = sum((x_i - b_val) * (i - n0))
-                #        = sum_ix - n0*sum_x - b_val*sum_i + b_val*n0*n_pts
                 sum_dx = sum_ix - n0f * sum_x - b_val * sum_i + b_val * n0f * n_pts
                 alpha_1 = sum_dx / sum_d2
             alpha_0 = b_val - alpha_1 * n0f
@@ -409,25 +400,18 @@ def dp_stylize(x_seg: np.ndarray, K: int, P: int,
                 alpha_0 = (sum_x - alpha_1 * sum_i) / n_pts
 
         alpha = np.array([alpha_0, alpha_1])
-
-        # Compute MAE cost: sum |x_i - (alpha_0 + alpha_1 * i)| for i in [s, r]
         idx = np.arange(s, r + 1, dtype=float)
         fitted = alpha_0 + alpha_1 * idx
         mae_error = float(np.sum(np.abs(x_seg[s-1:r] - fitted)))
         return alpha, mae_error
 
-    # Choose which fit function to use in the inner loop
-    def _do_fit(s, r, boundary=None):
-        if use_precomputed:
-            return _fast_fit_precomputed(s, r, boundary)
-        return fit_func(x_seg, s, r, P, boundary=boundary)
-
-    # Forward pass: build cost table
+    # Forward pass: build cost table using the fast precomputed fit
+    t_dp = time.time()
     e = {1: {}}
     gamma = {1: {}}
     xi = {1: {}}
     for r in range(P + 1, N + 1):
-        alpha, err = _do_fit(1, r)
+        alpha, err = _fast_fit_precomputed(1, r)
         e[1][r] = err
         gamma[1][r] = alpha
         xi[1][r] = 1
@@ -447,7 +431,7 @@ def dp_stylize(x_seg: np.ndarray, K: int, P: int,
                 if s not in e[k - 1]:
                     continue
                 b_val = float(_eval_poly(gamma[k - 1][s], s))
-                alpha_c, err_c = _do_fit(s, r, boundary=(s, b_val))
+                alpha_c, err_c = _fast_fit_precomputed(s, r, boundary=(s, b_val))
                 cost = e[k - 1][s] + err_c
                 if cost < best_cost:
                     best_cost = cost
@@ -457,8 +441,9 @@ def dp_stylize(x_seg: np.ndarray, K: int, P: int,
                 e[k][r] = best_cost
                 xi[k][r] = best_s
                 gamma[k][r] = best_alpha
+    t_dp_elapsed = time.time() - t_dp
 
-    # Find effective K (may be reduced if segment too short)
+    # Find effective K
     K_eff = K
     while K_eff > 1 and N not in e.get(K_eff, {}):
         K_eff -= 1
@@ -471,21 +456,44 @@ def dp_stylize(x_seg: np.ndarray, K: int, P: int,
     k = K_eff
     while k >= 1:
         s = xi[k][r]
-        alpha = gamma[k][r]
-        boundaries.append((s, r, alpha))
+        boundaries.append((s, r))
         r = s
         k -= 1
     boundaries.reverse()
 
-    total_cost = e[K_eff][N]
-
-    # Reconstruct stylized contour
+    # Refit boundaries using the target fit_func (e.g. mae_fit)
+    t_refit = time.time()
+    final_boundaries = []
+    prev_boundary_val = None
+    total_cost = 0.0
     stylized = np.zeros(N)
-    for (s, r, alpha) in boundaries:
-        idx = np.arange(s, r + 1)
-        stylized[s - 1:r] = _eval_poly(alpha, idx)
 
-    return stylized, boundaries, total_cost
+    for idx, (s, r) in enumerate(boundaries):
+        boundary_constraint = None
+        if idx > 0 and prev_boundary_val is not None:
+            boundary_constraint = (s, prev_boundary_val)
+
+        # Run target fit function (e.g. mae_fit which uses linprog)
+        alpha, err = fit_func(x_seg, s, r, P, boundary=boundary_constraint)
+        final_boundaries.append((s, r, alpha))
+        
+        # Reconstruct stylized contour for this piece
+        frame_idx = np.arange(s, r + 1)
+        fitted = _eval_poly(alpha, frame_idx)
+        stylized[s - 1:r] = fitted
+        
+        prev_boundary_val = float(fitted[-1])
+        total_cost += err
+    t_refit_elapsed = time.time() - t_refit
+
+    total_elapsed = time.time() - t_start
+    logger.info(
+        f"  dp_stylize complete: N={N}, K={K_eff}/{K} | "
+        f"Precompute={t_pre_elapsed:.5f}s | DP Loop={t_dp_elapsed:.5f}s | "
+        f"Refit={t_refit_elapsed:.5f}s | Total={total_elapsed:.5f}s"
+    )
+
+    return stylized, final_boundaries, total_cost
 
 
 # ═══════════════════════════════════════════════════════════════════

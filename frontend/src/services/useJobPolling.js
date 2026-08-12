@@ -16,6 +16,7 @@ export function useJobPolling(jobId, onComplete) {
 
     let isPolling = true
     let timeoutId
+    let pollCount = 0
 
     const pollJob = async () => {
       if (!isPolling) return
@@ -54,8 +55,15 @@ export function useJobPolling(jobId, onComplete) {
       }
       
       if (isPolling) {
-        // Schedule next poll only AFTER current request finishes
-        timeoutId = setTimeout(pollJob, 250)
+        pollCount++
+        // Backoff: 250ms for first 10 polls (~2.5s), 500ms for next 10 polls (~5s), then cap at 1000ms
+        let delay = 250
+        if (pollCount > 20) {
+          delay = 1000
+        } else if (pollCount > 10) {
+          delay = 500
+        }
+        timeoutId = setTimeout(pollJob, delay)
       }
     }
 
