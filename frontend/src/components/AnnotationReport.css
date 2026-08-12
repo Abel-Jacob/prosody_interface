@@ -468,3 +468,38 @@
   background-color: rgba(255, 255, 255, 0.01);
 }
 
+/* Voiced Segments Stylization Section */
+.voiced-segments-section {
+  width: 100%;
+}
+
+.voiced-segments-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.voiced-segments-table tr.clickable-row:hover {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+.voiced-segments-table tr.clickable-row.row-expanded {
+  background-color: rgba(196, 149, 106, 0.05) !important;
+}
+
+.voiced-segments-table th {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.graph-subrow-cell {
+  background-color: rgba(22, 21, 20, 0.15);
+}
+
+.segment-graph-wrapper {
+  transition: all 0.3s ease;
+}
+
+.segment-contour-svg {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+

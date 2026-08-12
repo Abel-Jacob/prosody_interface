@@ -195,12 +195,17 @@ class Worker:
             for phrase in grammatical_phrases:
                 all_words_dicts.extend([w.model_dump() for w in phrase.words])
 
+            # Stage 3: Full-audio analysis (serial sequence of full-signal modules)
+            update_job_progress(job_id, 0.85, total_sentences, current_stage="analyzing_full_audio")
+            voiced_segments_details = []
             for analyzer in full_audio_analyzers:
                 try:
                     logger.info(f"Job {job_id}: running full-audio '{analyzer.name}' analyzer...")
                     res = await asyncio.to_thread(
                         analyzer.analyze, audio, all_words_dicts
                     )
+                    if "voiced_segments" in res:
+                        voiced_segments_details = res["voiced_segments"]
                     # Apply pitch results back to word objects
                     if "word_pitch" in res and res["word_pitch"]:
                         pitch_data = res["word_pitch"]
@@ -237,7 +242,7 @@ class Worker:
 
             # Stage 4: Finalize
             update_job_progress(job_id, 0.95, total_sentences, current_stage="finalizing")
-            final_result = self._build_result(grammatical_phrases, duration)
+            final_result = self._build_result(grammatical_phrases, duration, voiced_segments_details)
 
             update_job_status(
                 job_id, "complete",
@@ -273,7 +278,7 @@ class Worker:
         duration = len(audio) / sr
         return audio, duration
 
-    def _build_result(self, phrases: list[PhraseResult], duration: float) -> JobResult:
+    def _build_result(self, phrases: list[PhraseResult], duration: float, voiced_segments: list[dict] = None) -> JobResult:
         """Build a JobResult from accumulated phrases."""
         all_words = []
         for p in phrases:
@@ -296,4 +301,5 @@ class Worker:
             wpm=wpm,
             stress_ratio=stress_ratio,
             pitch_variation=round(pitch_variation, 1),
+            voiced_segments=voiced_segments or [],
         )

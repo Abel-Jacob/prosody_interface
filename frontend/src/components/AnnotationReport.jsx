@@ -14,6 +14,7 @@ const TREND_ARROWS = {
 export default function AnnotationReport({ data, onBack }) {
   const [expandedWordIndex, setExpandedWordIndex] = useState(null)
   const [viewMode, setViewMode] = useState('transcript') // 'transcript' | 'table'
+  const [expandedSegmentIndex, setExpandedSegmentIndex] = useState(null)
 
   if (!data) {
     return (
@@ -150,6 +151,83 @@ export default function AnnotationReport({ data, onBack }) {
           points={points}
         />
       </svg>
+    )
+  }
+
+  const renderSegmentContourGraph = (seg) => {
+    if (!seg || !seg.mae_stylized || seg.mae_stylized.length === 0) return null
+
+    const pitches = seg.mae_stylized
+    const nPoints = pitches.length
+    const minVal = Math.min(...pitches)
+    const maxVal = Math.max(...pitches)
+    const rangeMin = Math.max(0, minVal - 20)
+    const rangeMax = maxVal + 20
+
+    const width = 600
+    const height = 180
+    const paddingX = 45
+    const paddingY = 25
+
+    const points = pitches
+      .map((val, idx) => {
+        const x = paddingX + (idx / (nPoints - 1)) * (width - 2 * paddingX)
+        const y = height - paddingY - ((val - rangeMin) / (rangeMax - rangeMin)) * (height - 2 * paddingY)
+        return `${x},${y}`
+      })
+      .join(' ')
+
+    const areaPoints = [
+      `${paddingX},${height - paddingY}`,
+      ...pitches.map((val, idx) => {
+        const x = paddingX + (idx / (nPoints - 1)) * (width - 2 * paddingX)
+        const y = height - paddingY - ((val - rangeMin) / (rangeMax - rangeMin)) * (height - 2 * paddingY)
+        return `${x},${y}`
+      }),
+      `${paddingX + (width - 2 * paddingX)},${height - paddingY}`
+    ].join(' ')
+
+    const yGrid1 = height - paddingY
+    const yGrid2 = height - paddingY - 0.5 * (height - 2 * paddingY)
+    const yGrid3 = paddingY
+
+    const valGrid1 = rangeMin.toFixed(0)
+    const valGrid2 = (rangeMin + 0.5 * (rangeMax - rangeMin)).toFixed(0)
+    const valGrid3 = rangeMax.toFixed(0)
+
+    return (
+      <div className="segment-graph-wrapper" style={{ padding: '1rem', background: 'rgba(22, 21, 20, 0.25)', borderRadius: '4px', border: '1px solid var(--overlay-border)', marginTop: '0.8rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <span>Stylization Contour Graph (P=1)</span>
+          <span>Segment range: {seg.start_time.toFixed(2)}s – {seg.end_time.toFixed(2)}s</span>
+        </div>
+        <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+          <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="segment-contour-svg">
+            <defs>
+              <linearGradient id={`grad-${seg.segment_index}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.25" />
+                <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.0" />
+              </linearGradient>
+            </defs>
+
+            <line x1={paddingX} y1={yGrid1} x2={width - paddingX} y2={yGrid1} stroke="rgba(255,255,255,0.06)" strokeDasharray="3,3" />
+            <line x1={paddingX} y1={yGrid2} x2={width - paddingX} y2={yGrid2} stroke="rgba(255,255,255,0.06)" strokeDasharray="3,3" />
+            <line x1={paddingX} y1={yGrid3} x2={width - paddingX} y2={yGrid3} stroke="rgba(255,255,255,0.06)" strokeDasharray="3,3" />
+
+            <text x={paddingX - 10} y={yGrid1 + 4} textAnchor="end" fill="var(--text-muted)" fontSize="9" fontFamily="monospace">{valGrid1} Hz</text>
+            <text x={paddingX - 10} y={yGrid2 + 4} textAnchor="end" fill="var(--text-muted)" fontSize="9" fontFamily="monospace">{valGrid2} Hz</text>
+            <text x={paddingX - 10} y={yGrid3 + 4} textAnchor="end" fill="var(--text-muted)" fontSize="9" fontFamily="monospace">{valGrid3} Hz</text>
+
+            <text x={paddingX} y={height - 6} textAnchor="middle" fill="var(--text-muted)" fontSize="9" fontFamily="monospace">{seg.start_time.toFixed(2)}s</text>
+            <text x={width / 2} y={height - 6} textAnchor="middle" fill="var(--text-muted)" fontSize="9" fontFamily="monospace">{((seg.start_time + seg.end_time) / 2).toFixed(2)}s</text>
+            <text x={width - paddingX} y={height - 6} textAnchor="middle" fill="var(--text-muted)" fontSize="9" fontFamily="monospace">{seg.end_time.toFixed(2)}s</text>
+
+            <polygon points={areaPoints} fill={`url(#grad-${seg.segment_index})`} />
+
+            <polyline fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={points} />
+          </svg>
+        </div>
+      </div>
     )
   }
 
@@ -484,6 +562,72 @@ export default function AnnotationReport({ data, onBack }) {
               </section>
             )
           })
+        )}
+
+        {viewMode === 'transcript' && data.voiced_segments && data.voiced_segments.length > 0 && (
+          <section className="voiced-segments-section">
+            <div style={{ marginTop: '2.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '2rem' }}>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: '0.4rem', fontFamily: 'var(--font-secondary)' }}>
+                Voiced Segments Stylization
+              </h2>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1.2rem', lineHeight: 1.5 }}>
+                Contiguous voiced regions extracted globally from SWIPE/pYIN pitch tracking, stylized with first-order polynomial (P=1) MAE criterion. Click on a segment to visualize its stylized pitch contour.
+              </p>
+              
+              <table className="voiced-segments-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '0.6rem 0.8rem', textAlign: 'left', fontWeight: 500 }}>Segment</th>
+                    <th style={{ padding: '0.6rem 0.8rem', textAlign: 'left', fontWeight: 500 }}>Time Range</th>
+                    <th style={{ padding: '0.6rem 0.8rem', textAlign: 'left', fontWeight: 500 }}>Frames</th>
+                    <th style={{ padding: '0.6rem 0.8rem', textAlign: 'left', fontWeight: 500 }}>Complexity (K)</th>
+                    <th style={{ padding: '0.6rem 0.8rem', textAlign: 'right', fontWeight: 500 }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.voiced_segments.map((seg) => {
+                    const isExpanded = expandedSegmentIndex === seg.segment_index
+                    return (
+                      <React.Fragment key={seg.segment_index}>
+                        <tr 
+                          className={`clickable-row ${isExpanded ? 'row-expanded' : ''}`}
+                          onClick={() => setExpandedSegmentIndex(isExpanded ? null : seg.segment_index)}
+                          style={{
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s',
+                          }}
+                        >
+                          <td style={{ padding: '0.8rem', fontWeight: 500 }}>Voiced Segment {seg.segment_index}</td>
+                          <td style={{ padding: '0.8rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>{seg.start_time.toFixed(2)}s – {seg.end_time.toFixed(2)}s</td>
+                          <td style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>{seg.frame_count} frames</td>
+                          <td style={{ padding: '0.8rem', fontFamily: 'monospace' }}>K = {seg.k_value}</td>
+                          <td style={{ padding: '0.8rem', textAlign: 'right', color: 'var(--accent)', fontWeight: 600 }}>
+                            {isExpanded ? 'CLOSE GRAPH' : 'VIEW GRAPH'}
+                          </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr onClick={(e) => e.stopPropagation()}>
+                            <td colSpan={5} style={{ padding: '0.4rem 0.8rem 1.2rem 0.8rem', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ type: 'spring', duration: 0.3, bounce: 0 }}
+                                style={{ overflow: 'hidden' }}
+                              >
+                                {renderSegmentContourGraph(seg)}
+                              </motion.div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
         )}
       </main>
     </div>

@@ -762,7 +762,26 @@ def run_pitch_stylization(
         features["word"] = w["word"]
         word_pitch_results.append(features)
 
-    return {"word_pitch": word_pitch_results}
+    voiced_segments_out = []
+    for seg in segment_results:
+        stylized_list = [
+            round(float(val), 1)
+            for val in seg["mae_stylized"]
+            if not np.isnan(val)
+        ]
+        voiced_segments_out.append({
+            "segment_index": int(seg["segment_index"]),
+            "start_time": round(float(frame_times[seg["start_frame"]]), 2),
+            "end_time": round(float(frame_times[seg["end_frame"]]), 2),
+            "frame_count": int(seg["end_frame"] - seg["start_frame"] + 1),
+            "k_value": int(seg["K"]),
+            "mae_stylized": stylized_list,
+        })
+
+    return {
+        "word_pitch": word_pitch_results,
+        "voiced_segments": voiced_segments_out,
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════

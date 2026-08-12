@@ -57,6 +57,16 @@ class PhraseResult(BaseModel):
     intonation_pattern: Optional[str] = Field(default=None, description="Sentence-level intonation: rising, falling, flat, or rise-fall")
 
 
+class VoicedSegmentDetail(BaseModel):
+    """Details of a single contiguous voiced segment stylized with MAE."""
+    segment_index: int = Field(description="Index of this voiced segment")
+    start_time: float = Field(description="Onset time in seconds")
+    end_time: float = Field(description="Offset time in seconds")
+    frame_count: int = Field(description="Number of pitch frames in this segment")
+    k_value: int = Field(description="wavelet complexity K value used for stylization")
+    mae_stylized: list[float] = Field(description="MAE stylized pitch values (Hz) for each frame")
+
+
 class JobResult(BaseModel):
     """Complete results for a finished job."""
     phrases: list[PhraseResult] = Field(default_factory=list)
@@ -65,6 +75,7 @@ class JobResult(BaseModel):
     wpm: float = 0.0
     stress_ratio: float = Field(default=0.0, description="Fraction of stressed words")
     pitch_variation: float = Field(default=0.0, description="Standard deviation of pitch_mean values across all voiced words (Hz)")
+    voiced_segments: list[VoicedSegmentDetail] = Field(default_factory=list, description="Contiguous voiced segment stylization results")
 
 
 class JobResponse(BaseModel):

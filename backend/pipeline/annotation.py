@@ -139,6 +139,7 @@ def build_annotation(job: dict) -> dict:
         "summary": summary,
         "phrases": annotation_phrases,
         "words": all_words,
+        "voiced_segments": result.get("voiced_segments", []),
         "errors": errors,
     }
 
