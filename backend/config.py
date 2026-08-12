@@ -50,4 +50,4 @@ PORT = 8000
 CORS_ORIGINS = ["*"]
 
 # ── Worker ─────────────────────────────────────────────────────
-WORKER_POLL_INTERVAL_SEC = 1.0  # How often worker checks for new jobs
+WORKER_POLL_INTERVAL_SEC = 0.2  # How often worker checks for new jobs

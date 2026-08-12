@@ -55,7 +55,7 @@ export function useJobPolling(jobId, onComplete) {
       
       if (isPolling) {
         // Schedule next poll only AFTER current request finishes
-        timeoutId = setTimeout(pollJob, 1000)
+        timeoutId = setTimeout(pollJob, 250)
       }
     }
 

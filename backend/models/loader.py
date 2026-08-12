@@ -119,6 +119,14 @@ def warmup_models(models: dict):
             models["whistress"].predict(audio_dict, transcription="hello world", return_pairs=True)
         except Exception as e:
             logger.error(f"WhiStress warmup failed: {e}")
+
+    # Warmup librosa.pyin JIT compilers & pitch stylization pipeline
+    try:
+        from pipeline.prosody_pitch import run_pitch_stylization
+        run_pitch_stylization(dummy_audio, 16000, [{"word": "test", "start": 0.1, "end": 0.5}])
+        logger.info("Warmed up librosa.pyin and pitch stylization JIT compilers")
+    except Exception as e:
+        logger.error(f"Pitch stylization warmup failed: {e}")
             
     logger.info(f"Warmup complete in {time.time() - start:.2f}s")
 
