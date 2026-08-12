@@ -50,30 +50,49 @@ SWIPE_STRENGTH_THRESH = 0.2  # filter out weakly-voiced frames
 def extract_pitch(signal: np.ndarray, sr: int, hop_length: int,
                   fmin: float, fmax: float) -> np.ndarray:
     """
-    Extract pitch using librosa.pyin (probabilistic YIN).
-    Highly optimized C/Numba backend, runs in sub-second times (100x+ speedup
-    versus pure-Python libf0.swipe).
-
-    Returns raw F0 array where unvoiced frames = 0.
+    Extract pitch using SWIPE (via pysptk C-extension if available, with optimized librosa.pyin fallback).
     """
-    import librosa
+    import time
+    t0 = time.time()
 
-    # Run pyin
+    # Try C-extension pysptk.sptk.swipe first (sub-second fast path)
+    try:
+        import pysptk
+        f0_raw = pysptk.sptk.swipe(
+            np.asarray(signal, dtype=np.float64),
+            sr,
+            hopsize=hop_length,
+            min=float(fmin),
+            max=float(fmax),
+            otype="f0",
+        )
+        f0_raw = np.where(f0_raw > 0, f0_raw, np.nan)
+        f0 = np.nan_to_num(f0_raw, nan=0.0)
+        f0 = np.asarray(f0, dtype=np.float64)
+        elapsed = time.time() - t0
+        logger.info(
+            f"Pitch Extraction: SWIPE (pysptk) extracted {len(f0)} frames in {elapsed:.4f}s [FAST PATH]"
+        )
+        return f0
+    except Exception as e:
+        logger.info(f"Pitch Extraction: pysptk unavailable ({e}), using librosa.pyin fallback [FALLBACK PATH]")
+
+    import librosa
+    # Optimized pyin with resolution=0.25 for 4x faster execution
     f0, voiced_flag, voiced_prob = librosa.pyin(
         np.asarray(signal, dtype=np.float32),
         fmin=float(fmin),
         fmax=float(fmax),
         sr=sr,
         hop_length=hop_length,
+        resolution=0.25,
     )
 
-    # Replace NaNs with 0.0
     f0 = np.nan_to_num(f0, nan=0.0)
     f0 = np.asarray(f0, dtype=np.float64)
-
-    logger.debug(
-        f"SWIPE pitch extracted: {len(f0)} frames, "
-        f"{int(np.sum(f0 > 0))} voiced ({100 * np.mean(f0 > 0):.1f}%)"
+    elapsed = time.time() - t0
+    logger.info(
+        f"Pitch Extraction: pyin fallback extracted {len(f0)} frames in {elapsed:.4f}s"
     )
     return f0
 
@@ -670,31 +689,29 @@ def run_pitch_stylization(
     Returns:
         dict with 'word_pitch' key containing per-word prosodic features.
     """
+    import time
     import librosa
+    t_start = time.time()
 
     hop_length = int(HOP_LENGTH_SEC * sr)
     fmin = librosa.note_to_hz(FMIN_NOTE)
     fmax = librosa.note_to_hz(FMAX_NOTE)
 
-    # ── Step 1: Pitch extraction ───────────────────────────────────
+    # ── Step 1: Sub-stage (a) Pitch extraction ────────────────────
+    t_extract_start = time.time()
     f0_raw = extract_pitch(signal, sr, hop_length, fmin, fmax)
     voiced_flag_raw = f0_raw > 0
+    t_extract = time.time() - t_extract_start
 
-    # ── Step 2: Clean short voiced runs ────────────────────────────
+    # ── Step 2-5: Sub-stage (b) Voiced Segmenting & Wavelet K Prep ─
+    t_prep_start = time.time()
     f0, voiced_flag = clean_short_voiced_runs(f0_raw, voiced_flag_raw, min_run=MIN_VOICED_RUN)
 
     n_frames = len(f0)
-    logger.info(
-        f"Pitch: {n_frames} frames, {int(np.sum(voiced_flag))} voiced "
-        f"({100 * np.mean(voiced_flag):.1f}%)"
-    )
-
-    # ── Step 3: Frame timeline ─────────────────────────────────────
     frame_times = librosa.frames_to_time(
         np.arange(n_frames), sr=sr, hop_length=hop_length
     )
 
-    # ── Step 4: Voiced segment extraction ──────────────────────────
     voiced_segments = extract_voiced_segments(f0, voiced_flag, min_len=MIN_SEGMENT_LEN)
     if not voiced_segments:
         logger.warning("No voiced segments found — returning empty pitch data")
@@ -705,16 +722,12 @@ def run_pitch_stylization(
             "char_pitches": None, "voiced_segment_index": None,
         } for w in words]}
 
-    logger.info(
-        f"Found {len(voiced_segments)} voiced segments "
-        f"(lengths: {[len(s['x']) for s in voiced_segments]})"
-    )
-
-    # ── Step 5: Automatic K estimation ─────────────────────────────
     for seg in voiced_segments:
         seg["K"] = compute_K_wavelet(seg["x"], wavelet="db1", level=3)
+    t_prep = time.time() - t_prep_start
 
-    # ── Step 6–9: DP stylization with MAE ──────────────────────────
+    # ── Step 6–9: Sub-stage (c+d) DP Partition Search & HiGHS LP Refit
+    t_dp_start = time.time()
     P = POLY_ORDER
     segment_results = []
 
@@ -726,7 +739,6 @@ def run_pitch_stylization(
             mae_stylized, mae_boundaries, mae_cost = dp_stylize(x_seg, K, P, mae_fit)
         except Exception as e:
             logger.warning(f"MAE stylization failed for segment {seg_idx}: {e}")
-            # Fall back to raw contour if MAE fails
             mae_stylized = x_seg.copy()
             mae_boundaries, mae_cost = [], 0.0
 
@@ -739,11 +751,14 @@ def run_pitch_stylization(
             "mae_stylized": mae_stylized,
             "mae_cost": mae_cost,
         })
+    t_dp = time.time() - t_dp_start
 
-        logger.debug(
-            f"Segment {seg_idx}: N={len(x_seg)}, K={K} → "
-            f"MAE cost={mae_cost:.2f}"
-        )
+    logger.info(
+        f"Pitch Stage Breakdown: (a) Extraction: {t_extract:.4f}s | "
+        f"(b) Voiced/Wavelet Prep: {t_prep:.4f}s | "
+        f"(c+d) DP + HiGHS Stylization: {t_dp:.4f}s | "
+        f"TOTAL Pitch Stage: {time.time() - t_start:.4f}s"
+    )
 
     # ── Step 10: Full contour reconstruction ───────────────────────
     mae_full = build_full_contour(segment_results, "mae_stylized", n_frames)
