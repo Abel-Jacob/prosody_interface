@@ -28,7 +28,7 @@ from database import (
     update_job_progress,
 )
 from config import WORKER_POLL_INTERVAL_SEC
-from schemas import PhraseResult, WordResult, JobResult
+from schemas import PhraseResult, WordResult, JobResult, PhraseIntonation
 
 logger = logging.getLogger(__name__)
 
@@ -196,10 +196,16 @@ class Worker:
             from pipeline.prosody_registry import get_full_audio_analyzers
             full_audio_analyzers = get_full_audio_analyzers(self.models)
 
-            # Gather all words across all phrases for full-audio analysis
-            all_words_dicts = []
-            for phrase in grammatical_phrases:
-                all_words_dicts.extend([w.model_dump() for w in phrase.words])
+            # Gather all phrase dicts for full-audio analysis
+            phrase_dicts = [
+                {
+                    "phrase_index": p.phrase_index,
+                    "start_time": p.start_time,
+                    "end_time": p.end_time,
+                    "words": [w.model_dump() for w in p.words],
+                }
+                for p in grammatical_phrases
+            ]
 
             # Stage 3: Full-audio analysis (serial sequence of full-signal modules)
             update_job_progress(job_id, 0.85, total_sentences, current_stage="analyzing_full_audio")
@@ -208,36 +214,35 @@ class Worker:
                 try:
                     logger.info(f"Job {job_id}: running full-audio '{analyzer.name}' analyzer...")
                     res = await asyncio.to_thread(
-                        analyzer.analyze, audio, all_words_dicts
+                        analyzer.analyze, audio, phrase_dicts
                     )
                     if "voiced_segments" in res:
                         voiced_segments_details = res["voiced_segments"]
-                    # Apply pitch results back to word objects
-                    if "word_pitch" in res and res["word_pitch"]:
-                        pitch_data = res["word_pitch"]
-                        # Build a flat list of all WordResult objects in order
-                        all_word_objs = []
-                        for phrase in grammatical_phrases:
-                            all_word_objs.extend(phrase.words)
-                        # Match pitch data to words by index
-                        for i, w in enumerate(all_word_objs):
+                    # Apply pitch results back to phrase objects
+                    if "phrase_pitch" in res and res["phrase_pitch"]:
+                        pitch_data = res["phrase_pitch"]
+                        for i, p in enumerate(grammatical_phrases):
                             if i < len(pitch_data):
                                 pd = pitch_data[i]
-                                w.mean_pitch = pd.get("mean_pitch")
-                                w.max_pitch = pd.get("max_pitch")
-                                w.min_pitch = pd.get("min_pitch")
-                                w.start_pitch = pd.get("start_pitch")
-                                w.end_pitch = pd.get("end_pitch")
-                                w.pitch_slope = pd.get("pitch_slope")
-                                w.pitch_range = pd.get("pitch_range")
-                                w.normalized_pitch = pd.get("normalized_pitch")
-                                w.pitch_trend = pd.get("pitch_trend")
-                                w.char_pitches = pd.get("char_pitches")
-                                w.voiced_segment_index = pd.get("voiced_segment_index")
+                                if pd.get("mean_pitch") is not None:
+                                    p.intonation = PhraseIntonation(
+                                        mean_pitch=pd.get("mean_pitch"),
+                                        max_pitch=pd.get("max_pitch"),
+                                        min_pitch=pd.get("min_pitch"),
+                                        start_pitch=pd.get("start_pitch"),
+                                        end_pitch=pd.get("end_pitch"),
+                                        pitch_slope=pd.get("pitch_slope"),
+                                        pitch_range=pd.get("pitch_range"),
+                                        normalized_pitch=pd.get("normalized_pitch"),
+                                        pitch_trend=pd.get("pitch_trend"),
+                                        voiced_segment_index=pd.get("voiced_segment_index"),
+                                    )
+                                else:
+                                    p.intonation = None
                         logger.info(
                             f"Job {job_id}: pitch analysis complete — "
                             f"{sum(1 for pd in pitch_data if pd.get('mean_pitch') is not None)} "
-                            f"words with pitch data"
+                            f"phrases with pitch data"
                         )
                 except Exception as ae:
                     logger.warning(f"Job {job_id}: full-audio analyzer '{analyzer.name}' failed: {ae}", exc_info=True)

@@ -270,10 +270,8 @@ export default function AnnotationReport({ data, onBack }) {
 
   // Complete structured grid of all properties from the JSON file
   const renderWordDetailGrid = (w) => {
-    const hasIntonation = w.intonation != null
     return (
-      <div className="detail-grid-container" style={!hasIntonation ? { gridTemplateColumns: '1fr' } : {}}>
-        {/* Left Column: Word Properties */}
+      <div className="detail-grid-container" style={{ gridTemplateColumns: '1fr' }}>
         <div>
           <div className="detail-section-title">Word Properties</div>
           <table className="property-details-table">
@@ -298,60 +296,17 @@ export default function AnnotationReport({ data, onBack }) {
                 <td className="prop-key">stressed</td>
                 <td className="prop-val">{w.stressed ? 'true' : 'false'}</td>
               </tr>
+              <tr>
+                <td className="prop-key">stress_score</td>
+                <td className="prop-val">{(w.stress_score || 0).toFixed(3)}</td>
+              </tr>
+              <tr>
+                <td className="prop-key">pause_after</td>
+                <td className="prop-val">{(w.pause_after || 0).toFixed(2)}s</td>
+              </tr>
             </tbody>
           </table>
         </div>
-
-        {/* Right Column: Intonation Properties */}
-        {hasIntonation && (
-          <div>
-            <div className="detail-section-title">Intonation Properties</div>
-            <table className="property-details-table">
-              <tbody>
-                <tr>
-                  <td className="prop-key">mean_pitch</td>
-                  <td className="prop-val">{w.intonation.mean_pitch?.toFixed(1)} Hz</td>
-                </tr>
-                <tr>
-                  <td className="prop-key">pitch_trend</td>
-                  <td className="prop-val">"{w.intonation.pitch_trend}"</td>
-                </tr>
-                <tr>
-                  <td className="prop-key">pitch_range</td>
-                  <td className="prop-val">{w.intonation.pitch_range?.toFixed(1)} Hz</td>
-                </tr>
-                <tr>
-                  <td className="prop-key">normalized_pitch</td>
-                  <td className="prop-val">
-                    {w.intonation.normalized_pitch !== undefined && w.intonation.normalized_pitch !== null
-                      ? w.intonation.normalized_pitch.toFixed(3)
-                      : 'null'}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="prop-key">start_pitch</td>
-                  <td className="prop-val">{w.intonation.start_pitch?.toFixed(1)} Hz</td>
-                </tr>
-                <tr>
-                  <td className="prop-key">end_pitch</td>
-                  <td className="prop-val">{w.intonation.end_pitch?.toFixed(1)} Hz</td>
-                </tr>
-                <tr>
-                  <td className="prop-key">voiced_segment_index</td>
-                  <td className="prop-val">
-                    {w.intonation.voiced_segment_index !== undefined && w.intonation.voiced_segment_index !== null
-                      ? w.intonation.voiced_segment_index
-                      : 'null'}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div className="detail-sparkline-container" style={{ padding: '0 0.5rem' }}>
-              <div className="sparkline-title">Pitch Contour</div>
-              {renderSparkline(w.intonation.char_pitches)}
-            </div>
-          </div>
-        )}
       </div>
     )
   }
@@ -441,10 +396,31 @@ export default function AnnotationReport({ data, onBack }) {
             return (
               <section key={phrase.phrase_index} className="phrase-card">
                 <header className="phrase-header">
-                  <span className="phrase-title">Phrase #{phrase.phrase_index + 1}</span>
-                  <span className="phrase-time">
-                    {phrase.start_time.toFixed(2)}s – {phrase.end_time.toFixed(2)}s
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span className="phrase-title">Phrase #{phrase.phrase_index + 1}</span>
+                    <span className="phrase-time">
+                      {phrase.start_time.toFixed(2)}s – {phrase.end_time.toFixed(2)}s
+                    </span>
+                  </div>
+                  {phrase.intonation && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.75rem' }}>
+                      {phrase.intonation.pitch_trend && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(196, 149, 106, 0.15)', color: 'var(--accent)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                          Pitch: {TREND_ARROWS[phrase.intonation.pitch_trend] || phrase.intonation.pitch_trend}
+                        </span>
+                      )}
+                      {phrase.intonation.mean_pitch != null && (
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          Mean: <strong>{phrase.intonation.mean_pitch.toFixed(1)} Hz</strong>
+                        </span>
+                      )}
+                      {phrase.intonation.pitch_range != null && (
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          Range: <strong>{phrase.intonation.pitch_range.toFixed(1)} Hz</strong>
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </header>
 
                 {viewMode === 'transcript' ? (
@@ -457,7 +433,6 @@ export default function AnnotationReport({ data, onBack }) {
                     ) : (
                       phraseWords.map((w) => {
                         const isExpanded = expandedWordIndex === w.word_index
-                        const hasIntonation = w.intonation != null
                         const stressOpacity = w.stress_score != null ? Math.max(0.4, w.stress_score) : 1.0
 
                         // Check for meaningful pause (> 0.3 seconds)
@@ -476,11 +451,6 @@ export default function AnnotationReport({ data, onBack }) {
                                 <span className="word-text">{w.word}</span>
                                 {w.stressed && (
                                   <span className="stress-dot" style={{ opacity: stressOpacity }} />
-                                )}
-                                {hasIntonation && w.intonation.pitch_trend && (
-                                  <span className="pitch-trend-arrow">
-                                    {TREND_ARROWS[w.intonation.pitch_trend] || w.intonation.pitch_trend}
-                                  </span>
                                 )}
                               </div>
                             </div>
@@ -526,7 +496,7 @@ export default function AnnotationReport({ data, onBack }) {
                           <th style={{ width: '25%', textAlign: 'left' }}>Time Range</th>
                           <th style={{ width: '15%', textAlign: 'left' }}>Confidence</th>
                           <th style={{ width: '15%', textAlign: 'left' }}>Stressed</th>
-                          <th style={{ width: '15%', textAlign: 'left' }}>Pitch Trend</th>
+                          <th style={{ width: '15%', textAlign: 'left' }}>Pause After</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -539,7 +509,6 @@ export default function AnnotationReport({ data, onBack }) {
                         ) : (
                           phraseWords.map((w) => {
                             const isExpanded = expandedWordIndex === w.word_index
-                            const hasIntonation = w.intonation != null
 
                             return (
                               <React.Fragment key={w.word_index}>
@@ -559,7 +528,7 @@ export default function AnnotationReport({ data, onBack }) {
                                     {w.stressed ? 'YES' : 'NO'}
                                   </td>
                                   <td style={{ textAlign: 'left', fontFamily: 'monospace' }}>
-                                    {hasIntonation && w.intonation.pitch_trend ? w.intonation.pitch_trend : 'unvoiced'}
+                                    {w.pause_after ? `${w.pause_after.toFixed(2)}s` : '0.00s'}
                                   </td>
                                 </tr>
                                 {isExpanded && (

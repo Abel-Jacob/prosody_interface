@@ -530,13 +530,13 @@ def build_full_contour(results: list[dict], key: str, n_frames: int) -> np.ndarr
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  Word-Level Prosodic Feature Extraction
+#  Phrase-Level Prosodic Feature Extraction
 # ═══════════════════════════════════════════════════════════════════
 
 def _classify_trend(start_pitch: float, end_pitch: float,
                     mean_pitch: float, threshold_ratio: float = 0.03) -> str:
     """
-    Classify pitch movement across a word.
+    Classify pitch movement across a phrase.
     threshold_ratio is relative to mean pitch.
     """
     if mean_pitch <= 0:
@@ -553,8 +553,8 @@ def _classify_trend(start_pitch: float, end_pitch: float,
         return "↓"  # Falling
 
 
-def compute_word_pitch_features(
-    word: dict,
+def compute_phrase_pitch_features(
+    phrase: dict,
     mae_contour: np.ndarray,
     frame_times: np.ndarray,
     global_min: float,
@@ -562,25 +562,20 @@ def compute_word_pitch_features(
     segment_results: list[dict],
 ) -> dict:
     """
-    For a single ASR word, extract prosodic features from the MAE contour.
-
-    Returns dict with mean_pitch, max_pitch, min_pitch, start_pitch, end_pitch,
-    pitch_slope, pitch_range, normalized_pitch, pitch_trend, char_pitches,
-    voiced_segment_index.
+    Extract prosodic pitch features over a phrase's [start_time, end_time] window.
     """
-    word_start = word["start"]
-    word_end = word["end"]
-    word_text = word["word"]
+    phrase_start = phrase.get("start_time", 0.0)
+    phrase_end = phrase.get("end_time", 0.0)
 
-    # Find frames within this word's time interval
-    mask = (frame_times >= word_start) & (frame_times <= word_end)
-    word_pitches = mae_contour[mask]
+    # Find frames within this phrase's time interval
+    mask = (frame_times >= phrase_start) & (frame_times <= phrase_end)
+    phrase_pitches = mae_contour[mask]
 
     # Filter to voiced frames only (non-NaN)
-    voiced_pitches = word_pitches[~np.isnan(word_pitches)]
+    voiced_pitches = phrase_pitches[~np.isnan(phrase_pitches)]
 
     if len(voiced_pitches) == 0:
-        # Entirely unvoiced word — return None values
+        # Entirely unvoiced phrase — return None values
         return {
             "mean_pitch": None,
             "max_pitch": None,
@@ -591,7 +586,6 @@ def compute_word_pitch_features(
             "pitch_range": None,
             "normalized_pitch": None,
             "pitch_trend": None,
-            "char_pitches": None,
             "voiced_segment_index": None,
         }
 
@@ -612,48 +606,27 @@ def compute_word_pitch_features(
 
     pitch_trend = _classify_trend(start_pitch, end_pitch, mean_pitch)
 
-    # Find which voiced segment this word falls in
-    word_frame_indices = np.where(mask)[0]
+    # Find which voiced segment this phrase falls in (most overlapping segment)
+    phrase_frame_indices = np.where(mask)[0]
     best_segment_index = None
     max_overlap = 0
     for seg in segment_results:
-        overlap = np.sum((word_frame_indices >= seg["start_frame"]) & (word_frame_indices <= seg["end_frame"]))
+        overlap = np.sum((phrase_frame_indices >= seg["start_frame"]) & (phrase_frame_indices <= seg["end_frame"]))
         if overlap > max_overlap:
             max_overlap = overlap
             best_segment_index = seg["segment_index"]
 
     if best_segment_index is None:
         # Fallback to midpoint check if no frame overlap was found
-        word_mid = (word_start + word_end) / 2.0
+        phrase_mid = (phrase_start + phrase_end) / 2.0
         for seg in segment_results:
             seg_start_time = frame_times[seg["start_frame"]]
             seg_end_time = frame_times[seg["end_frame"]]
-            if seg_start_time <= word_mid <= seg_end_time:
+            if seg_start_time <= phrase_mid <= seg_end_time:
                 best_segment_index = seg["segment_index"]
                 break
 
     voiced_segment_index = best_segment_index
-
-    # Per-character pitch interpolation
-    n_chars = len(word_text.strip().rstrip(".,?!:;\"'"))
-    if n_chars <= 0:
-        n_chars = max(1, len(word_text))
-
-    if len(voiced_pitches) >= 2 and n_chars > 1:
-        # Interpolate the contour to n_chars points
-        indices = np.linspace(0, len(voiced_pitches) - 1, n_chars)
-        char_pitch_raw = np.interp(indices, np.arange(len(voiced_pitches)), voiced_pitches)
-        # Normalize to 0–1 within global range
-        if global_range > 0:
-            char_pitches = [
-                round(float((p - global_min) / global_range), 3)
-                for p in char_pitch_raw
-            ]
-        else:
-            char_pitches = [0.5] * n_chars
-    else:
-        # Single sample or single char — uniform
-        char_pitches = [round(normalized_pitch, 3)] * n_chars
 
     return {
         "mean_pitch": round(mean_pitch, 1),
@@ -665,29 +638,28 @@ def compute_word_pitch_features(
         "pitch_range": pitch_range,
         "normalized_pitch": normalized_pitch,
         "pitch_trend": pitch_trend,
-        "char_pitches": char_pitches,
         "voiced_segment_index": voiced_segment_index,
     }
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  Full Pipeline
+#  Main Entry Point — Pitch Stylization Pipeline
 # ═══════════════════════════════════════════════════════════════════
 
 def run_pitch_stylization(
     signal: np.ndarray,
     sr: int,
-    words: list[dict],
+    phrases: list[dict],
 ) -> dict:
     """
-    End-to-end pitch stylization pipeline.
+    Run the end-to-end MAE pitch stylization pipeline over phrases.
 
     Args:
-        signal: float32 mono audio at `sr` Hz.
-        words:  list of word dicts with {word, start, end, ...}.
+        signal:  float32 mono audio at `sr` Hz.
+        phrases: list of phrase dicts with {phrase_index, start_time, end_time, ...}.
 
     Returns:
-        dict with 'word_pitch' key containing per-word prosodic features.
+        dict with 'phrase_pitch' and 'voiced_segments' keys.
     """
     import time
     import librosa
@@ -715,12 +687,12 @@ def run_pitch_stylization(
     voiced_segments = extract_voiced_segments(f0, voiced_flag, min_len=MIN_SEGMENT_LEN)
     if not voiced_segments:
         logger.warning("No voiced segments found — returning empty pitch data")
-        return {"word_pitch": [{"word": w["word"]} | {
+        return {"phrase_pitch": [{"phrase_index": p.get("phrase_index", idx)} | {
             "mean_pitch": None, "max_pitch": None, "min_pitch": None,
             "start_pitch": None, "end_pitch": None, "pitch_slope": None,
             "pitch_range": None, "normalized_pitch": None, "pitch_trend": None,
-            "char_pitches": None, "voiced_segment_index": None,
-        } for w in words]}
+            "voiced_segment_index": None,
+        } for idx, p in enumerate(phrases)]}
 
     for seg in voiced_segments:
         seg["K"] = compute_K_wavelet(seg["x"], wavelet="db1", level=3)
@@ -776,14 +748,14 @@ def run_pitch_stylization(
         f"({len(segment_results)} segments stylized)"
     )
 
-    # ── Word-level feature extraction ──────────────────────────────
-    word_pitch_results = []
-    for w in words:
-        features = compute_word_pitch_features(
-            w, mae_full, frame_times, global_min, global_max, segment_results
+    # ── Phrase-level feature extraction ────────────────────────────
+    phrase_pitch_results = []
+    for p in phrases:
+        features = compute_phrase_pitch_features(
+            p, mae_full, frame_times, global_min, global_max, segment_results
         )
-        features["word"] = w["word"]
-        word_pitch_results.append(features)
+        features["phrase_index"] = p.get("phrase_index")
+        phrase_pitch_results.append(features)
 
     voiced_segments_out = []
     for seg in segment_results:
@@ -808,34 +780,30 @@ def run_pitch_stylization(
         })
 
     # ── Filter and Re-index active voiced segments ────────────────
-    # Identify which segments are actually referenced by at least one word
     referenced_indices = {
-        w["voiced_segment_index"]
-        for w in word_pitch_results
-        if w.get("voiced_segment_index") is not None
+        p["voiced_segment_index"]
+        for p in phrase_pitch_results
+        if p.get("voiced_segment_index") is not None
     }
 
-    # Filter out empty/noise segments
     active_segments = [
         seg for seg in voiced_segments_out
         if seg["segment_index"] in referenced_indices
     ]
 
-    # Create mapping from old segment index to new 0-based index
     index_mapping = {}
     for new_idx, seg in enumerate(active_segments):
         old_idx = seg["segment_index"]
         index_mapping[old_idx] = new_idx
         seg["segment_index"] = new_idx
 
-    # Update words with their new segment indices
-    for w in word_pitch_results:
-        old_seg_idx = w.get("voiced_segment_index")
+    for p in phrase_pitch_results:
+        old_seg_idx = p.get("voiced_segment_index")
         if old_seg_idx is not None:
-            w["voiced_segment_index"] = index_mapping.get(old_seg_idx)
+            p["voiced_segment_index"] = index_mapping.get(old_seg_idx)
 
     return {
-        "word_pitch": word_pitch_results,
+        "phrase_pitch": phrase_pitch_results,
         "voiced_segments": active_segments,
     }
 
@@ -846,11 +814,7 @@ def run_pitch_stylization(
 
 class PitchAnalyzer(ProsodyAnalyzer):
     """
-    MAE-based pitch stylization and word-level prosodic feature extraction.
-
-    Unlike StressAnalyzer and PauseAnalyzer which process per-sentence chunks,
-    PitchAnalyzer processes the full audio to produce a globally coherent
-    stylized contour, then maps it to individual words.
+    MAE-based pitch stylization and phrase-level prosodic feature extraction.
     """
 
     name = "pitch"
@@ -866,29 +830,29 @@ class PitchAnalyzer(ProsodyAnalyzer):
             f"hop={HOP_LENGTH_SEC}s, P={POLY_ORDER})"
         )
 
-    def analyze(self, audio_chunk: np.ndarray, words: list[dict]) -> dict:
+    def analyze(self, audio_chunk: np.ndarray, phrases: list[dict]) -> dict:
         """
         Run the full MAE pitch stylization pipeline.
 
         Args:
             audio_chunk: float32 numpy array, 16kHz mono (full audio).
-            words: All ASR word dicts with {word, start, end, ...}.
+            phrases: Phrase dicts with {phrase_index, start_time, end_time, ...}.
 
         Returns:
-            {'word_pitch': [{word, mean_pitch, pitch_slope, char_pitches, ...}, ...]}
+            {'phrase_pitch': [{phrase_index, mean_pitch, pitch_slope, ...}, ...]}
         """
-        if len(audio_chunk) == 0 or not words:
-            logger.debug("PitchAnalyzer: empty audio or no words")
-            return {"word_pitch": []}
+        if len(audio_chunk) == 0 or not phrases:
+            logger.debug("PitchAnalyzer: empty audio or no phrases")
+            return {"phrase_pitch": [], "voiced_segments": []}
 
         try:
-            result = run_pitch_stylization(audio_chunk, self._sr, words)
+            result = run_pitch_stylization(audio_chunk, self._sr, phrases)
             logger.info(
-                f"PitchAnalyzer: processed {len(words)} words, "
-                f"{sum(1 for w in result['word_pitch'] if w.get('mean_pitch') is not None)} "
+                f"PitchAnalyzer: processed {len(phrases)} phrases, "
+                f"{sum(1 for p in result['phrase_pitch'] if p.get('mean_pitch') is not None)} "
                 f"with pitch data"
             )
             return result
         except Exception as e:
             logger.error(f"PitchAnalyzer error: {e}", exc_info=True)
-            return {"word_pitch": [], "error": str(e)}
+            return {"phrase_pitch": [], "voiced_segments": []}

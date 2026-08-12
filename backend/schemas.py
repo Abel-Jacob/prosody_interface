@@ -46,6 +46,20 @@ class WordResult(BaseModel):
     voiced_segment_index: Optional[int] = Field(default=None, description="Index of the voiced segment this word belongs to")
 
 
+class PhraseIntonation(BaseModel):
+    """Phrase-level intonation prosody statistics."""
+    mean_pitch: Optional[float] = Field(default=None, description="Mean MAE-stylized pitch in Hz across phrase")
+    max_pitch: Optional[float] = Field(default=None, description="Maximum pitch in Hz within phrase")
+    min_pitch: Optional[float] = Field(default=None, description="Minimum pitch in Hz within phrase")
+    start_pitch: Optional[float] = Field(default=None, description="Pitch at phrase onset in Hz")
+    end_pitch: Optional[float] = Field(default=None, description="Pitch at phrase offset in Hz")
+    pitch_slope: Optional[float] = Field(default=None, description="Hz change across phrase duration")
+    pitch_range: Optional[float] = Field(default=None, description="max_pitch - min_pitch in Hz")
+    normalized_pitch: Optional[float] = Field(default=None, description="0-1 normalized within utterance range")
+    pitch_trend: Optional[str] = Field(default=None, description="Pitch direction: ↑ ↓ → ↗ ↘")
+    voiced_segment_index: Optional[int] = Field(default=None, description="Dominant voiced segment index for this phrase")
+
+
 class PhraseResult(BaseModel):
     """A phrase/sentence derived from one VAD chunk."""
     phrase_index: int
@@ -55,6 +69,7 @@ class PhraseResult(BaseModel):
     end_time: float = Field(description="Phrase end time (absolute)")
     chunk_index: int = Field(description="Which VAD chunk this came from")
     intonation_pattern: Optional[str] = Field(default=None, description="Sentence-level intonation: rising, falling, flat, or rise-fall")
+    intonation: Optional[PhraseIntonation] = Field(default=None, description="Phrase-level intonation features")
 
 
 class VoicedSegmentDetail(BaseModel):

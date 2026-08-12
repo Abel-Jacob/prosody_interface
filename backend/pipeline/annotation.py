@@ -102,6 +102,7 @@ def build_annotation(job: dict) -> dict:
             "start_time": phrase.get("start_time", 0.0),
             "end_time": phrase.get("end_time", 0.0),
             "intonation_pattern": phrase.get("intonation_pattern"),
+            "intonation": phrase.get("intonation"),
             "status": phrase_status,
         })
 
@@ -154,29 +155,8 @@ def build_annotation(job: dict) -> dict:
 def _build_word_entry(word_data: dict, phrase_index: int) -> dict:
     """
     Transform a single WordResult dict into an annotation word entry.
-
-    Pitch/intonation fields are grouped into a nested `intonation` object.
-    If all pitch fields are null (unvoiced word), `intonation` is set to null.
+    Word entries carry word-level stress, pause, and confidence data.
     """
-    # Check if any pitch data exists for this word
-    has_pitch = word_data.get("mean_pitch") is not None
-
-    intonation = None
-    if has_pitch:
-        intonation = {
-            "mean_pitch": word_data.get("mean_pitch"),
-            "pitch_trend": word_data.get("pitch_trend"),
-            "pitch_slope": word_data.get("pitch_slope"),
-            "pitch_range": word_data.get("pitch_range"),
-            "normalized_pitch": word_data.get("normalized_pitch"),
-            "start_pitch": word_data.get("start_pitch"),
-            "end_pitch": word_data.get("end_pitch"),
-            "max_pitch": word_data.get("max_pitch"),
-            "min_pitch": word_data.get("min_pitch"),
-            "char_pitches": word_data.get("char_pitches"),
-            "voiced_segment_index": word_data.get("voiced_segment_index"),
-        }
-
     return {
         "word_index": 0,  # Will be reassigned after sorting
         "word": word_data.get("word", ""),
@@ -188,5 +168,4 @@ def _build_word_entry(word_data: dict, phrase_index: int) -> dict:
         "stress_score": word_data.get("stress_score", 0.0),
         "pause_after": word_data.get("pause_after", 0.0),
         "is_hesitation": word_data.get("is_hesitation", False),
-        "intonation": intonation,
     }
