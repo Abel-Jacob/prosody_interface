@@ -553,6 +553,33 @@ def _classify_trend(start_pitch: float, end_pitch: float,
         return "↓"  # Falling
 
 
+def compute_word_visual_pitch(
+    word: dict,
+    mae_contour: np.ndarray,
+    frame_times: np.ndarray,
+    global_min: float,
+    global_max: float,
+) -> Optional[float]:
+    """
+    Compute a single scalar normalized_pitch (0.0 to 1.0) for frontend visual scaling only.
+    For frontend visualization only, not an analytical field.
+    """
+    w_start = word.get("start_time", word.get("start", 0.0))
+    w_end = word.get("end_time", word.get("end", 0.0))
+    mask = (frame_times >= w_start) & (frame_times <= w_end)
+    word_pitches = mae_contour[mask]
+    voiced_pitches = word_pitches[~np.isnan(word_pitches)]
+
+    if len(voiced_pitches) == 0:
+        return None
+
+    mean_p = float(np.mean(voiced_pitches))
+    global_range = global_max - global_min
+    if global_range > 0:
+        return round(float((mean_p - global_min) / global_range), 3)
+    return 0.5
+
+
 def compute_phrase_pitch_features(
     phrase: dict,
     mae_contour: np.ndarray,
@@ -762,6 +789,23 @@ def run_pitch_stylization(
         features["phrase_index"] = p.get("phrase_index")
         phrase_pitch_results.append(features)
 
+    # ── Word-level visual pitch extraction (visual scaling only) ────
+    word_pitch_visuals = []
+    for p in phrases:
+        for w in p.get("words", []):
+            np_val = compute_word_visual_pitch(
+                w, mae_full, frame_times, global_min, global_max
+            )
+            w_start = w.get("start", w.get("start_time", 0.0))
+            w_end = w.get("end", w.get("end_time", 0.0))
+            word_pitch_visuals.append({
+                "word": w.get("word", ""),
+                "start": w_start,
+                "end": w_end,
+                # For frontend visualization only, not an analytical field
+                "normalized_pitch": np_val,
+            })
+
     voiced_segments_out = []
     for seg in segment_results:
         stylized_list = [
@@ -817,6 +861,7 @@ def run_pitch_stylization(
 
     return {
         "phrase_pitch": phrase_pitch_results,
+        "word_pitch_visuals": word_pitch_visuals,
         "voiced_segments": active_segments,
     }
 

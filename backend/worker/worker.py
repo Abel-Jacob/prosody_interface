@@ -239,11 +239,22 @@ class Worker:
                                     )
                                 else:
                                     p.intonation = None
-                        logger.info(
-                            f"Job {job_id}: pitch analysis complete — "
-                            f"{sum(1 for pd in pitch_data if pd.get('mean_pitch') is not None)} "
-                            f"phrases with pitch data"
-                        )
+                    if "word_pitch_visuals" in res and res["word_pitch_visuals"]:
+                        wp_map = {
+                            (w.get("start"), w.get("end")): w.get("normalized_pitch")
+                            for w in res["word_pitch_visuals"]
+                        }
+                        for p in grammatical_phrases:
+                            for w in p.words:
+                                key = (w.start, w.end)
+                                if key in wp_map:
+                                    # For frontend visualization only, not an analytical field
+                                    w.normalized_pitch = wp_map[key]
+                    logger.info(
+                        f"Job {job_id}: pitch analysis complete — "
+                        f"{sum(1 for pd in pitch_data if pd.get('mean_pitch') is not None)} "
+                        f"phrases with pitch data"
+                    )
                 except Exception as ae:
                     logger.warning(f"Job {job_id}: full-audio analyzer '{analyzer.name}' failed: {ae}", exc_info=True)
 
