@@ -595,7 +595,7 @@ export default function AnnotationReport({ data, onBack }) {
         {viewMode === 'transcript' && data.voiced_segments && data.voiced_segments.length > 0 && (
           <section className="voiced-segments-section">
             <div style={{ marginTop: '2.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '2rem' }}>
-              <h2 style={{ fontSize: '1.05rem', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: '0.4rem', fontFamily: 'var(--font-secondary)' }}>
+              <h2 style={{ fontSize: '1.05rem', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: '0.4rem', fontFamily: 'var(--font-primary)' }}>
                 Voiced Segments Stylization
               </h2>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1.2rem', lineHeight: 1.5 }}>

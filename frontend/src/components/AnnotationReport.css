@@ -30,11 +30,11 @@
 }
 
 .header-title-section h1 {
-  font-family: var(--font-secondary);
+  font-family: var(--font-primary);
   font-weight: 700;
   font-size: 1.25rem;
   letter-spacing: 0.15em;
-  text-transform: lowercase;
+  text-transform: capitalize;
   color: var(--text-primary);
 }
 
@@ -325,7 +325,7 @@
 }
 
 .empty-state h3 {
-  font-family: var(--font-secondary);
+  font-family: var(--font-primary);
   color: var(--text-primary);
   margin-bottom: 0.5rem;
   font-size: 1rem;
@@ -351,7 +351,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
-  font-family: var(--font-secondary);
+  font-family: var(--font-primary);
   border-radius: 3px;
   transition: color var(--transition-base), background-color var(--transition-base);
 }
