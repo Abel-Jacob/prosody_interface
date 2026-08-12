@@ -215,7 +215,7 @@ export default function AnnotationReport({ data, onBack }) {
               Stylized (P=1)
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ display: 'inline-block', width: '12px', height: '0px', borderTop: '2px dashed rgba(255,255,255,0.3)' }}></span>
+              <span style={{ display: 'inline-block', width: '12px', height: '2.5px', background: '#ffffff' }}></span>
               Raw (SWIPE)
             </span>
           </div>
@@ -246,9 +246,8 @@ export default function AnnotationReport({ data, onBack }) {
             {rawPoints && (
               <polyline
                 fill="none"
-                stroke="rgba(255, 255, 255, 0.2)"
-                strokeWidth="1.5"
-                strokeDasharray="4,4"
+                stroke="#ffffff"
+                strokeWidth="2.5"
                 points={rawPoints}
               />
             )}
