@@ -3,8 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import ProsodyWord from './ProsodyWord'
 import ProsodyTooltip from './ProsodyTooltip'
 import PauseTooltip from './PauseTooltip'
-import AudioPlayer from './AudioPlayer'
-import { getHttpUrl } from '../apiConfig'
 
 /* Spring configs migrated from legacy stiffness/damping API to
    duration/bounce API per the apple-design skill's mapping table.
@@ -186,7 +184,7 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
         display: 'flex',
         flexDirection: 'column',
         paddingTop: '2rem',
-        paddingBottom: '3rem',
+        paddingBottom: '8rem',
         alignItems: 'center',
         paddingLeft: '2rem',
         paddingRight: '2rem',
@@ -306,14 +304,6 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
             </span>
           </div>
         </div>
-
-        {/* Audio Player for this session */}
-        {jobId && (
-          <AudioPlayer 
-            src={getHttpUrl(`/api/jobs/${jobId}/audio`)} 
-            style={{ width: '100%', maxWidth: '24rem' }} 
-          />
-        )}
 
         {/* Legend */}
         <div style={{

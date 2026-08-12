@@ -586,14 +586,26 @@ def compute_word_pitch_features(
     pitch_trend = _classify_trend(start_pitch, end_pitch, mean_pitch)
 
     # Find which voiced segment this word falls in
-    word_mid = (word_start + word_end) / 2.0
-    voiced_segment_index = None
+    word_frame_indices = np.where(mask)[0]
+    best_segment_index = None
+    max_overlap = 0
     for seg in segment_results:
-        seg_start_time = frame_times[seg["start_frame"]]
-        seg_end_time = frame_times[seg["end_frame"]]
-        if seg_start_time <= word_mid <= seg_end_time:
-            voiced_segment_index = seg["segment_index"]
-            break
+        overlap = np.sum((word_frame_indices >= seg["start_frame"]) & (word_frame_indices <= seg["end_frame"]))
+        if overlap > max_overlap:
+            max_overlap = overlap
+            best_segment_index = seg["segment_index"]
+
+    if best_segment_index is None:
+        # Fallback to midpoint check if no frame overlap was found
+        word_mid = (word_start + word_end) / 2.0
+        for seg in segment_results:
+            seg_start_time = frame_times[seg["start_frame"]]
+            seg_end_time = frame_times[seg["end_frame"]]
+            if seg_start_time <= word_mid <= seg_end_time:
+                best_segment_index = seg["segment_index"]
+                break
+
+    voiced_segment_index = best_segment_index
 
     # Per-character pitch interpolation
     n_chars = len(word_text.strip().rstrip(".,?!:;\"'"))

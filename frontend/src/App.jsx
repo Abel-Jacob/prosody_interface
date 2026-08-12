@@ -8,6 +8,7 @@ import SummaryState from './components/SummaryState'
 import AnnotationReport from './components/AnnotationReport'
 import './index.css'
 import { BACKEND_DOMAIN, setBackendDomain, getHttpUrl } from './apiConfig'
+import AudioPlayer from './components/AudioPlayer'
 
 /* Cross-fade transition shared by all state wrappers.
    Critically damped (bounce: 0), ~200ms — system-driven, not gesture. */
@@ -167,6 +168,25 @@ function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+
+      {/* Persistent Audio Player for completed session */}
+      {(appState === 'summary' || appState === 'annotation') && jobId && (
+        <div style={{
+          position: 'fixed',
+          bottom: '80px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 1000,
+          width: '100%',
+          maxWidth: '24rem',
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '0 1rem'
+        }}>
+          <AudioPlayer src={getHttpUrl(`/api/jobs/${jobId}/audio`)} />
+        </div>
+      )}
 
       {/* Backend Configuration UI */}
       <div style={{

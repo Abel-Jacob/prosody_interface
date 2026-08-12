@@ -1,8 +1,6 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './AnnotationReport.css'
-import AudioPlayer from './AudioPlayer'
-import { getHttpUrl } from '../apiConfig'
 
 // Arrow icon mapping
 const TREND_ARROWS = {
@@ -213,10 +211,6 @@ export default function AnnotationReport({ data, onBack }) {
                   <td className="prop-val">"{w.intonation.pitch_trend}"</td>
                 </tr>
                 <tr>
-                  <td className="prop-key">pitch_slope</td>
-                  <td className="prop-val">{w.intonation.pitch_slope?.toFixed(2)} Hz/s</td>
-                </tr>
-                <tr>
                   <td className="prop-key">pitch_range</td>
                   <td className="prop-val">{w.intonation.pitch_range?.toFixed(1)} Hz</td>
                 </tr>
@@ -237,25 +231,11 @@ export default function AnnotationReport({ data, onBack }) {
                   <td className="prop-val">{w.intonation.end_pitch?.toFixed(1)} Hz</td>
                 </tr>
                 <tr>
-                  <td className="prop-key">max_pitch</td>
-                  <td className="prop-val">{w.intonation.max_pitch?.toFixed(1)} Hz</td>
-                </tr>
-                <tr>
-                  <td className="prop-key">min_pitch</td>
-                  <td className="prop-val">{w.intonation.min_pitch?.toFixed(1)} Hz</td>
-                </tr>
-                <tr>
                   <td className="prop-key">voiced_segment_index</td>
                   <td className="prop-val">
                     {w.intonation.voiced_segment_index !== undefined && w.intonation.voiced_segment_index !== null
                       ? w.intonation.voiced_segment_index
                       : 'null'}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="prop-key">char_pitches</td>
-                  <td className="prop-val" style={{ fontSize: '0.6rem', whiteSpace: 'normal', wordBreak: 'break-all' }}>
-                    [{w.intonation.char_pitches ? w.intonation.char_pitches.map((p) => p.toFixed(2)).join(', ') : ''}]
                   </td>
                 </tr>
               </tbody>
@@ -334,11 +314,6 @@ export default function AnnotationReport({ data, onBack }) {
 
       {/* Main expandable phrase area */}
       <main className="report-content">
-        {recording?.job_id && (
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
-            <AudioPlayer src={getHttpUrl(`/api/jobs/${recording.job_id}/audio`)} />
-          </div>
-        )}
 
         {errors && errors.length > 0 && (
           <div style={{ color: 'var(--error)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>

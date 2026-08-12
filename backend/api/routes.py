@@ -35,8 +35,14 @@ async def create_new_job(audio: UploadFile = File(...)):
     """
     job_id = str(uuid.uuid4())
     
-    # Save audio to disk
-    filename = f"{job_id}.webm"
+    # Preserving the original uploaded file extension
+    suffix = ".webm"
+    if audio.filename:
+        uploaded_suffix = Path(audio.filename).suffix.lower()
+        if uploaded_suffix in (".webm", ".wav", ".mp3", ".ogg"):
+            suffix = uploaded_suffix
+
+    filename = f"{job_id}{suffix}"
     filepath = AUDIO_UPLOADS_DIR / filename
     
     try:
@@ -44,6 +50,26 @@ async def create_new_job(audio: UploadFile = File(...)):
             content = await audio.read()
             f.write(content)
         logger.info(f"Saved audio file: {filepath} ({len(content)} bytes)")
+
+        # If it is a webm, remux it to make it seekable in browsers
+        if suffix == ".webm":
+            import asyncio
+            temp_filepath = filepath.with_suffix(".temp.webm")
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    'ffmpeg', '-y', '-i', str(filepath), '-c', 'copy', str(temp_filepath),
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                await proc.communicate()
+                if temp_filepath.exists():
+                    import os
+                    os.replace(temp_filepath, filepath)
+                    logger.info(f"Successfully remuxed uploaded webm using ffmpeg: {filepath}")
+                else:
+                    logger.warning(f"ffmpeg remux completed but temp file does not exist: {temp_filepath}")
+            except Exception as fe:
+                logger.error(f"Failed to remux uploaded webm: {fe}")
     except Exception as e:
         logger.error(f"Failed to save audio: {e}")
         raise HTTPException(status_code=500, detail="Failed to save audio file")

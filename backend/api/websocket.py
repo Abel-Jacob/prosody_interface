@@ -279,14 +279,33 @@ async def _save_audio(job_id: str, chunks: list[bytes]) -> Path | None:
     """Save accumulated audio chunks to a single file on disk."""
     if not chunks:
         return None
-    
+
     filepath = AUDIO_UPLOADS_DIR / f"{job_id}.webm"
-    
+
     try:
         combined = b"".join(chunks)
         # Write in a thread to avoid blocking the event loop
         await asyncio.to_thread(_write_file, filepath, combined)
         logger.info(f"Saved audio: {filepath} ({len(combined)} bytes)")
+
+        # Remux with ffmpeg to inject duration/seek metadata (cues)
+        temp_filepath = filepath.with_suffix(".temp.webm")
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                'ffmpeg', '-y', '-i', str(filepath), '-c', 'copy', str(temp_filepath),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            await proc.communicate()
+            if temp_filepath.exists():
+                import os
+                os.replace(temp_filepath, filepath)
+                logger.info(f"Successfully remuxed webm using ffmpeg to inject seek metadata: {filepath}")
+            else:
+                logger.warning(f"ffmpeg remux completed but temp file does not exist: {temp_filepath}")
+        except Exception as fe:
+            logger.error(f"ffmpeg remux failed for {filepath}: {fe}")
+
         return filepath
     except Exception as e:
         logger.error(f"Failed to save audio: {e}")
