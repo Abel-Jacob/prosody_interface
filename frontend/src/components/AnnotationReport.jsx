@@ -46,46 +46,40 @@ export default function AnnotationReport({ data, onBack }) {
     if (!words || words.length === 0) return
 
     const headers = [
-      'word_index',
       'word',
       'start_time',
       'end_time',
-      'phrase_index',
-      'asr_confidence',
       'stressed',
-      'stress_score',
-      'pause_after',
-      'is_hesitation',
-      'mean_pitch',
+      'stress_score_pct',
       'pitch_trend',
+      'mean_pitch',
       'pitch_slope',
       'pitch_range',
+      'pause_after',
+      'word_index',
+      'phrase_index',
+      'asr_confidence_pct',
+      'is_hesitation',
     ]
 
     const csvRows = [
       headers.join(','),
       ...words.map((w) => {
         const fields = [
-          w.word_index,
-          `"${w.word.replace(/"/g, '""')}"`, // escape quotes
-          w.start_time.toFixed(2),
-          w.end_time.toFixed(2),
-          w.phrase_index,
-          (w.asr_confidence || 1.0).toFixed(3),
-          w.stressed ? 'TRUE' : 'FALSE',
-          (w.stress_score || 0.0).toFixed(3),
-          (w.pause_after || 0.0).toFixed(2),
-          w.is_hesitation ? 'TRUE' : 'FALSE',
-          w.intonation?.mean_pitch !== undefined && w.intonation?.mean_pitch !== null
-            ? w.intonation.mean_pitch.toFixed(1)
-            : '',
-          w.intonation?.pitch_trend || '',
-          w.intonation?.pitch_slope !== undefined && w.intonation?.pitch_slope !== null
-            ? w.intonation.pitch_slope.toFixed(2)
-            : '',
-          w.intonation?.pitch_range !== undefined && w.intonation?.pitch_range !== null
-            ? w.intonation.pitch_range.toFixed(1)
-            : '',
+          `"${w.word.replace(/"/g, '""')}"`, // 1. transcription
+          w.start_time.toFixed(3),           // 2. timestamps (onset)
+          w.end_time.toFixed(3),             // 2. timestamps (offset)
+          w.stressed ? 'TRUE' : 'FALSE',     // 3. stress labels (stressed)
+          `${Math.round((w.stress_score || 0.0) * 100)}%`, // 3. stress score in %
+          w.pitch_trend || '',               // 4. intonation labels (trend)
+          w.mean_pitch !== undefined && w.mean_pitch !== null ? w.mean_pitch.toFixed(1) : '', // 4. mean_pitch
+          w.pitch_slope !== undefined && w.pitch_slope !== null ? w.pitch_slope.toFixed(2) : '', // 4. pitch_slope
+          w.pitch_range !== undefined && w.pitch_range !== null ? w.pitch_range.toFixed(1) : '', // 4. pitch_range
+          (w.pause_after || 0.0).toFixed(2), // 5. pauses (pause_after)
+          w.word_index,                      // word_index
+          w.phrase_index,                    // phrase_index
+          `${Math.round((w.asr_confidence || 1.0) * 100)}%`, // ASR confidence in %
+          w.is_hesitation ? 'TRUE' : 'FALSE',// is_hesitation
         ]
         return fields.join(',')
       }),
@@ -285,10 +279,12 @@ export default function AnnotationReport({ data, onBack }) {
           <div className="detail-section-title">Word Properties</div>
           <table className="property-details-table">
             <tbody>
+              {/* 1. Transcription */}
               <tr>
                 <td className="prop-key">word</td>
                 <td className="prop-val">"{w.word}"</td>
               </tr>
+              {/* 2. Word level timestamps */}
               <tr>
                 <td className="prop-key">start_time</td>
                 <td className="prop-val">{w.start_time.toFixed(3)}s</td>
@@ -299,20 +295,34 @@ export default function AnnotationReport({ data, onBack }) {
               </tr>
               <tr>
                 <td className="prop-key">asr_confidence</td>
-                <td className="prop-val">{w.asr_confidence !== undefined ? w.asr_confidence.toFixed(3) : 'null'}</td>
+                <td className="prop-val">{w.asr_confidence !== undefined ? `${Math.round(w.asr_confidence * 100)}%` : 'null'}</td>
               </tr>
+              {/* 3. Stress labels */}
               <tr>
                 <td className="prop-key">stressed</td>
                 <td className="prop-val">{w.stressed ? 'true' : 'false'}</td>
               </tr>
-              <tr>
-                <td className="prop-key">stress_score</td>
-                <td className="prop-val">{(w.stress_score || 0).toFixed(3)}</td>
-              </tr>
-              <tr>
-                <td className="prop-key">pause_after</td>
-                <td className="prop-val">{(w.pause_after || 0).toFixed(2)}s</td>
-              </tr>
+              {/* 4. Intonation labels */}
+              {w.mean_pitch !== undefined && w.mean_pitch !== null && (
+                <>
+                  <tr>
+                    <td className="prop-key">pitch_trend</td>
+                    <td className="prop-val">{w.pitch_trend || '→'}</td>
+                  </tr>
+                  <tr>
+                    <td className="prop-key">mean_pitch</td>
+                    <td className="prop-val">{w.mean_pitch.toFixed(1)} Hz</td>
+                  </tr>
+                  <tr>
+                    <td className="prop-key">pitch_slope</td>
+                    <td className="prop-val">{w.pitch_slope > 0 ? '+' : ''}{w.pitch_slope.toFixed(2)} Hz</td>
+                  </tr>
+                  <tr>
+                    <td className="prop-key">pitch_range</td>
+                    <td className="prop-val">{w.pitch_range.toFixed(1)} Hz</td>
+                  </tr>
+                </>
+              )}
             </tbody>
           </table>
         </div>
