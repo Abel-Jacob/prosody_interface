@@ -45,53 +45,94 @@ export default function AnnotationReport({ data, onBack }) {
   const handleDownloadCSV = () => {
     if (!words || words.length === 0) return
 
-    const headers = [
+    const fullTranscription = phrases.map((p) => p.text).join(' ')
+
+    // Section 1: Full Transcription
+    const section1 = [
+      '# ======================================================== #',
+      '# SECTION 1: FULL TRANSCRIPTION                            #',
+      '# ======================================================== #',
+      `"${fullTranscription.replace(/"/g, '""')}"`,
+      ''
+    ]
+
+    // Section 2: Phrase Level Intonation
+    const phraseHeaders = [
+      'phrase_index',
+      'start_time',
+      'end_time',
+      'phrase_pitch_trend',
+      'phrase_mean_pitch',
+      'phrase_pitch_slope',
+      'phrase_pitch_range',
+      'text'
+    ]
+    const phraseRows = phrases.map((p) => {
+      const pInton = p.intonation
+      return [
+        p.phrase_index,
+        p.start_time.toFixed(3),
+        p.end_time.toFixed(3),
+        pInton?.pitch_trend || '',
+        pInton?.mean_pitch !== undefined && pInton?.mean_pitch !== null ? pInton.mean_pitch.toFixed(1) : '',
+        pInton?.pitch_slope !== undefined && pInton?.pitch_slope !== null ? pInton.pitch_slope.toFixed(2) : '',
+        pInton?.pitch_range !== undefined && pInton?.pitch_range !== null ? pInton.pitch_range.toFixed(1) : '',
+        `"${p.text.replace(/"/g, '""')}"`
+      ].join(',')
+    })
+
+    const section2 = [
+      '# ======================================================== #',
+      '# SECTION 2: PHRASE LEVEL INTONATION                       #',
+      '# ======================================================== #',
+      phraseHeaders.join(','),
+      ...phraseRows,
+      ''
+    ]
+
+    // Section 3: Word Level Timestamps, Stress, and Pauses
+    const wordHeaders = [
       'word',
       'start_time',
       'end_time',
       'stressed',
       'stress_score_pct',
-      'phrase_pitch_trend',
-      'phrase_mean_pitch',
-      'phrase_pitch_slope',
-      'phrase_pitch_range',
       'pause_after',
       'word_index',
       'phrase_index',
       'asr_confidence_pct',
-      'is_hesitation',
+      'is_hesitation'
+    ]
+    const wordRows = words.map((w) => {
+      return [
+        `"${w.word.replace(/"/g, '""')}"`, // 1. transcription
+        w.start_time.toFixed(3),           // 2. timestamps (onset)
+        w.end_time.toFixed(3),             // 2. timestamps (offset)
+        w.stressed ? 'TRUE' : 'FALSE',     // 3. stress labels (stressed)
+        `${Math.round((w.stress_score || 0.0) * 100)}%`, // 3. stress score in %
+        (w.pause_after || 0.0).toFixed(2), // 5. pauses (pause_after)
+        w.word_index,                      // word_index
+        w.phrase_index,                    // phrase_index
+        `${Math.round((w.asr_confidence || 1.0) * 100)}%`, // ASR confidence in %
+        w.is_hesitation ? 'TRUE' : 'FALSE' // is_hesitation
+      ].join(',')
+    })
+
+    const section3 = [
+      '# ======================================================== #',
+      '# SECTION 3: WORD LEVEL TIMESTAMPS & STRESS                #',
+      '# ======================================================== #',
+      wordHeaders.join(','),
+      ...wordRows
     ]
 
-    const fullTranscription = phrases.map((p) => p.text).join(' ')
+    const csvContent = [
+      ...section1,
+      ...section2,
+      ...section3
+    ].join('\n')
 
-    const csvRows = [
-      `# Full Transcription: "${fullTranscription.replace(/"/g, '""')}"`,
-      '', // blank separator line
-      headers.join(','),
-      ...words.map((w) => {
-        const parentPhrase = phrases.find((p) => p.phrase_index === w.phrase_index)
-        const pInton = parentPhrase?.intonation
-        const fields = [
-          `"${w.word.replace(/"/g, '""')}"`, // 1. transcription
-          w.start_time.toFixed(3),           // 2. timestamps (onset)
-          w.end_time.toFixed(3),             // 2. timestamps (offset)
-          w.stressed ? 'TRUE' : 'FALSE',     // 3. stress labels (stressed)
-          `${Math.round((w.stress_score || 0.0) * 100)}%`, // 3. stress score in %
-          pInton?.pitch_trend || '',         // 4. intonation labels (phrase trend)
-          pInton?.mean_pitch !== undefined && pInton?.mean_pitch !== null ? pInton.mean_pitch.toFixed(1) : '', // 4. phrase mean_pitch
-          pInton?.pitch_slope !== undefined && pInton?.pitch_slope !== null ? pInton.pitch_slope.toFixed(2) : '', // 4. phrase pitch_slope
-          pInton?.pitch_range !== undefined && pInton?.pitch_range !== null ? pInton.pitch_range.toFixed(1) : '', // 4. phrase pitch_range
-          (w.pause_after || 0.0).toFixed(2), // 5. pauses (pause_after)
-          w.word_index,                      // word_index
-          w.phrase_index,                    // phrase_index
-          `${Math.round((w.asr_confidence || 1.0) * 100)}%`, // ASR confidence in %
-          w.is_hesitation ? 'TRUE' : 'FALSE',// is_hesitation
-        ]
-        return fields.join(',')
-      }),
-    ]
-
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.setAttribute('href', url)
@@ -103,7 +144,40 @@ export default function AnnotationReport({ data, onBack }) {
 
   // JSON Export Handler
   const handleDownloadJSON = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    // Construct an ordered object to match the user's reading flow with section titles
+    const orderedData = {
+      annotation_version: data.annotation_version,
+      generated_at: data.generated_at,
+      recording: data.recording,
+      models: data.models,
+      summary: data.summary,
+      // 1. Full Transcription
+      full_transcription: phrases.map((p) => p.text).join(' '),
+      // 2. Phrase Level Intonation
+      phrase_level_intonation: phrases.map((p) => ({
+        phrase_index: p.phrase_index,
+        text: p.text,
+        start_time: p.start_time,
+        end_time: p.end_time,
+        intonation: p.intonation
+      })),
+      // 3. Word Level Timestamps, Stress, and Pauses
+      word_level_timestamps_and_stress: words.map((w) => ({
+        word: w.word,
+        start_time: w.start_time,
+        end_time: w.end_time,
+        stressed: w.stressed,
+        stress_score_pct: `${Math.round((w.stress_score || 0.0) * 100)}%`,
+        pause_after: w.pause_after,
+        word_index: w.word_index,
+        phrase_index: w.phrase_index,
+        asr_confidence_pct: `${Math.round((w.asr_confidence || 1.0) * 100)}%`,
+        is_hesitation: w.is_hesitation
+      })),
+      errors: data.errors
+    }
+
+    const blob = new Blob([JSON.stringify(orderedData, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.setAttribute('href', url)
