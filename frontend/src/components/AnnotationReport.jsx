@@ -51,10 +51,10 @@ export default function AnnotationReport({ data, onBack }) {
       'end_time',
       'stressed',
       'stress_score_pct',
-      'pitch_trend',
-      'mean_pitch',
-      'pitch_slope',
-      'pitch_range',
+      'phrase_pitch_trend',
+      'phrase_mean_pitch',
+      'phrase_pitch_slope',
+      'phrase_pitch_range',
       'pause_after',
       'word_index',
       'phrase_index',
@@ -62,19 +62,25 @@ export default function AnnotationReport({ data, onBack }) {
       'is_hesitation',
     ]
 
+    const fullTranscription = phrases.map((p) => p.text).join(' ')
+
     const csvRows = [
+      `# Full Transcription: "${fullTranscription.replace(/"/g, '""')}"`,
+      '', // blank separator line
       headers.join(','),
       ...words.map((w) => {
+        const parentPhrase = phrases.find((p) => p.phrase_index === w.phrase_index)
+        const pInton = parentPhrase?.intonation
         const fields = [
           `"${w.word.replace(/"/g, '""')}"`, // 1. transcription
           w.start_time.toFixed(3),           // 2. timestamps (onset)
           w.end_time.toFixed(3),             // 2. timestamps (offset)
           w.stressed ? 'TRUE' : 'FALSE',     // 3. stress labels (stressed)
           `${Math.round((w.stress_score || 0.0) * 100)}%`, // 3. stress score in %
-          w.pitch_trend || '',               // 4. intonation labels (trend)
-          w.mean_pitch !== undefined && w.mean_pitch !== null ? w.mean_pitch.toFixed(1) : '', // 4. mean_pitch
-          w.pitch_slope !== undefined && w.pitch_slope !== null ? w.pitch_slope.toFixed(2) : '', // 4. pitch_slope
-          w.pitch_range !== undefined && w.pitch_range !== null ? w.pitch_range.toFixed(1) : '', // 4. pitch_range
+          pInton?.pitch_trend || '',         // 4. intonation labels (phrase trend)
+          pInton?.mean_pitch !== undefined && pInton?.mean_pitch !== null ? pInton.mean_pitch.toFixed(1) : '', // 4. phrase mean_pitch
+          pInton?.pitch_slope !== undefined && pInton?.pitch_slope !== null ? pInton.pitch_slope.toFixed(2) : '', // 4. phrase pitch_slope
+          pInton?.pitch_range !== undefined && pInton?.pitch_range !== null ? pInton.pitch_range.toFixed(1) : '', // 4. phrase pitch_range
           (w.pause_after || 0.0).toFixed(2), // 5. pauses (pause_after)
           w.word_index,                      // word_index
           w.phrase_index,                    // phrase_index
@@ -302,27 +308,6 @@ export default function AnnotationReport({ data, onBack }) {
                 <td className="prop-key">stressed</td>
                 <td className="prop-val">{w.stressed ? 'true' : 'false'}</td>
               </tr>
-              {/* 4. Intonation labels */}
-              {w.mean_pitch !== undefined && w.mean_pitch !== null && (
-                <>
-                  <tr>
-                    <td className="prop-key">pitch_trend</td>
-                    <td className="prop-val">{w.pitch_trend || '→'}</td>
-                  </tr>
-                  <tr>
-                    <td className="prop-key">mean_pitch</td>
-                    <td className="prop-val">{w.mean_pitch.toFixed(1)} Hz</td>
-                  </tr>
-                  <tr>
-                    <td className="prop-key">pitch_slope</td>
-                    <td className="prop-val">{w.pitch_slope > 0 ? '+' : ''}{w.pitch_slope.toFixed(2)} Hz</td>
-                  </tr>
-                  <tr>
-                    <td className="prop-key">pitch_range</td>
-                    <td className="prop-val">{w.pitch_range.toFixed(1)} Hz</td>
-                  </tr>
-                </>
-              )}
             </tbody>
           </table>
         </div>
@@ -401,6 +386,36 @@ export default function AnnotationReport({ data, onBack }) {
               <div key={i}>⚠️ {err.message}</div>
             ))}
           </div>
+        )}
+
+        {phrases.length > 0 && (
+          <section className="full-transcription-section" style={{
+            background: 'rgba(22, 21, 20, 0.3)',
+            border: '1px solid rgba(255, 255, 255, 0.03)',
+            borderRadius: '6px',
+            padding: '1.2rem',
+            marginBottom: '0.5rem',
+          }}>
+            <h2 style={{
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              color: 'var(--accent)',
+              marginBottom: '0.6rem',
+              fontFamily: 'var(--font-primary)',
+            }}>
+              Full Transcription
+            </h2>
+            <div style={{
+              fontSize: '1.05rem',
+              lineHeight: '1.65',
+              color: 'var(--text-primary)',
+              fontWeight: 400,
+            }}>
+              {phrases.map((p) => p.text).join(' ')}
+            </div>
+          </section>
         )}
 
         {phrases.length === 0 ? (
