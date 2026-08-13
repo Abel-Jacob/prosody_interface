@@ -394,7 +394,7 @@ export default function AnnotationReport({ data, onBack }) {
       {/* Header controls & stats */}
       <header className="report-header">
         <div className="header-title-section">
-          <h1>Annotation Report</h1>
+          <h1 style={{ fontFamily: "var(--font-primary)" }}>Annotation Report</h1>
 
           <div className="metadata-row">
             <span className="metadata-item">
@@ -588,9 +588,8 @@ export default function AnnotationReport({ data, onBack }) {
                             <div className="word-inline-wrapper">
                               <div
                                 onClick={(e) => handleTranscriptWordClick(w, e)}
-                                className={`word-default-view ${w.stressed ? 'is-stressed' : ''} ${
-                                  w.is_hesitation ? 'is-hesitation' : ''
-                                } ${isExpanded ? 'expanded-word' : ''}`}
+                                className={`word-default-view ${w.stressed ? 'is-stressed' : ''} ${w.is_hesitation ? 'is-hesitation' : ''
+                                  } ${isExpanded ? 'expanded-word' : ''}`}
                               >
                                 <ProsodyWord
                                   word={w.word}
@@ -717,7 +716,7 @@ export default function AnnotationReport({ data, onBack }) {
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1.2rem', lineHeight: 1.5 }}>
                 Contiguous voiced regions extracted globally from SWIPE pitch tracking, stylized with first-order polynomial (P=1) MAE criterion. Click on a segment to visualize its stylized pitch contour.
               </p>
-              
+
               <table className="voiced-segments-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)', color: 'var(--text-muted)' }}>
@@ -733,7 +732,7 @@ export default function AnnotationReport({ data, onBack }) {
                     const isExpanded = expandedSegmentIndex === seg.segment_index
                     return (
                       <React.Fragment key={seg.segment_index}>
-                        <tr 
+                        <tr
                           className={`clickable-row ${isExpanded ? 'row-expanded' : ''}`}
                           onClick={() => setExpandedSegmentIndex(isExpanded ? null : seg.segment_index)}
                           style={{
