@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './AnnotationReport.css'
-import WordTooltip from './WordTooltip'
 import ProsodyWord from './ProsodyWord'
 
 
@@ -18,18 +17,11 @@ export default function AnnotationReport({ data, onBack }) {
   const [expandedWordIndex, setExpandedWordIndex] = useState(null)
   const [viewMode, setViewMode] = useState('transcript') // 'transcript' | 'table'
   const [expandedSegmentIndex, setExpandedSegmentIndex] = useState(null)
-  const [activeTooltipWord, setActiveTooltipWord] = useState(null)
-  const [activeTooltipRef, setActiveTooltipRef] = useState(null)
+
 
   const handleTranscriptWordClick = (w, e) => {
     e.stopPropagation()
-    if (activeTooltipWord?.word_index === w.word_index) {
-      setActiveTooltipWord(null)
-      setActiveTooltipRef(null)
-    } else {
-      setActiveTooltipWord(w)
-      setActiveTooltipRef({ current: e.currentTarget })
-    }
+    setExpandedWordIndex(expandedWordIndex === w.word_index ? null : w.word_index)
   }
 
 
@@ -463,13 +455,13 @@ export default function AnnotationReport({ data, onBack }) {
                                 onClick={(e) => handleTranscriptWordClick(w, e)}
                                 className={`word-default-view ${w.stressed ? 'is-stressed' : ''} ${
                                   w.is_hesitation ? 'is-hesitation' : ''
-                                } ${activeTooltipWord?.word_index === w.word_index ? 'expanded-word' : ''}`}
+                                } ${isExpanded ? 'expanded-word' : ''}`}
                               >
                                 <ProsodyWord
                                   word={w.word}
                                   charPitches={w.char_pitches}
                                   stressed={w.stressed}
-                                  isInspected={activeTooltipWord?.word_index === w.word_index}
+                                  isInspected={isExpanded}
                                   confidence={w.asr_confidence}
                                 />
                                 {w.stressed && (
@@ -650,20 +642,6 @@ export default function AnnotationReport({ data, onBack }) {
           </section>
         )}
       </main>
-
-      <AnimatePresence>
-        {activeTooltipWord && (
-          <WordTooltip
-            wordData={activeTooltipWord}
-            phraseIntonation={phrases.find((p) => p.phrase_index === activeTooltipWord.phrase_index)?.intonation}
-            wordRef={activeTooltipRef}
-            onClose={() => {
-              setActiveTooltipWord(null)
-              setActiveTooltipRef(null)
-            }}
-          />
-        )}
-      </AnimatePresence>
     </div>
   )
 }
