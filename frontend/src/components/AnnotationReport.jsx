@@ -97,30 +97,47 @@ export default function AnnotationReport({ data, onBack }) {
       'end_time',
       'stressed',
       'stress_score_pct',
-      'pause_after',
       'word_index',
       'phrase_index',
       'asr_confidence_pct',
       'is_hesitation'
     ]
-    const wordRows = words.map((w) => {
-      return [
-        `"${w.word.replace(/"/g, '""')}"`, // 1. transcription
-        w.start_time.toFixed(3),           // 2. timestamps (onset)
-        w.end_time.toFixed(3),             // 2. timestamps (offset)
-        w.stressed ? 'TRUE' : 'FALSE',     // 3. stress labels (stressed)
-        `${Math.round((w.stress_score || 0.0) * 100)}%`, // 3. stress score in %
-        (w.pause_after || 0.0).toFixed(2), // 5. pauses (pause_after)
+    const wordRows = []
+    words.forEach((w) => {
+      // 1. Add the word itself
+      wordRows.push([
+        `"${w.word.replace(/"/g, '""')}"`, // transcription
+        w.start_time.toFixed(3),           // timestamps (onset)
+        w.end_time.toFixed(3),             // timestamps (offset)
+        w.stressed ? 'TRUE' : 'FALSE',     // stress labels (stressed)
+        `${Math.round((w.stress_score || 0.0) * 100)}%`, // stress score in %
         w.word_index,                      // word_index
         w.phrase_index,                    // phrase_index
         `${Math.round((w.asr_confidence || 1.0) * 100)}%`, // ASR confidence in %
         w.is_hesitation ? 'TRUE' : 'FALSE' // is_hesitation
-      ].join(',')
+      ].join(','))
+
+      // 2. If a pause exists immediately following, add it as a separate [PAUSE] row
+      if (w.pause_after && w.pause_after > 0.05) {
+        const pauseStart = w.end_time
+        const pauseEnd = w.end_time + w.pause_after
+        wordRows.push([
+          '"[PAUSE]"',                      // transcription
+          pauseStart.toFixed(3),            // timestamps (onset)
+          pauseEnd.toFixed(3),              // timestamps (offset)
+          'FALSE',                          // stressed
+          '0%',                             // stress score in %
+          '',                               // word_index (blank)
+          w.phrase_index,                   // phrase_index
+          '0%',                             // ASR confidence in %
+          'FALSE'                           // is_hesitation
+        ].join(','))
+      }
     })
 
     const section3 = [
       '# ======================================================== #',
-      '# SECTION 3: WORD LEVEL TIMESTAMPS & STRESS                #',
+      '# SECTION 3: WORD LEVEL TIMESTAMPS, STRESS & PAUSES        #',
       '# ======================================================== #',
       wordHeaders.join(','),
       ...wordRows
@@ -144,6 +161,36 @@ export default function AnnotationReport({ data, onBack }) {
 
   // JSON Export Handler
   const handleDownloadJSON = () => {
+    // Construct inline pauses in JSON words list
+    const jsonWords = []
+    words.forEach((w) => {
+      jsonWords.push({
+        word: w.word,
+        start_time: w.start_time,
+        end_time: w.end_time,
+        stressed: w.stressed,
+        stress_score_pct: `${Math.round((w.stress_score || 0.0) * 100)}%`,
+        word_index: w.word_index,
+        phrase_index: w.phrase_index,
+        asr_confidence_pct: `${Math.round((w.asr_confidence || 1.0) * 100)}%`,
+        is_hesitation: w.is_hesitation
+      })
+
+      if (w.pause_after && w.pause_after > 0.05) {
+        jsonWords.push({
+          word: '[PAUSE]',
+          start_time: w.end_time,
+          end_time: w.end_time + w.pause_after,
+          stressed: false,
+          stress_score_pct: '0%',
+          word_index: null,
+          phrase_index: w.phrase_index,
+          asr_confidence_pct: '0%',
+          is_hesitation: false
+        })
+      }
+    })
+
     // Construct an ordered object to match the user's reading flow with section titles
     const orderedData = {
       annotation_version: data.annotation_version,
@@ -162,18 +209,7 @@ export default function AnnotationReport({ data, onBack }) {
         intonation: p.intonation
       })),
       // 3. Word Level Timestamps, Stress, and Pauses
-      word_level_timestamps_and_stress: words.map((w) => ({
-        word: w.word,
-        start_time: w.start_time,
-        end_time: w.end_time,
-        stressed: w.stressed,
-        stress_score_pct: `${Math.round((w.stress_score || 0.0) * 100)}%`,
-        pause_after: w.pause_after,
-        word_index: w.word_index,
-        phrase_index: w.phrase_index,
-        asr_confidence_pct: `${Math.round((w.asr_confidence || 1.0) * 100)}%`,
-        is_hesitation: w.is_hesitation
-      })),
+      word_level_timestamps_and_stress: jsonWords,
       errors: data.errors
     }
 
