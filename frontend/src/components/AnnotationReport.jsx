@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './AnnotationReport.css'
+import WordTooltip from './WordTooltip'
+
 
 // Arrow icon mapping
 const TREND_ARROWS = {
@@ -15,6 +17,20 @@ export default function AnnotationReport({ data, onBack }) {
   const [expandedWordIndex, setExpandedWordIndex] = useState(null)
   const [viewMode, setViewMode] = useState('transcript') // 'transcript' | 'table'
   const [expandedSegmentIndex, setExpandedSegmentIndex] = useState(null)
+  const [activeTooltipWord, setActiveTooltipWord] = useState(null)
+  const [activeTooltipRef, setActiveTooltipRef] = useState(null)
+
+  const handleTranscriptWordClick = (w, e) => {
+    e.stopPropagation()
+    if (activeTooltipWord?.word_index === w.word_index) {
+      setActiveTooltipWord(null)
+      setActiveTooltipRef(null)
+    } else {
+      setActiveTooltipWord(w)
+      setActiveTooltipRef({ current: e.currentTarget })
+    }
+  }
+
 
   if (!data) {
     return (
@@ -443,10 +459,10 @@ export default function AnnotationReport({ data, onBack }) {
                           <React.Fragment key={w.word_index}>
                             <div className="word-inline-wrapper">
                               <div
-                                onClick={(e) => handleWordClick(w.word_index, e)}
+                                onClick={(e) => handleTranscriptWordClick(w, e)}
                                 className={`word-default-view ${w.stressed ? 'is-stressed' : ''} ${
                                   w.is_hesitation ? 'is-hesitation' : ''
-                                } ${isExpanded ? 'expanded-word' : ''}`}
+                                } ${activeTooltipWord?.word_index === w.word_index ? 'expanded-word' : ''}`}
                               >
                                 <span className="word-text">{w.word}</span>
                                 {w.stressed && (
@@ -627,6 +643,20 @@ export default function AnnotationReport({ data, onBack }) {
           </section>
         )}
       </main>
+
+      <AnimatePresence>
+        {activeTooltipWord && (
+          <WordTooltip
+            wordData={activeTooltipWord}
+            phraseIntonation={phrases.find((p) => p.phrase_index === activeTooltipWord.phrase_index)?.intonation}
+            wordRef={activeTooltipRef}
+            onClose={() => {
+              setActiveTooltipWord(null)
+              setActiveTooltipRef(null)
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -205,7 +205,7 @@ def test_annotation_pipeline():
             f"Timestamp regression at word {i}: "
             f"{words[i-1]['start_time']} -> {words[i]['start_time']}"
         )
-    print("  Timestamps: monotonically increasing ✓")
+    print("  Timestamps: monotonically increasing [OK]")
 
     # Check cross-phrase boundary: word 2 (phrase 0) -> word 3 (phrase 1)
     last_phrase0_word = [w for w in words if w["phrase_index"] == 0][-1]
@@ -213,26 +213,24 @@ def test_annotation_pipeline():
     assert first_phrase1_word["start_time"] > last_phrase0_word["end_time"], (
         "Phrase boundary timestamps overlap!"
     )
-    print(f"  Cross-phrase boundary: {last_phrase0_word['end_time']}s -> {first_phrase1_word['start_time']}s ✓")
+    print(f"  Cross-phrase boundary: {last_phrase0_word['end_time']}s -> {first_phrase1_word['start_time']}s [OK]")
 
     # ── Verify pitch data presence/absence ────────────────────────
-    # Word "the" (index 2) should have intonation=null
+    # Word "the" (index 2) should have normalized_pitch=null
     the_word = [w for w in words if w["word"] == "the"][0]
-    assert the_word["intonation"] is None, "Unvoiced word 'the' should have intonation=null"
-    print("  Unvoiced word 'the': intonation=null ✓")
+    assert the_word["normalized_pitch"] is None, "Unvoiced word 'the' should have normalized_pitch=null"
+    print("  Unvoiced word 'the': normalized_pitch=null [OK]")
 
-    # Word "My" should have full intonation data
+    # Word "My" should have normalized_pitch
     my_word = [w for w in words if w["word"] == "My"][0]
-    assert my_word["intonation"] is not None
-    assert my_word["intonation"]["mean_pitch"] == 229.7
-    assert my_word["intonation"]["pitch_trend"] == "↓"
-    assert my_word["intonation"]["char_pitches"] == [0.483, 0.399]
-    print(f"  Voiced word 'My': pitch={my_word['intonation']['mean_pitch']}Hz, trend={my_word['intonation']['pitch_trend']} ✓")
+    assert my_word["normalized_pitch"] == 0.479
+    print(f"  Voiced word 'My': normalized_pitch={my_word['normalized_pitch']} [OK]")
+
 
     # ── Verify stress data ────────────────────────────────────────
     stressed_words = [w for w in words if w["stressed"]]
     assert len(stressed_words) == 2
-    print(f"  Stressed words: {[w['word'] for w in stressed_words]} ✓")
+    print(f"  Stressed words: {[w['word'] for w in stressed_words]} [OK]")
 
     # ── Verify summary ────────────────────────────────────────────
     assert annotation["summary"]["word_count"] == 5
@@ -244,7 +242,7 @@ def test_annotation_pipeline():
 
     # ── Verify errors array (should be empty for a clean run) ─────
     assert annotation["errors"] == []
-    print("  Errors: [] ✓")
+    print("  Errors: [] [OK]")
 
     # ── Print the full JSON for inspection ─────────────────────────
     print("\n" + "=" * 60)

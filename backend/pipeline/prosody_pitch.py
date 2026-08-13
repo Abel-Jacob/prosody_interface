@@ -75,19 +75,38 @@ def extract_pitch(signal: np.ndarray, sr: int, hop_length: int,
         )
         return f0
     except Exception as e:
-        logger.info(f"Pitch Extraction: pysptk unavailable ({e}), using librosa.pyin fallback [FALLBACK PATH]")
+        logger.info(f"Pitch Extraction: pysptk unavailable ({e}), using libf0.swipe fallback [FALLBACK PATH]")
+
+    try:
+        import libf0
+        f0_raw, time_axis, strength = libf0.swipe(
+            np.asarray(signal, dtype=np.float64),
+            Fs=sr,
+            H=hop_length,
+            F_min=float(fmin),
+            F_max=float(fmax),
+        )
+        voiced_mask = (~np.isnan(strength)) & (strength >= 0.20)
+        f0 = np.where(voiced_mask, f0_raw, 0.0)
+        f0 = np.asarray(f0, dtype=np.float64)
+        elapsed = time.time() - t0
+        logger.info(
+            f"Pitch Extraction: SWIPE (libf0) fallback extracted {len(f0)} frames in {elapsed:.4f}s"
+        )
+        return f0
+    except Exception as e2:
+        logger.warning(f"Pitch Extraction: libf0 failed ({e2}), falling back to librosa.pyin")
 
     import librosa
-    # Optimized pyin with resolution=0.25 for 4x faster execution
     f0, voiced_flag, voiced_prob = librosa.pyin(
         np.asarray(signal, dtype=np.float32),
         fmin=float(fmin),
         fmax=float(fmax),
         sr=sr,
+        frame_length=2048,
         hop_length=hop_length,
-        resolution=0.25,
+        resolution=0.10,
     )
-
     f0 = np.nan_to_num(f0, nan=0.0)
     f0 = np.asarray(f0, dtype=np.float64)
     elapsed = time.time() - t0

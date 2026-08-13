@@ -176,3 +176,5 @@ See `implementation_plan.md` for complete directory tree.
    separated in `vendor/` to avoid accidental modification.
 5. **Pitch DP Optimization (O(1) prefix sums)**: The raw MAE DP pitch stylization took minutes due to O(N^3) array allocations in the inner loop. Using pre-computed cumulative sums reduced this to purely scalar math, making it run in seconds.
 6. **Model Deduplication**: ASR model sizes configured similarly (e.g. `medium.en` for preview and final) are loaded exactly once and shared by reference, saving ~1.5GB VRAM and cutting startup time significantly.
+7. **SWIPE vs PYIN Pitch Divergence**: The production pipeline extracts pitch using SWIPE (via `pysptk.sptk.swipe` or `libf0.swipe` fallback), whereas the reference notebook implementation historically used `librosa.pyin`. Because SWIPE and PYIN are fundamentally different algorithms, their voiced segment boundaries and count (6 segments vs 5 segments on the 2.74s reference audio) permanently diverge. This is a known, expected architectural behavior and should not be treated as a bug.
+
