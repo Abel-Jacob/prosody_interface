@@ -171,6 +171,15 @@ def _build_word_entry(word_data: dict, phrase_index: int, phrase_intonation: Opt
         "stress_score": word_data.get("stress_score", 0.0),
         "pause_after": word_data.get("pause_after", 0.0),
         "is_hesitation": word_data.get("is_hesitation", False),
-        # For frontend visualization only, not an analytical field
         "normalized_pitch": word_data.get("normalized_pitch"),
+        "mean_pitch": word_data.get("mean_pitch"),
+        "max_pitch": word_data.get("max_pitch"),
+        "min_pitch": word_data.get("min_pitch"),
+        "start_pitch": word_data.get("start_pitch"),
+        "end_pitch": word_data.get("end_pitch"),
+        "pitch_slope": word_data.get("pitch_slope"),
+        "pitch_range": word_data.get("pitch_range"),
+        "pitch_trend": word_data.get("pitch_trend"),
+        "char_pitches": word_data.get("char_pitches"),
+        "voiced_segment_index": word_data.get("voiced_segment_index"),
     }

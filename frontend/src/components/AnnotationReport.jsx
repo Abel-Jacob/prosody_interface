@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './AnnotationReport.css'
 import WordTooltip from './WordTooltip'
+import ProsodyWord from './ProsodyWord'
 
 
 // Arrow icon mapping
@@ -464,7 +465,13 @@ export default function AnnotationReport({ data, onBack }) {
                                   w.is_hesitation ? 'is-hesitation' : ''
                                 } ${activeTooltipWord?.word_index === w.word_index ? 'expanded-word' : ''}`}
                               >
-                                <span className="word-text">{w.word}</span>
+                                <ProsodyWord
+                                  word={w.word}
+                                  charPitches={w.char_pitches}
+                                  stressed={w.stressed}
+                                  isInspected={activeTooltipWord?.word_index === w.word_index}
+                                  confidence={w.asr_confidence}
+                                />
                                 {w.stressed && (
                                   <span className="stress-dot" style={{ opacity: stressOpacity }} />
                                 )}

@@ -239,17 +239,27 @@ class Worker:
                                     )
                                 else:
                                     p.intonation = None
-                    if "word_pitch_visuals" in res and res["word_pitch_visuals"]:
+                    if "word_pitch" in res and res["word_pitch"]:
                         wp_map = {
-                            (w.get("start"), w.get("end")): w.get("normalized_pitch")
-                            for w in res["word_pitch_visuals"]
+                            (w.get("start"), w.get("end")): w
+                            for w in res["word_pitch"]
                         }
                         for p in grammatical_phrases:
                             for w in p.words:
                                 key = (w.start, w.end)
                                 if key in wp_map:
-                                    # For frontend visualization only, not an analytical field
-                                    w.normalized_pitch = wp_map[key]
+                                    wp = wp_map[key]
+                                    w.mean_pitch = wp.get("mean_pitch")
+                                    w.max_pitch = wp.get("max_pitch")
+                                    w.min_pitch = wp.get("min_pitch")
+                                    w.start_pitch = wp.get("start_pitch")
+                                    w.end_pitch = wp.get("end_pitch")
+                                    w.pitch_slope = wp.get("pitch_slope")
+                                    w.pitch_range = wp.get("pitch_range")
+                                    w.normalized_pitch = wp.get("normalized_pitch")
+                                    w.pitch_trend = wp.get("pitch_trend")
+                                    w.char_pitches = wp.get("char_pitches")
+                                    w.voiced_segment_index = wp.get("voiced_segment_index")
                     logger.info(
                         f"Job {job_id}: pitch analysis complete — "
                         f"{sum(1 for pd in pitch_data if pd.get('mean_pitch') is not None)} "

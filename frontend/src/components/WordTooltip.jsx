@@ -62,10 +62,11 @@ export default function WordTooltip({ wordData, phraseIntonation, wordRef, onClo
     ? { opacity: 0 }
     : { opacity: 0, scale: 0.85, filter: 'blur(4px)' };
 
-  // Calculate Average Pitch: Convert word's normalized_pitch (0.0 to 1.0) back to Hz
-  // relative to the parent phrase's min_pitch and max_pitch.
+  // Calculate Average Pitch: Use word-level mean_pitch if available, or fallback
   let avgPitchStr = 'N/A';
-  if (
+  if (wordData.mean_pitch != null) {
+    avgPitchStr = `${Math.round(wordData.mean_pitch)} Hz`;
+  } else if (
     phraseIntonation &&
     phraseIntonation.min_pitch != null &&
     phraseIntonation.max_pitch != null &&
@@ -78,17 +79,17 @@ export default function WordTooltip({ wordData, phraseIntonation, wordRef, onClo
   }
 
   // Pitch Trend mapping and styling
-  const trend = phraseIntonation?.pitch_trend || '→';
+  const trend = wordData.pitch_trend || phraseIntonation?.pitch_trend || '→';
   const trendLabel = trend === '↑' || trend === '↗' ? 'Rising' : trend === '↓' || trend === '↘' ? 'Falling' : 'Flat';
   const trendColor = trendLabel === 'Rising' ? '#22c55e' : trendLabel === 'Falling' ? '#ef4444' : '#e5e5e5';
   const trendArrow = trend === '↑' || trend === '↗' ? '↑' : trend === '↓' || trend === '↘' ? '↓' : '→';
 
   // Pitch change (slope)
-  const slope = phraseIntonation?.pitch_slope;
+  const slope = wordData.pitch_slope !== undefined && wordData.pitch_slope !== null ? wordData.pitch_slope : phraseIntonation?.pitch_slope;
   const slopeStr = slope != null ? `${slope > 0 ? '+' : ''}${slope.toFixed(1)} Hz` : 'N/A';
 
   // Pitch range
-  const range = phraseIntonation?.pitch_range;
+  const range = wordData.pitch_range !== undefined && wordData.pitch_range !== null ? wordData.pitch_range : phraseIntonation?.pitch_range;
   const rangeStr = range != null ? `${range.toFixed(1)} Hz` : 'N/A';
 
   // Duration
