@@ -119,18 +119,15 @@ export default function AnnotationReport({ data, onBack }) {
 
       // 2. If a pause exists immediately following, add it as a separate [PAUSE] row
       if (w.pause_after && w.pause_after > 0.05) {
-        const pauseStart = w.end_time
-        const pauseEnd = w.end_time + w.pause_after
         wordRows.push([
           '"[PAUSE]"',                      // transcription
-          pauseStart.toFixed(3),            // timestamps (onset)
-          pauseEnd.toFixed(3),              // timestamps (offset)
-          'FALSE',                          // stressed
-          '0%',                             // stress score in %
-          '',                               // word_index (blank)
-          w.phrase_index,                   // phrase_index
-          '0%',                             // ASR confidence in %
-          'FALSE'                           // is_hesitation
+          `${w.pause_after.toFixed(2)}s`,   // duration (e.g. 0.80s)
+          '',                               // stressed (empty)
+          '',                               // stress_score_pct (empty)
+          '',                               // word_index (empty)
+          '',                               // phrase_index (empty)
+          '',                               // asr_confidence_pct (empty)
+          ''                                // is_hesitation (empty)
         ].join(','))
       }
     })
@@ -178,15 +175,7 @@ export default function AnnotationReport({ data, onBack }) {
 
       if (w.pause_after && w.pause_after > 0.05) {
         jsonWords.push({
-          word: '[PAUSE]',
-          start_time: w.end_time,
-          end_time: w.end_time + w.pause_after,
-          stressed: false,
-          stress_score_pct: '0%',
-          word_index: null,
-          phrase_index: w.phrase_index,
-          asr_confidence_pct: '0%',
-          is_hesitation: false
+          pause: `${w.pause_after.toFixed(2)}s`
         })
       }
     })
