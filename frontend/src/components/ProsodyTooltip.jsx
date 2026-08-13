@@ -70,14 +70,17 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
 
   if (!wordData) return null
 
-  const inton = wordData.intonation || wordData
+  const inton = wordData.intonation || wordData || {}
   const meanPitch = inton.mean_pitch ?? wordData.pitch_mean
   const pitchSlope = inton.pitch_slope
   const pitchTrend = inton.pitch_trend || (wordData.pitch_direction === 'rising' ? '↑' : wordData.pitch_direction === 'falling' ? '↓' : null)
 
   const hasPitch = meanPitch != null
-  const duration = wordData.end && wordData.start
-    ? Math.round((wordData.end - wordData.start) * 1000)
+  const startVal = wordData.start !== undefined ? wordData.start : wordData.start_time
+  const endVal = wordData.end !== undefined ? wordData.end : wordData.end_time
+
+  const duration = (startVal !== undefined && endVal !== undefined)
+    ? Math.round((endVal - startVal) * 1000)
     : null
   const pitchChange = pitchSlope != null
     ? (pitchSlope >= 0 ? '+' : '') + pitchSlope.toFixed(1)
@@ -120,13 +123,6 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
         }}
         className="prosody-tooltip"
       >
-        <div className="tooltip-header">
-          <span className="tooltip-word">{wordData.word}</span>
-          {wordData.stressed && (
-            <span className="tooltip-badge stressed-badge">STRESSED</span>
-          )}
-        </div>
-
         <div
           ref={tooltipRef}
           className={`word-tooltip-container ${position.position}`}
@@ -227,7 +223,7 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
         <div className="tooltip-row">
           <span className="tooltip-label">Timing</span>
           <span className="tooltip-value">
-            {wordData.start.toFixed(2)}s ➔ {wordData.end.toFixed(2)}s
+            {startVal !== undefined ? startVal.toFixed(2) : '0.00'}s ➔ {endVal !== undefined ? endVal.toFixed(2) : '0.00'}s
           </span>
         </div>
 
