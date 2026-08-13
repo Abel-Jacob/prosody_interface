@@ -118,7 +118,7 @@ export default function AnnotationReport({ data, onBack }) {
       ].join(','))
 
       // 2. If a pause exists immediately following, add it as a separate [PAUSE] row
-      if (w.pause_after && w.pause_after > 0.05) {
+      if (w.pause_after && w.pause_after > 0.5) {
         wordRows.push([
           '"[PAUSE]"',                      // transcription
           `${w.pause_after.toFixed(2)}s`,   // duration (e.g. 0.80s)
@@ -173,7 +173,7 @@ export default function AnnotationReport({ data, onBack }) {
         is_hesitation: w.is_hesitation
       })
 
-      if (w.pause_after && w.pause_after > 0.05) {
+      if (w.pause_after && w.pause_after > 0.5) {
         jsonWords.push({
           pause: `${w.pause_after.toFixed(2)}s`
         })
