@@ -104,6 +104,18 @@ def test_annotation_pipeline():
                     "end_time": 3.2,
                     "chunk_index": 0,
                     "intonation_pattern": "falling",
+                    "intonation": {
+                        "mean_pitch": 218.4,
+                        "max_pitch": 254.1,
+                        "min_pitch": 129.9,
+                        "start_pitch": 230.8,
+                        "end_pitch": 149.5,
+                        "pitch_slope": -81.3,
+                        "pitch_range": 124.2,
+                        "normalized_pitch": 0.45,
+                        "pitch_trend": "↓",
+                        "voiced_segment_index": 1
+                    }
                 },
                 {
                     "phrase_index": 1,
@@ -156,6 +168,18 @@ def test_annotation_pipeline():
                     "end_time": 6.0,
                     "chunk_index": 1,
                     "intonation_pattern": "falling",
+                    "intonation": {
+                        "mean_pitch": 235.1,
+                        "max_pitch": 268.4,
+                        "min_pitch": 180.2,
+                        "start_pitch": 190.5,
+                        "end_pitch": 220.3,
+                        "pitch_slope": 29.8,
+                        "pitch_range": 88.2,
+                        "normalized_pitch": 0.58,
+                        "pitch_trend": "↑",
+                        "voiced_segment_index": 2
+                    }
                 },
             ],
             "total_duration": 6.0,

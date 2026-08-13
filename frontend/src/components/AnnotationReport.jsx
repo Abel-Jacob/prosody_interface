@@ -432,6 +432,42 @@ export default function AnnotationReport({ data, onBack }) {
                   )}
                 </header>
 
+                {phrase.intonation && (
+                  <div className="phrase-intonation-details">
+                    <div className="intonation-metric">
+                      <span className="metric-label">Mean Pitch</span>
+                      <span className="metric-val">{phrase.intonation.mean_pitch != null ? `${phrase.intonation.mean_pitch.toFixed(1)} Hz` : 'N/A'}</span>
+                    </div>
+                    <div className="intonation-metric">
+                      <span className="metric-label">Pitch Range</span>
+                      <span className="metric-val">{phrase.intonation.pitch_range != null ? `${phrase.intonation.pitch_range.toFixed(1)} Hz` : 'N/A'}</span>
+                    </div>
+                    <div className="intonation-metric">
+                      <span className="metric-label">Trend</span>
+                      <span className="metric-val">{phrase.intonation.pitch_trend ? `${TREND_ARROWS[phrase.intonation.pitch_trend] || phrase.intonation.pitch_trend}` : 'N/A'}</span>
+                    </div>
+                    <div className="intonation-metric">
+                      <span className="metric-label">Slope</span>
+                      <span className="metric-val">
+                        {phrase.intonation.pitch_slope != null ? `${phrase.intonation.pitch_slope > 0 ? '+' : ''}${phrase.intonation.pitch_slope.toFixed(1)} Hz` : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="intonation-metric">
+                      <span className="metric-label">Onset ➔ Offset</span>
+                      <span className="metric-val">
+                        {phrase.intonation.start_pitch != null ? `${Math.round(phrase.intonation.start_pitch)}Hz` : 'N/A'} ➔ {phrase.intonation.end_pitch != null ? `${Math.round(phrase.intonation.end_pitch)}Hz` : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="intonation-metric">
+                      <span className="metric-label">Min ➔ Max</span>
+                      <span className="metric-val">
+                        {phrase.intonation.min_pitch != null ? `${Math.round(phrase.intonation.min_pitch)}Hz` : 'N/A'} – {phrase.intonation.max_pitch != null ? `${Math.round(phrase.intonation.max_pitch)}Hz` : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+
                 {viewMode === 'transcript' ? (
                   // Mode A: Transcript Inline View
                   <div className="phrase-words-container">
@@ -572,7 +608,8 @@ export default function AnnotationReport({ data, onBack }) {
           })
         )}
 
-        {viewMode === 'transcript' && data.voiced_segments && data.voiced_segments.length > 0 && (
+        {/* Voiced segment complexity graph section (disabled for now) */}
+        {false && viewMode === 'transcript' && data.voiced_segments && data.voiced_segments.length > 0 && (
           <section className="voiced-segments-section">
             <div style={{ marginTop: '2.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '2rem' }}>
               <h2 style={{ fontSize: '1.05rem', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: '0.4rem', fontFamily: 'var(--font-primary)' }}>
