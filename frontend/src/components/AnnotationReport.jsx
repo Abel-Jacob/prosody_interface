@@ -507,17 +507,16 @@ export default function AnnotationReport({ data, onBack }) {
                       <thead>
                         <tr>
                           <th style={{ width: '8%', textAlign: 'left' }}>#</th>
-                          <th style={{ width: '22%', textAlign: 'left' }}>Word</th>
-                          <th style={{ width: '25%', textAlign: 'left' }}>Time Range</th>
+                          <th style={{ width: '30%', textAlign: 'left' }}>Word</th>
+                          <th style={{ width: '32%', textAlign: 'left' }}>Time Range</th>
                           <th style={{ width: '15%', textAlign: 'left' }}>Confidence</th>
                           <th style={{ width: '15%', textAlign: 'left' }}>Stressed</th>
-                          <th style={{ width: '15%', textAlign: 'left' }}>Pause After</th>
                         </tr>
                       </thead>
                       <tbody>
                         {phraseWords.length === 0 ? (
                           <tr>
-                            <td colSpan={6} style={{ color: 'var(--text-faded)', fontStyle: 'italic', textAlign: 'center' }}>
+                            <td colSpan={5} style={{ color: 'var(--text-faded)', fontStyle: 'italic', textAlign: 'center' }}>
                               No words processed in this phrase
                             </td>
                           </tr>
@@ -542,13 +541,10 @@ export default function AnnotationReport({ data, onBack }) {
                                   <td style={{ textAlign: 'left' }}>
                                     {w.stressed ? 'YES' : 'NO'}
                                   </td>
-                                  <td style={{ textAlign: 'left', fontFamily: 'monospace' }}>
-                                    {w.pause_after ? `${w.pause_after.toFixed(2)}s` : '0.00s'}
-                                  </td>
                                 </tr>
                                 {isExpanded && (
                                   <tr onClick={(e) => e.stopPropagation()}>
-                                    <td colSpan={6} style={{ padding: '0.8rem 1.2rem', backgroundColor: 'rgba(22, 21, 20, 0.25)', borderBottom: '1px solid var(--overlay-border)' }}>
+                                    <td colSpan={5} style={{ padding: '0.8rem 1.2rem', backgroundColor: 'rgba(22, 21, 20, 0.25)', borderBottom: '1px solid var(--overlay-border)' }}>
                                       <motion.div
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: 'auto', opacity: 1 }}
