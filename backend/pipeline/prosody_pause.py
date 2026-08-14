@@ -63,6 +63,12 @@ class PauseAnalyzer(ProsodyAnalyzer):
                 gap = next_word["start"] - word_data["end"]
                 if gap > 0:
                     pause_after = round(gap, 3)
+            elif len(words) > 0 and len(audio) > 0:
+                # Handle the final word of the audio clip using the total audio duration
+                audio_duration = len(audio) / 16000.0  # 16kHz sample rate
+                gap = audio_duration - word_data["end"]
+                if gap > 0:
+                    pause_after = round(gap, 3)
             
             results.append({
                 "word": word_text,
