@@ -10,6 +10,8 @@ Provides word-level timestamps and confidence scores.
 
 import logging
 import numpy as np
+import re
+import difflib
 from typing import Optional
 from pathlib import Path
 
@@ -40,6 +42,45 @@ def load_asr_model(model_size: str = ASR_MODEL_SIZE_FINAL):
     )
     logger.info(f"faster-whisper model '{model_size}' loaded successfully")
     return model
+
+
+def restore_punctuation_and_quotes(segment_text: str, segment_words: list[dict]) -> list[dict]:
+    """
+    Aligns segment_words with segment_text to restore quotation marks and punctuation
+    that faster-whisper's word-level timestamps might have stripped or misplaced.
+    Normalizes quote and punctuation order (e.g. "anarchy," -> "anarchy",) to ensure
+    trailing punctuation is at the very end of the string for downstream checks.
+    """
+    if not segment_words:
+        return []
+    tokens = segment_text.split()
+    if not tokens:
+        return segment_words
+
+    def clean(s):
+        return re.sub(r"[^a-zA-Z0-9']", '', s).lower()
+
+    token_cleans = [clean(t) for t in tokens]
+    word_cleans = [clean(w['word']) for w in segment_words]
+
+    matcher = difflib.SequenceMatcher(None, token_cleans, word_cleans)
+    word_to_token = {}
+    for block in matcher.get_matching_blocks():
+        token_start, word_start, size = block
+        for offset in range(size):
+            word_to_token[word_start + offset] = token_start + offset
+
+    for i, w in enumerate(segment_words):
+        if i in word_to_token:
+            token = tokens[word_to_token[i]]
+            if clean(w['word']) == clean(token):
+                normalized = token
+                for quote in ['"', "'"]:
+                    for punct in ['.', ',', '?', '!', ';', ':']:
+                        if normalized.endswith(punct + quote):
+                            normalized = normalized[:-2] + quote + punct
+                w['word'] = normalized
+    return segment_words
 
 
 def transcribe_chunk(
@@ -115,14 +156,17 @@ def transcribe_chunk(
             continue
             
         text_parts.append(segment.text.strip())
+        segment_words_dicts = []
         if segment.words:
             for w in segment.words:
-                words.append({
+                segment_words_dicts.append({
                     "word": w.word.strip(),
                     "start": round(w.start, 3),
                     "end": round(w.end, 3),
                     "confidence": round(w.probability, 3),
                 })
+        restored_words = restore_punctuation_and_quotes(segment.text, segment_words_dicts)
+        words.extend(restored_words)
 
     full_text = " ".join(text_parts)
 
