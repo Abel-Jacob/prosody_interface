@@ -1,0 +1,366 @@
+/* ═══════════════════════════════════════════════════════════
+   LexiRepTrainPage — Upload → Train → Download
+   Uses existing design tokens from index.css
+   ═══════════════════════════════════════════════════════════ */
+
+.lexirep-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 2rem;
+  position: relative;
+}
+
+/* ── Back Button ─────────────────────────────────────────── */
+
+.lexirep-back {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  background: none;
+  border: none;
+  color: var(--text-faded);
+  font-family: var(--font-secondary);
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0.4rem 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: color var(--transition-base);
+}
+
+.lexirep-back:hover {
+  color: var(--text-primary);
+}
+
+.lexirep-back svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Header ──────────────────────────────────────────────── */
+
+.lexirep-header {
+  text-align: center;
+  margin-top: 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.lexirep-header h1 {
+  font-family: var(--font-secondary);
+  font-weight: 500;
+  font-size: 1.05rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 0.6rem 0;
+}
+
+.lexirep-header p {
+  font-family: var(--font-secondary);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--text-faded);
+  line-height: 1.6;
+  max-width: 28rem;
+}
+
+/* ── Content Card ────────────────────────────────────────── */
+
+.lexirep-content {
+  width: 100%;
+  max-width: 28rem;
+}
+
+/* ── Upload Dropzone ─────────────────────────────────────── */
+
+.lexirep-dropzone {
+  border: 1px dashed var(--text-faded);
+  border-radius: 4px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-base),
+    background var(--transition-base);
+}
+
+.lexirep-dropzone:hover,
+.lexirep-dropzone.drag-over {
+  border-color: var(--accent);
+  background: rgba(196, 149, 106, 0.03);
+}
+
+.lexirep-dropzone-icon {
+  color: var(--text-faded);
+  margin-bottom: 1rem;
+  transition: color var(--transition-base);
+}
+
+.lexirep-dropzone:hover .lexirep-dropzone-icon,
+.lexirep-dropzone.drag-over .lexirep-dropzone-icon {
+  color: var(--accent);
+}
+
+.lexirep-dropzone-text {
+  font-family: var(--font-secondary);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.lexirep-dropzone-hint {
+  font-family: var(--font-secondary);
+  font-size: 0.6rem;
+  color: var(--text-faded);
+  letter-spacing: 0.06em;
+}
+
+/* ── File Preview ────────────────────────────────────────── */
+
+.lexirep-file-preview {
+  background: rgba(22, 21, 20, 0.4);
+  border: 1px solid var(--text-faded);
+  border-radius: 4px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.lexirep-file-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.lexirep-file-label {
+  font-size: 0.55rem;
+  color: var(--text-faded);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: var(--font-secondary);
+}
+
+.lexirep-file-name {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  font-family: var(--font-secondary);
+  font-weight: 500;
+  word-break: break-all;
+  text-align: center;
+}
+
+.lexirep-file-meta {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  font-family: var(--font-secondary);
+}
+
+.lexirep-validation-msg {
+  font-size: 0.6rem;
+  color: var(--accent);
+  font-family: var(--font-secondary);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.lexirep-validation-msg.error {
+  color: var(--error);
+}
+
+/* ── Action Buttons ──────────────────────────────────────── */
+
+.lexirep-actions {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.lexirep-btn {
+  flex: 1;
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  padding: 0.55rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.6rem;
+  font-family: var(--font-secondary);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition:
+    color var(--transition-base),
+    border-color var(--transition-base),
+    background var(--transition-base);
+}
+
+.lexirep-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.lexirep-btn.primary {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.lexirep-btn.primary:hover {
+  background: rgba(196, 149, 106, 0.1);
+  color: var(--text-primary);
+}
+
+.lexirep-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.lexirep-btn:disabled:hover {
+  color: var(--text-muted);
+  border-color: rgba(255, 255, 255, 0.05);
+  background: none;
+}
+
+/* ── Status Display ──────────────────────────────────────── */
+
+.lexirep-status {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem 0;
+}
+
+.lexirep-status-label {
+  font-family: var(--font-secondary);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Spinner */
+.lexirep-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--text-faded);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: lexirep-spin 0.8s linear infinite;
+}
+
+@keyframes lexirep-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Progress bar (optional, for future use) */
+.lexirep-progress-bar {
+  width: 100%;
+  max-width: 16rem;
+  height: 2px;
+  background: var(--text-faded);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.lexirep-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 1px;
+  transition: width 0.3s ease;
+}
+
+/* ── Result ──────────────────────────────────────────────── */
+
+.lexirep-result {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 2rem 0;
+}
+
+.lexirep-result-icon {
+  color: var(--accent);
+}
+
+.lexirep-result-icon.error {
+  color: var(--error);
+}
+
+.lexirep-result-title {
+  font-family: var(--font-secondary);
+  font-weight: 500;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.lexirep-result-title.error {
+  color: var(--error);
+}
+
+.lexirep-result-detail {
+  font-family: var(--font-secondary);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 22rem;
+  letter-spacing: 0.04em;
+}
+
+.lexirep-result-files {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-family: monospace;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}
+
+.lexirep-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 0.6rem 1.5rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 0.6rem;
+  font-family: var(--font-secondary);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  margin-top: 0.5rem;
+  transition:
+    background var(--transition-base),
+    color var(--transition-base);
+}
+
+.lexirep-download-btn:hover {
+  background: rgba(196, 149, 106, 0.1);
+  color: var(--text-primary);
+}
+
+/* ── Reduced Motion ──────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .lexirep-spinner {
+    animation: none;
+    border-top-color: var(--accent);
+    opacity: 0.7;
+  }
+}
