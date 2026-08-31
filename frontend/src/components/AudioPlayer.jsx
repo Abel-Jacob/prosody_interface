@@ -181,7 +181,7 @@ export default function AudioPlayer({ src, style }) {
             textTransform: 'uppercase'
           }}
           onMouseEnter={(e) => e.target.style.background = 'var(--text-faded)'}
-          onMouseLeave={(e) => e.target.style.background = 'var(--bg-subtle)'}}
+          onMouseLeave={(e) => e.target.style.background = 'var(--bg-subtle)'}
         >
           {isPlaying ? 'pause' : 'play'}
         </button>
