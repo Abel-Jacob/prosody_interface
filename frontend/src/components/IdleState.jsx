@@ -193,14 +193,21 @@ export default function IdleState({ onStart, onUpload, onBack }) {
       />
 
       {onBack && (
-        <button
+        <motion.button
           type="button"
-          className="prosody-back-button"
+          className="lexirep-back"
           onClick={onBack}
           aria-label="Back to interface selection"
+          whileTap={{ scale: 0.95 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 25 }}
         >
-          ← Back
-        </button>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12,19 5,12 12,5" />
+          </svg>
+          back
+        </motion.button>
       )}
 
       {/* Main Speak Option */}

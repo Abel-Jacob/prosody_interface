@@ -69,12 +69,6 @@ button { border-radius: 3px !important; }
 .idle-container button, .lexirep-container button { letter-spacing: .08em; }
 input[type='range'] { accent-color: var(--accent); }
 .back-button, .lexirep-back { text-decoration: none; }
-.prosody-back-button { position: absolute; top: 28px; right: 28px; border: 1px solid var(--text-faded); background: transparent; color: var(--text-muted); padding: 8px 12px; border-radius: 3px; cursor: pointer; font: .65rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; transition: color var(--transition-base), border-color var(--transition-base), background var(--transition-base); }
-.prosody-back-button:hover { color: var(--bg); border-color: var(--accent); background: var(--accent); }
-.prosody-back-button:focus-visible { outline-color: var(--accent); }
-
-@media (max-width: 640px) { .prosody-back-button { top: 18px; right: 20px; } }
-
 a { color: inherit; }
 [data-testid='annotation-report'] { background: var(--bg); }
 
