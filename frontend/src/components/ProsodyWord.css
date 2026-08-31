@@ -57,6 +57,14 @@
 }
 
 /* Inspected / selected word — underline indicator */
+.prosody-word.stressed {
+  color: var(--accent);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 5px var(--accent-dim), 0 0 14px rgba(196, 149, 106, 0.22);
+}
+
 .prosody-word.inspected {
   text-decoration: underline;
   text-decoration-color: var(--accent, #1d1d1f);
