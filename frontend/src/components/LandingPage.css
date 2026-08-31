@@ -1,137 +1,71 @@
-/* ═══════════════════════════════════════════════════════════
-   LandingPage — Two-option entry point
-   ═══════════════════════════════════════════════════════════ */
-
 .landing-container {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 2rem;
+  padding: 64px 24px;
   position: relative;
 }
 
-/* ── Title ──────────────────────────────────────────────── */
+.landing-container::before {
+  content: 'PROSODY';
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  color: var(--text-primary);
+  font: 600 .7rem/1 var(--font-mono);
+  letter-spacing: .16em;
+}
 
 .landing-title {
-  font-family: var(--font-secondary);
-  font-weight: 400;
-  font-size: 0.65rem;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 3rem;
+  margin-bottom: 40px;
+  color: var(--text-primary);
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 600;
+  letter-spacing: -.055em;
+  line-height: 1;
+  text-transform: none;
 }
 
-/* ── Card Grid ──────────────────────────────────────────── */
-
-.landing-cards {
-  display: flex;
-  gap: 2rem;
-  align-items: stretch;
-}
-
-@media (max-width: 640px) {
-  .landing-cards {
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-}
-
-/* ── Individual Card ────────────────────────────────────── */
+.landing-cards { display: flex; align-items: stretch; gap: 16px; }
 
 .landing-card {
-  width: 16rem;
-  padding: 2.5rem 2rem;
-  border: 1px solid var(--text-faded);
-  border-radius: 12px;
-  background: transparent;
-  cursor: pointer;
-  text-align: center;
+  position: relative;
+  width: min(18rem, 40vw);
+  min-height: 230px;
+  padding: 32px 28px 28px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1.2rem;
-  transition:
-    border-color var(--transition-base),
-    background var(--transition-base),
-    box-shadow var(--transition-base);
+  align-items: flex-start;
+  gap: 16px;
+  border: 1px solid var(--text-faded);
+  border-radius: 3px;
+  background: var(--bg);
+  cursor: pointer;
+  text-align: left;
+  transition: transform var(--transition-base), border-color var(--transition-base), background var(--transition-base);
 }
 
-.landing-card:hover {
-  border-color: var(--accent);
-  background: var(--bg-subtle);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
-}
+.landing-card::after { content: '↗'; position: absolute; right: 24px; bottom: 22px; color: var(--text-faded); font-size: 1.1rem; transition: color var(--transition-base), transform var(--transition-base); }
+.landing-card:hover { transform: translateY(-3px); border-color: var(--border-strong); background: var(--bg-subtle); }
+.landing-card:hover::after { color: var(--text-primary); transform: translate(2px, -2px); }
+.landing-card:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 5px; }
 
-/* Card Icon */
-.landing-card-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-faded);
-  transition: color var(--transition-base);
-}
+.landing-card-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: color var(--transition-base); }
+.landing-card:hover .landing-card-icon { color: var(--text-primary); }
+.landing-card-title { color: var(--text-primary); font-size: .95rem; font-weight: 600; letter-spacing: -.02em; text-transform: none; }
+.landing-card-subtitle { max-width: 17rem; color: var(--text-muted); font-size: .78rem; line-height: 1.6; }
 
-.landing-card:hover .landing-card-icon {
-  color: var(--accent);
-}
-
-/* Card Title */
-.landing-card-title {
-  font-family: var(--font-secondary);
-  font-weight: 500;
-  font-size: 0.85rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  transition: color var(--transition-base);
-}
-
-.landing-card:hover .landing-card-title {
-  color: var(--text-primary);
-}
-
-/* Card Subtitle */
-.landing-card-subtitle {
-  font-family: var(--font-secondary);
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  line-height: 1.6;
-  transition: color var(--transition-base);
-}
-
-.landing-card:hover .landing-card-subtitle {
-  color: var(--text-primary);
-}
-
-/* ── Divider ────────────────────────────────────────────── */
-
-.landing-divider {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin: 0 1rem;
-}
-
-.landing-divider-line {
-  width: 1px;
-  height: 3rem;
-  background-color: var(--text-faded);
-}
+.landing-divider { display: flex; align-items: center; margin: 0 8px; }
+.landing-divider-line { width: 1px; height: 64px; background: var(--text-faded); }
 
 @media (max-width: 640px) {
-  .landing-divider {
-    flex-direction: row;
-    gap: 0.8rem;
-    margin: 0;
-  }
-  .landing-divider-line {
-    width: 3rem;
-    height: 1px;
-  }
+  .landing-container { padding-top: 88px; }
+  .landing-container::before { top: 20px; left: 20px; }
+  .landing-title { align-self: flex-start; margin-bottom: 28px; font-size: 2rem; }
+  .landing-cards { width: 100%; flex-direction: column; gap: 12px; }
+  .landing-card { width: 100%; min-height: 180px; padding: 24px; }
+  .landing-divider { justify-content: center; margin: 0; }
+  .landing-divider-line { width: 48px; height: 1px; }
 }

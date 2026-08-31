@@ -1,216 +1,141 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Colors — Light theme, black accent */
-  --bg: #ffffff;
-  --bg-subtle: #fafafa;
-  --text-primary: #1d1d1f;
-  --text-muted: #86868b;
-  --text-faded: #d2d2d7;
-  --accent: #1d1d1f;
-  --accent-dim: rgba(29, 29, 31, 0.15);
-  --error: #ff3b30;
-  --overlay-bg: #ffffff;
-  --overlay-border: #e5e5e7;
-
-  /* Typography */
+  --bg: #FAFAFA;
+  --bg-subtle: #F3F3F3;
+  --text-primary: #171717;
+  --text-muted: #737373;
+  --text-faded: #DEDEDE;
+  --border-strong: #BDBDBD;
+  --accent: #171717;
+  --accent-dim: rgba(23, 23, 23, 0.12);
+  --error: #171717;
+  --overlay-bg: #FAFAFA;
+  --overlay-border: #DEDEDE;
   --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-secondary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-
-  /* Motion */
-  --transition-base: 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-
-  /* Pitch deformation */
+  --font-mono: 'DM Mono', 'SFMono-Regular', Consolas, monospace;
+  --transition-base: 0.22s cubic-bezier(0.22, 1, 0.36, 1);
   --pitch-deform-duration: 0.6s;
 }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--bg); }
+body { margin: 0; min-height: 100vh; overflow-x: hidden; background: var(--bg); color: var(--text-primary); font-family: var(--font-primary); -webkit-font-smoothing: antialiased; }
+button, input { font: inherit; }
+button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 4px; }
 
-body {
-  margin: 0;
-  padding: 0;
-  background-color: var(--bg);
-  color: var(--text-primary);
-  font-family: var(--font-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
+.canvas-bg { position: fixed; inset: 0; z-index: -1; width: 100vw; height: 100vh; background: var(--bg); transition: opacity 0.8s ease; }
+.canvas-bg.active { background: var(--bg); }
 
-/* Base Animations */
-@keyframes gradientShift {
-  0% {
-    background-size: 100% 100%;
-    background-position: center;
-  }
-  100% {
-    background-size: 120% 120%;
-    background-position: 50% 100%;
-  }
-}
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--text-faded); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-.canvas-bg {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: -1;
-  background-color: var(--bg);
-  transition: opacity 1.5s var(--transition-base);
-}
+.info-tooltip-trigger { position: relative; display: inline-block; margin-left: 4px; cursor: help; color: var(--text-muted); }
+.info-tooltip-content { visibility: hidden; opacity: 0; position: absolute; z-index: 100; bottom: 150%; left: 50%; width: max-content; max-width: 220px; transform: translateX(-50%); padding: 7px 10px; background: var(--text-primary); color: var(--bg); border-radius: 3px; text-align: center; font-size: 0.75rem; line-height: 1.4; transition: opacity var(--transition-base), visibility var(--transition-base); }
+.info-tooltip-trigger:hover .info-tooltip-content { visibility: visible; opacity: 1; }
 
-.canvas-bg.active {
-  background: radial-gradient(ellipse 80% 60% at 50% 50%, var(--bg-subtle) 0%, var(--bg) 100%);
-  animation: gradientShift 20s ease-in-out infinite alternate;
-}
+@keyframes breatheDot { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
+.pause-dots { display: inline-flex; align-items: center; gap: 3px; margin: 0 .2rem; vertical-align: middle; }
+.pause-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--text-muted); animation: breatheDot 1.4s ease-in-out infinite; }
+.pause-dot:nth-child(2) { animation-delay: .15s; }
+.pause-dot:nth-child(3) { animation-delay: .3s; }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--text-faded);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+@media (max-width: 640px) { body { font-size: 15px; } }
 
-/* --- CSS-only hover tooltip for the question mark --- */
-.info-tooltip-trigger {
-  position: relative;
-  display: inline-block;
-  margin-left: 4px;
-  cursor: help;
-  color: var(--text-muted);
-}
+/* Shared technical surface polish without changing behavior. */
+.overlay-material { background: var(--bg) !important; border: 1px solid var(--text-faded); box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.tooltip-value, .tooltip-label { font-family: var(--font-mono) !important; }
+.technical, [data-technical='true'] { font-family: var(--font-mono); }
+.app-wordmark { position: fixed; top: 24px; left: 28px; z-index: 5; color: var(--text-primary); font: 600 0.7rem/1 var(--font-mono); letter-spacing: .16em; }
 
-.info-tooltip-content {
-  visibility: hidden;
-  opacity: 0;
-  background-color: var(--text-primary);
-  color: var(--bg);
-  text-align: center;
-  border-radius: 6px;
-  padding: 6px 10px;
-  position: absolute;
-  z-index: 100;
-  bottom: 150%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: max-content;
-  max-width: 220px;
-  font-size: 0.75rem;
-  font-weight: normal;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
-  line-height: 1.4;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
+.app-backend-config { position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--text-faded); background: rgba(250,250,250,.94); border-radius: 3px; }
+.app-backend-config label { color: var(--text-muted); font: 0.625rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+.app-backend-config input { width: 240px; padding: 4px 8px; border: 1px solid var(--text-faded); border-radius: 2px; background: transparent; color: var(--text-primary); font: .6875rem var(--font-mono); outline: none; }
+@media (max-width: 640px) { .app-backend-config { right: 12px; bottom: 12px; left: 12px; } .app-backend-config input { min-width: 0; width: 100%; } }
 
-.info-tooltip-content::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  margin-left: -5px;
-  border-width: 5px;
-  border-style: solid;
-  border-color: var(--text-primary) transparent transparent transparent;
-}
+.landing-container, .idle-container { background: transparent; }
+button { border-radius: 3px !important; }
+.prosody-char { transition: color var(--transition-base), transform var(--pitch-deform-duration) ease; }
+.word-tooltip-content { border-radius: 3px !important; box-shadow: 0 8px 24px rgba(23,23,23,.12) !important; }
+.word-tooltip-container { font-family: var(--font-mono); }
+@media (max-width: 640px) { .landing-container { padding-inline: 24px; } }
 
-.info-tooltip-trigger:hover .info-tooltip-content {
-  visibility: visible;
-  opacity: 1;
-}
+/* Keep legacy inline controls visually aligned with the new system. */
+.idle-container button, .lexirep-container button { letter-spacing: .08em; }
+input[type='range'] { accent-color: var(--text-primary); }
+.back-button, .lexirep-back { text-decoration: none; }
 
-/* Breathing dots — pause indicator between words */
-@keyframes breatheDot {
-  0%, 100% {
-    opacity: 0.3;
-    transform: scale(0.8);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
+a { color: inherit; }
+[data-testid='annotation-report'] { background: var(--bg); }
 
-.pause-dots {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  margin: 0 0.2rem;
-  vertical-align: middle;
-  cursor: default;
-}
+@media (prefers-contrast: more) { .overlay-material { border-color: var(--border-strong) !important; } }
+@media (prefers-reduced-transparency: reduce) { .app-backend-config { background: var(--bg); } }
 
-.pause-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background-color: var(--text-muted);
-  animation: breatheDot 1.4s ease-in-out infinite;
-}
+/* Editorial report overrides */
+.annotation-report, .report-container { color: var(--text-primary); }
+.annotation-report h1, .annotation-report h2, .report-container h1, .report-container h2 { letter-spacing: -.03em; }
+.annotation-report table, .report-container table { font-family: var(--font-mono); }
+.annotation-report button, .report-container button { border-radius: 3px; }
+@media (max-width: 720px) { .annotation-report, .report-container { max-width: 100%; overflow-x: hidden; } }
 
-.pause-dot:nth-child(2) {
-  animation-delay: 0.15s;
-}
+@media (max-width: 640px) { .app-wordmark { top: 18px; left: 20px; } }
 
-.pause-dot:nth-child(3) {
-  animation-delay: 0.3s;
-}
+/* Original classes retained for compatibility. */
+.overlay-material { --overlay-bg: var(--bg); }
+.info-tooltip-content::after { display: none; }
+.pause-dot { transform: none; }
 
-/* ═══════════════════════════════════════════════════════════
-   ACCESSIBILITY MEDIA QUERIES
-   ═══════════════════════════════════════════════════════════ */
+/* The one dark technical surface used by report internals. */
+.dark-surface { background: #111111; color: var(--bg); }
 
-/* --- Reduced Motion ---
-   Disable CSS keyframe animations. Component-level JS uses
-   useReducedMotion() from framer-motion for spring fallbacks. */
-@media (prefers-reduced-motion: reduce) {
-  .canvas-bg.active {
-    animation: none;
-  }
+/* Shared action language for existing controls. */
+.lexirep-submit-btn, .primary-button { min-height: 42px; }
 
-  .pause-dot {
-    animation: none !important;
-    opacity: 0.7;
-    transform: none;
-  }
+@media (max-width: 640px) { .lexirep-container { padding-inline: 20px; } }
 
-  /* Disable the CSS-animation-based tooltip entrance; framer-motion
-     handles its own reduced-motion fallback in the component. */
-  .word-tooltip-container {
-    animation: none !important;
-  }
-}
+/* Avoid accidental decoration from legacy backgrounds. */
+canvas { max-width: 100%; }
 
-/* --- Reduced Transparency ---
-   Raise overlay backgrounds to near-opaque, drop backdrop-filter. */
-@media (prefers-reduced-transparency) {
-  .overlay-material {
-    background: rgba(255, 255, 255, 0.96) !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-  }
-}
+/* Ensure upload states communicate through contrast, not color. */
+.lexirep-upload-zone.drag-over { border-color: var(--text-primary); background: var(--bg-subtle); }
+.lexirep-validation-msg.error { color: var(--text-primary); font-weight: 600; }
 
-/* --- High Contrast ---
-   Near-solid overlay backgrounds with a clearly defined border. */
-@media (prefers-contrast: more) {
-  .overlay-material {
-    background: rgba(255, 255, 255, 0.98) !important;
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
-    border: 1px solid rgba(0, 0, 0, 0.2) !important;
-  }
-}
+/* Technical values */
+.lexirep-epoch-number { font-family: var(--font-mono) !important; }
+
+/* Focus affordance for clickable cards rendered as divs. */
+.landing-card[role='button'] { outline: none; }
+.landing-card[role='button']:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 5px; }
+
+/* Responsive report media */
+img, svg { max-width: 100%; }
+
+/* Keep page transitions calm. */
+.motion-safe { transition: all var(--transition-base); }
+
+/* monochrome icon treatment */
+svg { color: currentColor; }
+
+/* Remove legacy glass styling if present. */
+[style*='backdrop-filter'] { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+
+/* Preserve readable line length. */
+p { line-height: 1.55; }
+
+/* No layout shift from hidden native upload inputs. */
+input[type='file'] { max-width: 100%; }
+
+/* Mobile-safe data controls. */
+pre, code { font-family: var(--font-mono); }
+
+/* Quiet divider utility. */
+.editorial-rule { border: 0; border-top: 1px solid var(--text-faded); }
+
+/* Shared hover timing. */
+button, a, .landing-card, .lexirep-upload-zone { transition-duration: var(--transition-base); }
+
+/* End system */

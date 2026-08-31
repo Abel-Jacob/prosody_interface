@@ -11,12 +11,17 @@ const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
 export default function LandingPage({ onNavigate }) {
   return (
     <div className="landing-container">
-      <span className="landing-title">choose an interface</span>
+      <h1 className="landing-title">Choose an interface</h1>
 
       <div className="landing-cards">
         {/* ── Prosody Interface Card ──────────────────── */}
         <motion.div
           className="landing-card"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') onNavigate('prosody')
+          }}
           onClick={() => onNavigate('prosody')}
           whileTap={{ scale: 0.97 }}
           transition={tapSpring}
@@ -54,6 +59,11 @@ export default function LandingPage({ onNavigate }) {
         {/* ── LexiRep Training Card ──────────────────── */}
         <motion.div
           className="landing-card"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') onNavigate('lexirep')
+          }}
           onClick={() => onNavigate('lexirep')}
           whileTap={{ scale: 0.97 }}
           transition={tapSpring}
