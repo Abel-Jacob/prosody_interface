@@ -138,4 +138,12 @@ pre, code { font-family: var(--font-mono); }
 /* Shared hover timing. */
 button, a, .landing-card, .lexirep-upload-zone { transition-duration: var(--transition-base); }
 
+/* Composition tuning */
+.landing-container { justify-content: flex-start; padding-top: 14vh; }
+.idle-container { min-height: 100vh; }
+@media (min-width: 900px) {
+  .idle-container { padding-inline: 8vw !important; }
+}
+@media (max-width: 640px) { .landing-container { padding-top: 96px; } }
+
 /* End system */
