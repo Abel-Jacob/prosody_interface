@@ -240,7 +240,7 @@ export default function LexiRepTrainPage({ onBack }) {
 
   // Slider fill percentage for the accent-colored track
   const sliderPercent = ((epochs - 1) / (99)) * 100
-  const sliderBackground = `linear-gradient(to right, var(--accent) 0%, var(--accent) ${sliderPercent}%, var(--text-faded) ${sliderPercent}%, var(--text-faded) 100%)`
+  const sliderBackground = `linear-gradient(to right, var(--lr-accent) 0%, var(--lr-accent) ${sliderPercent}%, var(--lr-border) ${sliderPercent}%, var(--lr-border) 100%)`
 
   // ══════════════════════════════════════════════════════════
   // RENDER
@@ -423,7 +423,7 @@ export default function LexiRepTrainPage({ onBack }) {
           <span style={{
             fontFamily: 'var(--font-secondary)',
             fontSize: '0.55rem',
-            color: 'var(--text-faded)',
+            color: 'var(--lr-text-tertiary)',
             letterSpacing: '0.06em'
           }}>
             training for {epochs} epoch{epochs !== 1 ? 's' : ''} — this may take several minutes

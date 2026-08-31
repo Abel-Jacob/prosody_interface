@@ -1,15 +1,30 @@
 /* ═══════════════════════════════════════════════════════════
-   LexiRepTrainPage — Model-Generation–style Configuration Card
-   Uses existing design tokens from index.css
+   LexiRepTrainPage — Light theme, Apple-grade craft
+   Scoped color tokens override the global dark theme
    ═══════════════════════════════════════════════════════════ */
 
 .lexirep-container {
+  /* ── Scoped light-theme tokens ─────────────────────────── */
+  --lr-bg: #ffffff;
+  --lr-bg-card: #f5f5f7;
+  --lr-text: #1d1d1f;
+  --lr-text-secondary: #6e6e73;
+  --lr-text-tertiary: #aeaeb2;
+  --lr-accent: #1d1d1f;
+  --lr-border: #d2d2d7;
+  --lr-border-light: #e8e8ed;
+  --lr-error: #ff3b30;
+  --lr-success: #34c759;
+  --lr-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 3rem 2rem;
   position: relative;
+  background: var(--lr-bg);
+  z-index: 1;
 }
 
 /* ── Back Button ─────────────────────────────────────────── */
@@ -20,7 +35,7 @@
   left: 2rem;
   background: none;
   border: none;
-  color: var(--text-faded);
+  color: var(--lr-text-tertiary);
   font-family: var(--font-secondary);
   font-size: 0.6rem;
   letter-spacing: 0.15em;
@@ -30,11 +45,11 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  transition: color var(--transition-base);
+  transition: color 0.2s ease;
 }
 
 .lexirep-back:hover {
-  color: var(--text-primary);
+  color: var(--lr-text);
 }
 
 .lexirep-back svg {
@@ -52,11 +67,11 @@
 
 .lexirep-header h1 {
   font-family: var(--font-secondary);
-  font-weight: 600;
-  font-size: 1.1rem;
-  letter-spacing: 0.2em;
+  font-weight: 400;
+  font-size: 1.05rem;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--text-primary);
+  color: var(--lr-text-secondary);
   margin: 0 0 0.6rem 0;
 }
 
@@ -64,7 +79,7 @@
   font-family: var(--font-secondary);
   font-size: 0.7rem;
   letter-spacing: 0.08em;
-  color: var(--text-faded);
+  color: var(--lr-text-tertiary);
   line-height: 1.6;
   max-width: 32rem;
 }
@@ -74,13 +89,14 @@
 .lexirep-config-card {
   width: 100%;
   max-width: 34rem;
-  border: 1px solid var(--overlay-border);
-  border-radius: 6px;
+  border: 1px solid var(--lr-border-light);
+  border-radius: 10px;
   overflow: hidden;
+  box-shadow: var(--lr-card-shadow);
 }
 
 .lexirep-config-card-header {
-  background: var(--accent);
+  background: var(--lr-accent);
   padding: 0.65rem 1.4rem;
   display: flex;
   align-items: center;
@@ -92,11 +108,11 @@
   font-size: 0.6rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--bg);
+  color: #ffffff;
 }
 
 .lexirep-config-card-body {
-  background: var(--overlay-bg);
+  background: var(--lr-bg-card);
   padding: 1.8rem 1.6rem;
   display: flex;
   flex-direction: column;
@@ -106,12 +122,13 @@
 /* ── Numbered Sections ───────────────────────────────────── */
 
 .lexirep-section {
-  border: 1px solid var(--overlay-border);
-  border-radius: 4px;
+  border: 1px solid var(--lr-border-light);
+  border-radius: 8px;
   padding: 1.4rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  background: var(--lr-bg);
 }
 
 .lexirep-section-label {
@@ -120,41 +137,42 @@
   font-size: 0.55rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--text-faded);
+  color: var(--lr-text-tertiary);
 }
 
 .lexirep-section-label .accent-num {
-  color: var(--accent);
+  color: var(--lr-accent);
+  font-weight: 600;
 }
 
 /* ── Upload Dropzone ─────────────────────────────────────── */
 
 .lexirep-dropzone {
-  border: 1px dashed var(--text-faded);
-  border-radius: 4px;
+  border: 1.5px dashed var(--lr-border);
+  border-radius: 8px;
   padding: 2.2rem 2rem;
   text-align: center;
   cursor: pointer;
   transition:
-    border-color var(--transition-base),
-    background var(--transition-base);
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
 .lexirep-dropzone:hover,
 .lexirep-dropzone.drag-over {
-  border-color: var(--accent);
-  background: rgba(196, 149, 106, 0.03);
+  border-color: var(--lr-accent);
+  background: rgba(0, 0, 0, 0.015);
 }
 
 .lexirep-dropzone-icon {
-  color: var(--text-faded);
+  color: var(--lr-text-tertiary);
   margin-bottom: 1rem;
-  transition: color var(--transition-base);
+  transition: color 0.2s ease;
 }
 
 .lexirep-dropzone:hover .lexirep-dropzone-icon,
 .lexirep-dropzone.drag-over .lexirep-dropzone-icon {
-  color: var(--accent);
+  color: var(--lr-accent);
 }
 
 .lexirep-dropzone-text {
@@ -162,27 +180,27 @@
   font-size: 0.75rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--lr-text-secondary);
   margin-bottom: 0.5rem;
 }
 
 .lexirep-dropzone-hint {
   font-family: var(--font-secondary);
   font-size: 0.6rem;
-  color: var(--text-faded);
+  color: var(--lr-text-tertiary);
   letter-spacing: 0.06em;
 }
 
-/* ── File Info (inline inside section when selected) ──── */
+/* ── File Info (inline chip when selected) ───────────────── */
 
 .lexirep-file-chip {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0.7rem 1rem;
-  border: 1px solid var(--overlay-border);
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid var(--lr-border-light);
+  border-radius: 6px;
+  background: var(--lr-bg-card);
 }
 
 .lexirep-file-chip-left {
@@ -193,7 +211,7 @@
 
 .lexirep-file-chip-name {
   font-size: 0.75rem;
-  color: var(--text-primary);
+  color: var(--lr-text);
   font-family: var(--font-secondary);
   font-weight: 500;
   word-break: break-all;
@@ -201,7 +219,7 @@
 
 .lexirep-file-chip-meta {
   font-size: 0.55rem;
-  color: var(--text-muted);
+  color: var(--lr-text-secondary);
   font-family: var(--font-secondary);
   letter-spacing: 0.04em;
 }
@@ -209,29 +227,29 @@
 .lexirep-file-chip-remove {
   background: none;
   border: none;
-  color: var(--text-faded);
+  color: var(--lr-text-tertiary);
   cursor: pointer;
   padding: 0.3rem;
-  transition: color var(--transition-base);
+  transition: color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .lexirep-file-chip-remove:hover {
-  color: var(--error);
+  color: var(--lr-error);
 }
 
 .lexirep-validation-msg {
   font-size: 0.6rem;
-  color: var(--accent);
+  color: var(--lr-success);
   font-family: var(--font-secondary);
   letter-spacing: 0.04em;
   padding-left: 0.1rem;
 }
 
 .lexirep-validation-msg.error {
-  color: var(--error);
+  color: var(--lr-error);
 }
 
 /* ── Epoch Slider ────────────────────────────────────────── */
@@ -244,18 +262,18 @@
 
 .lexirep-epoch-label {
   font-family: var(--font-secondary);
-  font-weight: 600;
+  font-weight: 500;
   font-size: 0.55rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--lr-text-secondary);
   display: flex;
   align-items: center;
   gap: 0.45rem;
 }
 
 .lexirep-epoch-value {
-  color: var(--text-primary);
+  color: var(--lr-text);
   font-weight: 500;
   font-size: 0.7rem;
   letter-spacing: 0.04em;
@@ -272,58 +290,56 @@
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--text-faded);
+  height: 3px;
+  border-radius: 1.5px;
+  background: var(--lr-border);
   outline: none;
   cursor: pointer;
-  position: relative;
 }
 
-/* Filled track (painted via JS inline background gradient) */
 .lexirep-epoch-slider::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 2px;
+  height: 3px;
+  border-radius: 1.5px;
 }
 
 .lexirep-epoch-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: var(--accent);
-  border: 2px solid var(--bg);
+  background: var(--lr-bg);
+  border: 1.5px solid var(--lr-accent);
   cursor: pointer;
-  margin-top: -5px;
-  box-shadow: 0 0 6px rgba(196, 149, 106, 0.3);
+  margin-top: -7.5px;
+  box-shadow: 0 0.5px 2px rgba(0, 0, 0, 0.12);
   transition: box-shadow 0.15s ease;
 }
 
 .lexirep-epoch-slider::-webkit-slider-thumb:hover {
-  box-shadow: 0 0 12px rgba(196, 149, 106, 0.5);
+  box-shadow: 0 0.5px 4px rgba(0, 0, 0, 0.18);
 }
 
 .lexirep-epoch-slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: var(--accent);
-  border: 2px solid var(--bg);
+  background: var(--lr-bg);
+  border: 1.5px solid var(--lr-accent);
   cursor: pointer;
-  box-shadow: 0 0 6px rgba(196, 149, 106, 0.3);
+  box-shadow: 0 0.5px 2px rgba(0, 0, 0, 0.12);
 }
 
 .lexirep-epoch-slider::-moz-range-track {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--text-faded);
+  height: 3px;
+  border-radius: 1.5px;
+  background: var(--lr-border);
 }
 
 .lexirep-epoch-slider::-moz-range-progress {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--accent);
+  height: 3px;
+  border-radius: 1.5px;
+  background: var(--lr-accent);
 }
 
 .lexirep-epoch-range-labels {
@@ -331,7 +347,7 @@
   justify-content: space-between;
   font-family: var(--font-secondary);
   font-size: 0.5rem;
-  color: var(--text-faded);
+  color: var(--lr-text-tertiary);
   letter-spacing: 0.06em;
   margin-top: 0.25rem;
 }
@@ -348,45 +364,45 @@
 .lexirep-btn {
   flex: 1;
   background: none;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: var(--text-muted);
+  border: 1px solid var(--lr-border-light);
+  color: var(--lr-text-secondary);
   padding: 0.6rem;
-  border-radius: 3px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 0.6rem;
   font-family: var(--font-secondary);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   transition:
-    color var(--transition-base),
-    border-color var(--transition-base),
-    background var(--transition-base);
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
 .lexirep-btn:hover {
-  color: var(--text-primary);
-  border-color: var(--text-muted);
+  color: var(--lr-text);
+  border-color: var(--lr-text-secondary);
 }
 
 .lexirep-btn.primary {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--lr-accent);
+  background: var(--lr-accent);
+  color: #ffffff;
 }
 
 .lexirep-btn.primary:hover {
-  background: rgba(196, 149, 106, 0.1);
-  color: var(--text-primary);
+  background: #2c2c2e;
 }
 
 .lexirep-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.25;
   cursor: not-allowed;
 }
 
 .lexirep-btn:disabled:hover {
-  color: var(--text-muted);
-  border-color: rgba(255, 255, 255, 0.05);
-  background: none;
+  color: #ffffff;
+  border-color: var(--lr-accent);
+  background: var(--lr-accent);
 }
 
 /* ── Status / Training Display ───────────────────────────── */
@@ -405,38 +421,21 @@
   font-size: 0.6rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--lr-text-secondary);
 }
 
 /* Spinner */
 .lexirep-spinner {
   width: 2rem;
   height: 2rem;
-  border: 2px solid var(--text-faded);
-  border-top-color: var(--accent);
+  border: 2px solid var(--lr-border);
+  border-top-color: var(--lr-accent);
   border-radius: 50%;
   animation: lexirep-spin 0.8s linear infinite;
 }
 
 @keyframes lexirep-spin {
   to { transform: rotate(360deg); }
-}
-
-/* Progress bar (optional, for future use) */
-.lexirep-progress-bar {
-  width: 100%;
-  max-width: 16rem;
-  height: 2px;
-  background: var(--text-faded);
-  border-radius: 1px;
-  overflow: hidden;
-}
-
-.lexirep-progress-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 1px;
-  transition: width 0.3s ease;
 }
 
 /* ── Result ──────────────────────────────────────────────── */
@@ -451,11 +450,11 @@
 }
 
 .lexirep-result-icon {
-  color: var(--accent);
+  color: var(--lr-success);
 }
 
 .lexirep-result-icon.error {
-  color: var(--error);
+  color: var(--lr-error);
 }
 
 .lexirep-result-title {
@@ -464,17 +463,17 @@
   font-size: 0.85rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-primary);
+  color: var(--lr-text);
 }
 
 .lexirep-result-title.error {
-  color: var(--error);
+  color: var(--lr-error);
 }
 
 .lexirep-result-detail {
   font-family: var(--font-secondary);
   font-size: 0.65rem;
-  color: var(--text-muted);
+  color: var(--lr-text-secondary);
   line-height: 1.6;
   max-width: 22rem;
   letter-spacing: 0.04em;
@@ -486,18 +485,18 @@
   gap: 0.3rem;
   font-family: monospace;
   font-size: 0.6rem;
-  color: var(--text-muted);
+  color: var(--lr-text-secondary);
 }
 
 .lexirep-download-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: none;
-  border: 1px solid var(--accent);
-  color: var(--accent);
+  background: var(--lr-accent);
+  border: 1px solid var(--lr-accent);
+  color: #ffffff;
   padding: 0.6rem 1.5rem;
-  border-radius: 3px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 0.6rem;
   font-family: var(--font-secondary);
@@ -506,13 +505,12 @@
   text-decoration: none;
   margin-top: 0.5rem;
   transition:
-    background var(--transition-base),
-    color var(--transition-base);
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .lexirep-download-btn:hover {
-  background: rgba(196, 149, 106, 0.1);
-  color: var(--text-primary);
+  background: #2c2c2e;
 }
 
 /* ── Reduced Motion ──────────────────────────────────────── */
@@ -520,7 +518,7 @@
 @media (prefers-reduced-motion: reduce) {
   .lexirep-spinner {
     animation: none;
-    border-top-color: var(--accent);
+    border-top-color: var(--lr-accent);
     opacity: 0.7;
   }
 }
