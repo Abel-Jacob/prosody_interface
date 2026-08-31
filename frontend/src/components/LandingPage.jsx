@@ -11,6 +11,9 @@ const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
 export default function LandingPage({ onNavigate }) {
   return (
     <div className="landing-container">
+      <div className="landing-wordmark" aria-label="Prosody.">
+        <span>PROS</span><span className="landing-wordmark-accent">ODY</span><span>.</span>
+      </div>
       <h1 className="landing-title">Choose an interface</h1>
 
       <div className="landing-cards">

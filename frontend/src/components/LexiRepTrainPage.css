@@ -1,13 +1,13 @@
-.lexirep-container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 96px 24px 64px; position: relative; }
+.lexirep-container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 72px 32px 48px; position: relative; }
 .lexirep-container::before { content: 'PROSODY / LEXIREP'; position: absolute; top: 28px; left: 28px; color: var(--text-primary); font: 600 .7rem/1 var(--font-mono); letter-spacing: .12em; }
 .lexirep-back { position: absolute; top: 24px; right: 28px; padding: 8px 0; background: none; border: 0; color: var(--text-muted); font: .65rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; cursor: pointer; transition: color var(--transition-base); }
 .lexirep-back:hover { color: var(--text-primary); }
-.lexirep-header { width: 100%; max-width: 640px; margin: 0 0 56px; text-align: left; }
+.lexirep-header { width: 100%; max-width: 56rem; margin: 0 0 32px; text-align: left; }
 .lexirep-header h1 { margin: 0 0 12px; color: var(--text-primary); font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 600; letter-spacing: -.06em; line-height: 1; text-transform: none; }
 .lexirep-header p { max-width: 32rem; color: var(--text-muted); font-size: .9rem; line-height: 1.65; }
-.lexirep-content { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 48px; }
+.lexirep-content { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 28px; }
 .lexirep-step-label { margin-bottom: 14px; color: var(--text-muted); font: 500 .65rem var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
-.lexirep-upload-zone { padding: 48px 24px; border: 1px dashed var(--border-strong); border-radius: 3px; background: transparent; text-align: center; cursor: pointer; transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-base); }
+.lexirep-upload-zone { padding: 64px 32px; border: 1px dashed var(--border-strong); border-radius: 3px; background: transparent; text-align: center; cursor: pointer; transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-base); }
 .lexirep-upload-zone:hover, .lexirep-upload-zone.drag-over { border-color: var(--accent); background: var(--bg-subtle); transform: translateY(-2px); }
 .lexirep-upload-zone-icon { margin-bottom: 16px; color: var(--text-muted); }
 .lexirep-upload-zone-text { margin-bottom: 6px; color: var(--text-primary); font-size: .85rem; font-weight: 600; }

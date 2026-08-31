@@ -90,7 +90,7 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
     color: 'var(--accent)',
     textTransform: 'uppercase',
     letterSpacing: '0.04em',
-    textShadow: 'none'
+    textShadow: '0 0 5px var(--accent-dim), 0 0 14px rgba(196, 149, 106, 0.22)'
   } : {}
 
   return (

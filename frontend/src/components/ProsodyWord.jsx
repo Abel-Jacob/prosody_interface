@@ -103,6 +103,7 @@ export default function ProsodyWord({
   const className = [
     'prosody-word',
     revealed ? 'reveal' : 'animating',
+    stressed ? 'stressed' : '',
     isInspected ? 'inspected' : '',
   ].filter(Boolean).join(' ')
 
