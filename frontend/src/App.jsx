@@ -104,7 +104,7 @@ function App() {
             exit={{ opacity: 0 }}
             transition={stateTransition}
           >
-            <IdleState onStart={handleStartListening} onUpload={handleUploadAudio} />
+            <IdleState onStart={handleStartListening} onUpload={handleUploadAudio} onBack={handleReset} />
           </motion.div>
         )}
         

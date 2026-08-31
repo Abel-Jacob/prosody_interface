@@ -4,7 +4,7 @@ import AudioPlayer from './AudioPlayer'
 
 const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
 
-export default function IdleState({ onStart, onUpload }) {
+export default function IdleState({ onStart, onUpload, onBack }) {
   const [selectedFile, setSelectedFile] = useState(null)
   const [audioUrl, setAudioUrl] = useState(null)
 
@@ -192,6 +192,17 @@ export default function IdleState({ onStart, onUpload }) {
         style={{ display: 'none' }}
       />
 
+      {onBack && (
+        <button
+          type="button"
+          className="prosody-back-button"
+          onClick={onBack}
+          aria-label="Back to interface selection"
+        >
+          ← Back
+        </button>
+      )}
+
       {/* Main Speak Option */}
       <motion.div
         onClick={onStart}
@@ -213,7 +224,7 @@ export default function IdleState({ onStart, onUpload }) {
           transition: 'color var(--transition-base)',
           margin: 0
         }}
-        onMouseEnter={(e) => e.target.style.color = 'var(--text-primary)'}
+        onMouseEnter={(e) => e.target.style.color = 'var(--accent)'}
         onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
         >
           start speaking
@@ -259,7 +270,7 @@ export default function IdleState({ onStart, onUpload }) {
           fontFamily: 'var(--font-secondary)',
           transition: 'color var(--transition-base)'
         }}
-        onMouseEnter={(e) => e.target.style.color = 'var(--text-primary)'}
+        onMouseEnter={(e) => e.target.style.color = 'var(--accent)'}
         onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
       >
         upload audio file
