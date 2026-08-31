@@ -13,10 +13,10 @@
   --error: #F97316;
   --overlay-bg: #11100F;
   --overlay-border: #242321;
-  --font-primary: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
-  --font-secondary: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
-  --font-mono: 'SF Mono', 'DM Mono', ui-monospace, monospace;
-  --transition-base: 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-secondary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'DM Mono', 'SFMono-Regular', Consolas, monospace;
+  --transition-base: 0.22s cubic-bezier(0.22, 1, 0.36, 1);
   --pitch-deform-duration: 0.6s;
 }
 
@@ -59,9 +59,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 @media (max-width: 640px) { .app-backend-config { right: 12px; bottom: 12px; left: 12px; } .app-backend-config input { min-width: 0; width: 100%; } }
 
 .landing-container, .idle-container { background: transparent; }
-button { border-radius: 12px !important; }
-button:active { transform: scale(.97); }
-@media (prefers-reduced-motion: reduce) { button:active { transform: none; } }
+button { border-radius: 3px !important; }
 .prosody-char { transition: color var(--transition-base), transform var(--pitch-deform-duration) ease; }
 .word-tooltip-content { border-radius: 3px !important; box-shadow: 0 8px 24px rgba(23,23,23,.12) !important; }
 .word-tooltip-container { font-family: var(--font-mono); }
