@@ -8,8 +8,7 @@
   position: relative;
 }
 
-.landing-container::before {
-  content: 'PROSODY.';
+.landing-wordmark {
   position: absolute;
   top: 28px;
   left: 28px;
@@ -17,6 +16,8 @@
   font: 600 .7rem/1 var(--font-mono);
   letter-spacing: .16em;
 }
+
+.landing-wordmark-accent { color: var(--accent); }
 
 .landing-title {
   margin-bottom: 28px;
