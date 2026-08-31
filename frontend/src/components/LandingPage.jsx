@@ -12,7 +12,7 @@ export default function LandingPage({ onNavigate }) {
   return (
     <div className="landing-container">
       <div className="landing-wordmark" aria-label="Prosody.">
-        <span>PROS</span><span className="landing-wordmark-accent">ODY</span><span>.</span>
+        <span>Pros</span><span className="landing-wordmark-accent">ody.</span>
       </div>
       <h1 className="landing-title">Choose an interface</h1>
 
