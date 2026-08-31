@@ -50,7 +50,7 @@ export default function AppRouter() {
             exit={{ opacity: 0 }}
             transition={pageTransition}
           >
-            <App />
+            <App onBack={() => setPage('landing')} />
           </motion.div>
         )}
 

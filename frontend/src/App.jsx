@@ -13,7 +13,7 @@ import { BACKEND_DOMAIN, setBackendDomain, getHttpUrl } from './apiConfig'
    Critically damped (bounce: 0), ~200ms — system-driven, not gesture. */
 const stateTransition = { type: 'spring', duration: 0.2, bounce: 0 }
 
-function App() {
+function App({ onBack }) {
   // state: 'idle' | 'listening' | 'processing' | 'summary' | 'annotation'
   const [appState, setAppState] = useState('idle')
   const [jobId, setJobId] = useState(null)
@@ -104,7 +104,7 @@ function App() {
             exit={{ opacity: 0 }}
             transition={stateTransition}
           >
-            <IdleState onStart={handleStartListening} onUpload={handleUploadAudio} onBack={handleReset} />
+            <IdleState onStart={handleStartListening} onUpload={handleUploadAudio} onBack={onBack} />
           </motion.div>
         )}
         
