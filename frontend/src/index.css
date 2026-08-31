@@ -1,17 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg: #FAFAFA;
-  --bg-subtle: #F3F3F3;
-  --text-primary: #171717;
-  --text-muted: #737373;
-  --text-faded: #DEDEDE;
-  --border-strong: #BDBDBD;
-  --accent: #171717;
-  --accent-dim: rgba(23, 23, 23, 0.12);
-  --error: #171717;
-  --overlay-bg: #FAFAFA;
-  --overlay-border: #DEDEDE;
+  --bg: #090909;
+  --bg-subtle: #11100F;
+  --text-primary: #F2F0EA;
+  --text-muted: #77736D;
+  --text-faded: #242321;
+  --border-strong: #3A3732;
+  --accent: #C4956A;
+  --accent-dim: rgba(196, 149, 106, 0.15);
+  --pause: #F97316;
+  --error: #F97316;
+  --overlay-bg: #11100F;
+  --overlay-border: #242321;
   --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-secondary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'DM Mono', 'SFMono-Regular', Consolas, monospace;
@@ -23,7 +24,7 @@
 html { background: var(--bg); }
 body { margin: 0; min-height: 100vh; overflow-x: hidden; background: var(--bg); color: var(--text-primary); font-family: var(--font-primary); -webkit-font-smoothing: antialiased; }
 button, input { font: inherit; }
-button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 4px; }
+button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 
 .canvas-bg { position: fixed; inset: 0; z-index: -1; width: 100vw; height: 100vh; background: var(--bg); transition: opacity 0.8s ease; }
 .canvas-bg.active { background: var(--bg); }
@@ -39,7 +40,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 
 @keyframes breatheDot { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
 .pause-dots { display: inline-flex; align-items: center; gap: 3px; margin: 0 .2rem; vertical-align: middle; }
-.pause-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--text-muted); animation: breatheDot 1.4s ease-in-out infinite; }
+.pause-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--pause); animation: breatheDot 1.4s ease-in-out infinite; }
 .pause-dot:nth-child(2) { animation-delay: .15s; }
 .pause-dot:nth-child(3) { animation-delay: .3s; }
 
@@ -52,7 +53,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 .technical, [data-technical='true'] { font-family: var(--font-mono); }
 .app-wordmark { position: fixed; top: 24px; left: 28px; z-index: 5; color: var(--text-primary); font: 600 0.7rem/1 var(--font-mono); letter-spacing: .16em; }
 
-.app-backend-config { position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--text-faded); background: rgba(250,250,250,.94); border-radius: 3px; }
+.app-backend-config { position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--text-faded); background: rgba(17,16,15,.94); border-radius: 3px; }
 .app-backend-config label { color: var(--text-muted); font: 0.625rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
 .app-backend-config input { width: 240px; padding: 4px 8px; border: 1px solid var(--text-faded); border-radius: 2px; background: transparent; color: var(--text-primary); font: .6875rem var(--font-mono); outline: none; }
 @media (max-width: 640px) { .app-backend-config { right: 12px; bottom: 12px; left: 12px; } .app-backend-config input { min-width: 0; width: 100%; } }
@@ -66,14 +67,13 @@ button { border-radius: 3px !important; }
 
 /* Keep legacy inline controls visually aligned with the new system. */
 .idle-container button, .lexirep-container button { letter-spacing: .08em; }
-input[type='range'] { accent-color: var(--text-primary); }
+input[type='range'] { accent-color: var(--accent); }
 .back-button, .lexirep-back { text-decoration: none; }
-
 a { color: inherit; }
 [data-testid='annotation-report'] { background: var(--bg); }
 
 @media (prefers-contrast: more) { .overlay-material { border-color: var(--border-strong) !important; } }
-@media (prefers-reduced-transparency: reduce) { .app-backend-config { background: var(--bg); } }
+@media (prefers-reduced-transparency: reduce) { .app-backend-config { background: var(--bg-subtle); } }
 
 /* Editorial report overrides */
 .annotation-report, .report-container { color: var(--text-primary); }
@@ -101,7 +101,7 @@ a { color: inherit; }
 canvas { max-width: 100%; }
 
 /* Ensure upload states communicate through contrast, not color. */
-.lexirep-upload-zone.drag-over { border-color: var(--text-primary); background: var(--bg-subtle); }
+.lexirep-upload-zone.drag-over { border-color: var(--accent); background: var(--bg-subtle); }
 .lexirep-validation-msg.error { color: var(--text-primary); font-weight: 600; }
 
 /* Technical values */
@@ -109,7 +109,7 @@ canvas { max-width: 100%; }
 
 /* Focus affordance for clickable cards rendered as divs. */
 .landing-card[role='button'] { outline: none; }
-.landing-card[role='button']:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 5px; }
+.landing-card[role='button']:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 
 /* Responsive report media */
 img, svg { max-width: 100%; }

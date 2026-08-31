@@ -4,7 +4,7 @@ import AudioPlayer from './AudioPlayer'
 
 const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
 
-export default function IdleState({ onStart, onUpload }) {
+export default function IdleState({ onStart, onUpload, onBack }) {
   const [selectedFile, setSelectedFile] = useState(null)
   const [audioUrl, setAudioUrl] = useState(null)
 
@@ -192,6 +192,24 @@ export default function IdleState({ onStart, onUpload }) {
         style={{ display: 'none' }}
       />
 
+      {onBack && (
+        <motion.button
+          type="button"
+          className="lexirep-back"
+          onClick={onBack}
+          aria-label="Back to interface selection"
+          whileTap={{ scale: 0.95 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12,19 5,12 12,5" />
+          </svg>
+          back
+        </motion.button>
+      )}
+
       {/* Main Speak Option */}
       <motion.div
         onClick={onStart}
@@ -213,7 +231,7 @@ export default function IdleState({ onStart, onUpload }) {
           transition: 'color var(--transition-base)',
           margin: 0
         }}
-        onMouseEnter={(e) => e.target.style.color = 'var(--text-primary)'}
+        onMouseEnter={(e) => e.target.style.color = 'var(--accent)'}
         onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
         >
           start speaking
@@ -259,7 +277,7 @@ export default function IdleState({ onStart, onUpload }) {
           fontFamily: 'var(--font-secondary)',
           transition: 'color var(--transition-base)'
         }}
-        onMouseEnter={(e) => e.target.style.color = 'var(--text-primary)'}
+        onMouseEnter={(e) => e.target.style.color = 'var(--accent)'}
         onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}
       >
         upload audio file

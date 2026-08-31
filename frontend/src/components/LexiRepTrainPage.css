@@ -8,7 +8,7 @@
 .lexirep-content { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 48px; }
 .lexirep-step-label { margin-bottom: 14px; color: var(--text-muted); font: 500 .65rem var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
 .lexirep-upload-zone { padding: 48px 24px; border: 1px dashed var(--border-strong); border-radius: 3px; background: transparent; text-align: center; cursor: pointer; transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-base); }
-.lexirep-upload-zone:hover, .lexirep-upload-zone.drag-over { border-color: var(--text-primary); background: var(--bg-subtle); transform: translateY(-2px); }
+.lexirep-upload-zone:hover, .lexirep-upload-zone.drag-over { border-color: var(--accent); background: var(--bg-subtle); transform: translateY(-2px); }
 .lexirep-upload-zone-icon { margin-bottom: 16px; color: var(--text-muted); }
 .lexirep-upload-zone-text { margin-bottom: 6px; color: var(--text-primary); font-size: .85rem; font-weight: 600; }
 .lexirep-upload-zone-hint { color: var(--text-muted); font: .72rem var(--font-mono); }
@@ -28,7 +28,7 @@
 .lexirep-epoch-number { color: var(--text-primary); font: 500 1.5rem var(--font-mono); font-variant-numeric: tabular-nums; }
 .lexirep-epoch-slider { width: 100%; height: 3px; accent-color: var(--text-primary); cursor: pointer; }
 .lexirep-epoch-range { display: flex; justify-content: space-between; color: var(--text-muted); font: .65rem var(--font-mono); }
-.lexirep-submit-btn { width: 100%; min-height: 44px; padding: 12px; border: 1px solid var(--text-primary); border-radius: 3px; background: var(--text-primary); color: var(--bg); cursor: pointer; font: 600 .68rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; transition: opacity var(--transition-base), transform var(--transition-base); }
+.lexirep-submit-btn { width: 100%; min-height: 44px; padding: 12px; border: 1px solid var(--accent); border-radius: 3px; background: var(--accent); color: var(--bg); cursor: pointer; font: 600 .68rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; transition: opacity var(--transition-base), transform var(--transition-base); }
 .lexirep-submit-btn:hover { opacity: .78; }
 .lexirep-submit-btn:active { transform: translateY(1px); }
 .lexirep-submit-btn:disabled { opacity: .28; cursor: not-allowed; }
