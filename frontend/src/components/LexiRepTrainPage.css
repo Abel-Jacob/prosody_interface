@@ -7,8 +7,8 @@
 .lexirep-header p { max-width: 32rem; color: var(--text-muted); font-size: .9rem; line-height: 1.65; }
 .lexirep-content { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 28px; }
 .lexirep-step-label { margin-bottom: 14px; color: var(--text-muted); font: 500 .65rem var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
-.lexirep-upload-zone { padding: 64px 32px; border: 1px dashed var(--border-strong); border-radius: 3px; background: transparent; text-align: center; cursor: pointer; transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-base); }
-.lexirep-upload-zone:hover, .lexirep-upload-zone.drag-over { border-color: var(--accent); background: var(--bg-subtle); transform: translateY(-2px); }
+.lexirep-upload-zone { padding: 64px 32px; border: 1px dashed var(--border-strong); border-radius: 20px; background: rgba(255,255,255,.035); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); text-align: center; cursor: pointer; transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-base); }
+.lexirep-upload-zone:hover, .lexirep-upload-zone.drag-over { border-color: var(--accent); background: rgba(196,149,106,.1); box-shadow: 0 16px 40px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.08); transform: translateY(-3px); }
 .lexirep-upload-zone-icon { margin-bottom: 16px; color: var(--text-muted); }
 .lexirep-upload-zone-text { margin-bottom: 6px; color: var(--text-primary); font-size: .85rem; font-weight: 600; }
 .lexirep-upload-zone-hint { color: var(--text-muted); font: .72rem var(--font-mono); }
