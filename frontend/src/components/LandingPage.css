@@ -51,12 +51,12 @@
 }
 
 .landing-card::after { content: '↗'; position: absolute; right: 24px; bottom: 22px; color: var(--text-faded); font-size: 1.1rem; transition: color var(--transition-base), transform var(--transition-base); }
-.landing-card:hover { transform: translateY(-3px); border-color: var(--accent); background: var(--bg-subtle); }
-.landing-card:hover::after { color: var(--accent); transform: translate(2px, -2px); }
+.landing-card:hover { transform: translateY(-3px); border-color: var(--border-strong); background: var(--bg-subtle); }
+.landing-card:hover::after { color: var(--text-primary); transform: translate(2px, -2px); }
 .landing-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 
 .landing-card-icon { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: color var(--transition-base); }
-.landing-card:hover .landing-card-icon { color: var(--accent); }
+.landing-card:hover .landing-card-icon { color: var(--text-primary); }
 .landing-card:hover .landing-card-title { color: var(--text-primary); }
 .landing-card:hover .landing-card-subtitle { color: var(--text-muted); }
 .landing-card-title { color: var(--text-primary); font-size: .95rem; font-weight: 600; letter-spacing: -.02em; text-transform: none; }
