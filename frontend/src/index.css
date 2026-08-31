@@ -53,7 +53,7 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 .technical, [data-technical='true'] { font-family: var(--font-mono); }
 .app-wordmark { position: fixed; top: 24px; left: 28px; z-index: 5; color: var(--text-primary); font: 600 0.7rem/1 var(--font-mono); letter-spacing: .16em; }
 
-.app-backend-config { position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--text-faded); background: rgba(17,16,15,.94); border-radius: 3px; }
+.app-backend-config { display: none; position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--text-faded); background: rgba(17,16,15,.94); border-radius: 3px; }
 .app-backend-config label { color: var(--text-muted); font: 0.625rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
 .app-backend-config input { width: 240px; padding: 4px 8px; border: 1px solid var(--text-faded); border-radius: 2px; background: transparent; color: var(--text-primary); font: .6875rem var(--font-mono); outline: none; }
 @media (max-width: 640px) { .app-backend-config { right: 12px; bottom: 12px; left: 12px; } .app-backend-config input { min-width: 0; width: 100%; } }
@@ -145,5 +145,34 @@ button, a, .landing-card, .lexirep-upload-zone { transition-duration: var(--tran
   .idle-container { padding-inline: 8vw !important; }
 }
 @media (max-width: 640px) { .landing-container { padding-top: 96px; } }
+
+/* Prosody recording page */
+.prosody-page { min-height: 100vh; background: var(--bg); color: var(--text-primary); }
+.prosody-header { display: flex; align-items: center; justify-content: space-between; padding: 28px 32px; }
+.prosody-header-brand { display: flex; align-items: center; gap: 8px; font: 500 .65rem/1 var(--font-mono); letter-spacing: .12em; }
+.prosody-header-label:first-child { color: var(--text-primary); }
+.prosody-header-label:last-child { color: var(--accent); }
+.prosody-header-slash { color: var(--text-faded); }
+.prosody-header-back { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--text-faded); background: transparent; color: var(--text-muted); padding: 8px 11px; cursor: pointer; font: 500 .62rem/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; transition: color var(--transition-base), border-color var(--transition-base); }
+.prosody-header-back svg { width: 14px; height: 14px; }
+.prosody-header-back:hover { color: var(--accent); border-color: var(--accent); }
+.prosody-main { min-height: calc(100vh - 82px); display: flex; align-items: center; justify-content: center; padding: 24px 24px 72px; }
+.prosody-center { width: min(100%, 38rem); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0; }
+.prosody-context { display: flex; gap: 10px; align-items: center; margin-bottom: 28px; font: 500 .6rem/1 var(--font-mono); letter-spacing: .14em; }
+.prosody-context-label { color: var(--text-muted); }
+.prosody-context-value { color: var(--accent); }
+.prosody-waveform-container { width: min(100%, 34rem); height: 42px; margin-bottom: 24px; }
+.prosody-idle-waveform { width: 100%; height: 100%; display: block; }
+.prosody-action-primary { border: 0; background: transparent; color: var(--text-primary); padding: 8px 12px; cursor: pointer; font: 500 clamp(1.05rem, 2vw, 1.25rem)/1 var(--font-primary); letter-spacing: .18em; transition: color var(--transition-base), transform var(--transition-base); }
+.prosody-action-primary:hover { color: var(--accent); transform: translateY(-2px); }
+.prosody-action-hint { margin-top: 10px; color: var(--text-muted); font: .7rem/1.5 var(--font-mono); letter-spacing: .04em; }
+.prosody-action-hint kbd { color: var(--text-primary); font: inherit; }
+.prosody-divider { width: 4rem; border-top: 1px solid var(--text-faded); margin: 34px 0 26px; }
+.prosody-upload-group { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.prosody-upload-label { color: var(--text-faded); font: .6rem/1 var(--font-mono); letter-spacing: .16em; }
+.prosody-action-secondary { border: 0; background: transparent; color: var(--text-muted); padding: 7px 10px; cursor: pointer; font: 500 .68rem/1 var(--font-mono); letter-spacing: .14em; transition: color var(--transition-base), transform var(--transition-base); }
+.prosody-action-secondary:hover { color: var(--accent); transform: translateY(-1px); }
+.prosody-upload-hint { color: var(--text-faded); font: .65rem/1.4 var(--font-mono); letter-spacing: .04em; }
+@media (max-width: 640px) { .prosody-header { padding: 20px; } .prosody-main { min-height: calc(100vh - 70px); padding: 16px 20px 56px; } .prosody-waveform-container { width: 100%; } .prosody-header-back { padding: 7px 9px; } }
 
 /* End system */
