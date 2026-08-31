@@ -37,6 +37,14 @@ async def run_diagnostics():
     audio_duration = len(audio) / 16000
     print(f"\nLoaded Audio Duration: {audio_duration:.2f}s")
     
+    from pipeline.audio_sanity import verify_audio_sanity
+    try:
+        verify_audio_sanity(audio, sr)
+        print("Audio sanity check: PASSED (Genuine speech detected)")
+    except ValueError as e:
+        print(f"WARNING: Audio sanity check FAILED! {e}")
+
+    
     print("\n--- Running Pipeline ---")
     
     # VAD
@@ -56,7 +64,7 @@ async def run_diagnostics():
         
         # ASR
         t_asr0 = time.time()
-        asr_result = transcribe_chunk(chunk['audio'], models["asr"])
+        asr_result = transcribe_chunk(chunk['audio'], models["asr_final"])
         words = asr_result["words"]
         text = asr_result["text"]
         t_asr1 = time.time()

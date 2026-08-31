@@ -31,6 +31,7 @@ class TrainJob:
     status: TrainJobStatus
     dataset_path: Path
     output_dir: Path
+    epochs: int = 10
     error: Optional[str] = None
     output_files: list = field(default_factory=list)
 
@@ -70,16 +71,21 @@ def create_train_job(dataset_path: Path, output_dir: Path) -> TrainJob:
 #   - Raise any exception on failure — the caller will catch it.
 # ══════════════════════════════════════════════════════════════════
 
-def run_lexirep_training(dataset_path: Path, output_dir: Path) -> None:
+def run_lexirep_training(dataset_path: Path, output_dir: Path, epochs: int = 10) -> None:
     """
     Run the full LexiRep training pipeline on the provided 768-dim dataset.
 
     This is a SYNCHRONOUS, blocking function. It will be called inside
     asyncio.to_thread() so it doesn't block the event loop.
 
+    Parameters:
+        dataset_path: Path to the uploaded 768-dim dataset file (CSV or NPY)
+        output_dir:   Directory where trained model files should be written
+        epochs:       Number of training epochs (configurable from the UI)
+
     When the real LexiRep code is provided, replace this body with:
         from lexirep import train  # or whatever the import is
-        train(dataset_path, output_dir)
+        train(dataset_path, output_dir, epochs=epochs)
 
     For now, raises NotImplementedError.
     """
@@ -101,12 +107,14 @@ async def execute_training_job(job: TrainJob) -> None:
         logger.info(f"[LexiRep] Starting training job {job.job_id}")
         logger.info(f"[LexiRep]   Dataset: {job.dataset_path}")
         logger.info(f"[LexiRep]   Output:  {job.output_dir}")
+        logger.info(f"[LexiRep]   Epochs:  {job.epochs}")
 
         # Run blocking training in a thread so we don't block the event loop
         await asyncio.to_thread(
             run_lexirep_training,
             job.dataset_path,
             job.output_dir,
+            job.epochs,
         )
 
         # Collect output files

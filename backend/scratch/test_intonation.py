@@ -9,6 +9,14 @@ import librosa
 audio, sr = librosa.load("../test.wav", sr=16000, mono=True)
 print(f"Audio loaded: {len(audio)} samples, {len(audio)/sr:.1f}s")
 
+from pipeline.audio_sanity import verify_audio_sanity
+try:
+    verify_audio_sanity(audio, sr)
+    print("Audio sanity check: PASSED (Genuine speech detected)")
+except ValueError as e:
+    print(f"WARNING: Audio sanity check FAILED! {e}")
+
+
 # Test pyin directly
 print("\n--- Testing librosa.pyin ---")
 f0, voiced, voiced_prob = librosa.pyin(audio[:16000*5], fmin=50, fmax=500, sr=16000)
@@ -44,4 +52,5 @@ for w in result.get("word_intonation", []):
 if "error" in result:
     print(f"\nERROR: {result['error']}")
 
-print("\n✅ IntonationAnalyzer works correctly" if result.get("word_intonation") else "\n❌ No intonation data produced")
+print("\n[OK] IntonationAnalyzer works correctly" if result.get("word_intonation") else "\n[FAIL] No intonation data produced")
+

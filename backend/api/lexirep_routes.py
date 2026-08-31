@@ -16,7 +16,7 @@ import zipfile
 import logging
 import numpy as np
 from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from config import BASE_DIR
@@ -89,7 +89,10 @@ def _validate_npy(filepath: Path) -> tuple[bool, str]:
 
 
 @router.post("/train-custom")
-async def train_custom(dataset: UploadFile = File(...)):
+async def train_custom(
+    dataset: UploadFile = File(...),
+    epochs: int = Form(10),
+):
     """
     Upload a 768-dim dataset file and start asynchronous LexiRep training.
 
@@ -146,17 +149,22 @@ async def train_custom(dataset: UploadFile = File(...)):
 
     logger.info(f"[LexiRep] Dataset validation passed: {msg}")
 
+    # Clamp epochs to a sane range
+    epochs = max(1, min(epochs, 100))
+    logger.info(f"[LexiRep] Epochs requested: {epochs}")
+
     # Create job and launch async training
     job = create_train_job(dataset_path, output_dir)
     # Override job_id to match our directory
     job.job_id = job_id
+    job.epochs = epochs
     from api.lexirep_training import _jobs
     _jobs[job_id] = job
 
     asyncio.create_task(execute_training_job(job))
 
     return JSONResponse(
-        content={"job_id": job_id, "status": "running", "validation": msg}
+        content={"job_id": job_id, "status": "running", "validation": msg, "epochs": epochs}
     )
 
 

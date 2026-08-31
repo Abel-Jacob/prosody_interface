@@ -52,7 +52,7 @@ async def run_diagnostics():
         # ASR
         t_asr0 = time.time()
         # transcribe_chunk is sync (uses faster-whisper)
-        asr_result = transcribe_chunk(chunk['audio'], models["asr"])
+        asr_result = transcribe_chunk(chunk['audio'], models["asr_final"])
         words = asr_result["words"]
         text = asr_result["text"]
         t_asr1 = time.time()

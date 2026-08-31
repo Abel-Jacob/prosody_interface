@@ -28,7 +28,7 @@ async def test_quantization():
     
     # We need a transcription to use the fast path
     print("\nGetting transcription...")
-    asr_result = transcribe_chunk(audio, models["asr"])
+    asr_result = transcribe_chunk(audio, models["asr_final"])
     words = asr_result["words"]
     print(f"Transcription: {' '.join([w['word'] for w in words])}")
     
