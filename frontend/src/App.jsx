@@ -170,23 +170,11 @@ function App() {
 
 
       {/* Backend Configuration UI */}
-      <div style={{
-        position: 'fixed',
-        bottom: '20px',
-        left: '20px',
-        zIndex: 9999,
-        background: 'rgba(255,255,255,0.8)',
-        backdropFilter: 'blur(12px)',
-        padding: '8px 12px',
-        borderRadius: '10px',
-        border: '1px solid var(--text-faded)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px'
-      }}>
+      <div className="app-backend-config">
         {/* Finding 10 audit: converted px font-sizes to rem */}
-        <label style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-secondary)' }}>Tunnel URL:</label>
-        <input 
+        <label htmlFor="tunnel-url">Tunnel URL:</label>
+        <input
+          id="tunnel-url"
           type="text" 
           value={backendUrl}
           onChange={(e) => {
