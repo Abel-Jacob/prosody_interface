@@ -35,7 +35,7 @@ export default function ProcessingState({ jobId, onComplete }) {
             fontWeight: 500,
             textTransform: 'lowercase',
             letterSpacing: '0.1em',
-            color: '#ffffff',
+            color: 'var(--text-primary)',
             margin: 0
           }}>
             processing transcription...
@@ -44,8 +44,8 @@ export default function ProcessingState({ jobId, onComplete }) {
           <div style={{
             width: '100%',
             height: '8px',
-            backgroundColor: '#141312',
-            border: '1px solid #3a3632',
+            backgroundColor: 'var(--text-faded)',
+            border: '1px solid var(--text-faded)',
             borderRadius: '0px',
             overflow: 'hidden'
           }}>

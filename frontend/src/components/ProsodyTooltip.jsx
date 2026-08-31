@@ -133,7 +133,7 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
             {/* Word header */}
         <div className="tooltip-row" style={{ marginBottom: '4px' }}>
           <span className="tooltip-label" style={{ 
-            color: 'var(--text-primary, #e5e5e5)', 
+            color: '#ffffff', 
             fontWeight: 700,
             fontSize: '0.7rem',
             letterSpacing: '0.02em',

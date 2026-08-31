@@ -74,10 +74,10 @@ export default function IdleState({ onStart, onUpload }) {
         <div style={{
           width: '100%',
           maxWidth: '24rem',
-          background: 'rgba(22, 21, 20, 0.4)',
+          background: 'var(--bg-subtle)',
           border: '1px solid var(--text-faded)',
           padding: '2rem 1.5rem',
-          borderRadius: '4px',
+          borderRadius: '12px',
           display: 'flex',
           flexDirection: 'column',
           gap: '1.2rem'
@@ -107,7 +107,7 @@ export default function IdleState({ onStart, onUpload }) {
 
           <AudioPlayer src={audioUrl} style={{ border: 'none', background: 'none', padding: 0, maxWidth: '100%' }} />
 
-          <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.05)', margin: '0.4rem 0' }} />
+          <div style={{ height: '1px', backgroundColor: 'var(--text-faded)', margin: '0.4rem 0' }} />
 
           {/* Action Row */}
           <div style={{
@@ -120,10 +120,10 @@ export default function IdleState({ onStart, onUpload }) {
               style={{
                 flex: 1,
                 background: 'none',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--text-faded)',
                 color: 'var(--text-muted)',
                 padding: '0.5rem',
-                borderRadius: '3px',
+                borderRadius: '8px',
                 cursor: 'pointer',
                 fontSize: '0.65rem',
                 fontFamily: 'var(--font-secondary)',
@@ -136,7 +136,7 @@ export default function IdleState({ onStart, onUpload }) {
               }}
               onMouseLeave={(e) => {
                 e.target.style.color = 'var(--text-muted)'
-                e.target.style.borderColor = 'rgba(255, 255, 255, 0.05)'
+                e.target.style.borderColor = 'var(--text-faded)'
               }}
             >
               Cancel
@@ -146,11 +146,11 @@ export default function IdleState({ onStart, onUpload }) {
               onClick={handleProceed}
               style={{
                 flex: 1,
-                background: 'none',
+                background: 'var(--accent)',
                 border: '1px solid var(--accent)',
-                color: 'var(--accent)',
+                color: 'var(--bg)',
                 padding: '0.5rem',
-                borderRadius: '3px',
+                borderRadius: '8px',
                 cursor: 'pointer',
                 fontSize: '0.65rem',
                 fontFamily: 'var(--font-secondary)',
@@ -158,12 +158,10 @@ export default function IdleState({ onStart, onUpload }) {
                 textTransform: 'uppercase'
               }}
               onMouseEnter={(e) => {
-                e.target.style.background = 'rgba(196, 149, 106, 0.1)'
-                e.target.style.color = 'var(--text-primary)'
+                e.target.style.opacity = '0.85'
               }}
               onMouseLeave={(e) => {
-                e.target.style.background = 'none'
-                e.target.style.color = 'var(--accent)'
+                e.target.style.opacity = '1'
               }}
             >
               Analyze Audio

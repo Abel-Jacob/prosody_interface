@@ -91,10 +91,10 @@ export default function AudioPlayer({ src, style }) {
     <div style={{
       width: '100%',
       maxWidth: '24rem',
-      background: 'rgba(22, 21, 20, 0.4)',
+      background: 'var(--bg-subtle)',
       border: '1px solid var(--text-faded)',
       padding: '1.2rem 1.5rem',
-      borderRadius: '4px',
+      borderRadius: '10px',
       display: 'flex',
       flexDirection: 'column',
       gap: '0.8rem',
@@ -169,19 +169,19 @@ export default function AudioPlayer({ src, style }) {
         <button
           onClick={handlePlayPause}
           style={{
-            background: 'rgba(255, 255, 255, 0.05)',
+            background: 'var(--bg-subtle)',
             border: '1px solid var(--text-faded)',
             color: 'var(--text-primary)',
             padding: '0.4rem 1.2rem',
-            borderRadius: '3px',
+            borderRadius: '8px',
             cursor: 'pointer',
             fontSize: '0.7rem',
             fontFamily: 'var(--font-secondary)',
             letterSpacing: '0.1em',
             textTransform: 'uppercase'
           }}
-          onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}
-          onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.05)'}
+          onMouseEnter={(e) => e.target.style.background = 'var(--text-faded)'}
+          onMouseLeave={(e) => e.target.style.background = 'var(--bg-subtle)'}}
         >
           {isPlaying ? 'pause' : 'play'}
         </button>

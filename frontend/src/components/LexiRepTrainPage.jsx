@@ -37,12 +37,10 @@ function validateCsvText(text) {
 
 /**
  * Parse NPY header to read shape. Returns { valid, shape, message }.
- * NPY v1 format: 6-byte magic, 2-byte version, 2-byte header_len, then ASCII header dict.
  */
 function validateNpyBuffer(buffer) {
   try {
     const view = new DataView(buffer)
-    // Check magic: \x93NUMPY
     const magic = String.fromCharCode(
       view.getUint8(0), view.getUint8(1), view.getUint8(2),
       view.getUint8(3), view.getUint8(4), view.getUint8(5)
@@ -54,7 +52,7 @@ function validateNpyBuffer(buffer) {
     const majorVersion = view.getUint8(6)
     let headerLen, headerOffset
     if (majorVersion === 1) {
-      headerLen = view.getUint16(8, true) // little-endian
+      headerLen = view.getUint16(8, true)
       headerOffset = 10
     } else if (majorVersion === 2) {
       headerLen = view.getUint32(8, true)
@@ -66,7 +64,6 @@ function validateNpyBuffer(buffer) {
     const headerBytes = new Uint8Array(buffer, headerOffset, headerLen)
     const header = new TextDecoder().decode(headerBytes)
 
-    // Parse shape from the header dict string, e.g. "'shape': (100, 768),"
     const shapeMatch = header.match(/'shape'\s*:\s*\(([^)]+)\)/)
     if (!shapeMatch) {
       return { valid: false, shape: null, message: 'Could not parse shape from NPY header' }
@@ -87,10 +84,9 @@ function validateNpyBuffer(buffer) {
 
 
 export default function LexiRepTrainPage({ onBack }) {
-  // States: 'idle' | 'uploading' | 'training' | 'complete' | 'failed'
   const [pageState, setPageState] = useState('idle')
   const [selectedFile, setSelectedFile] = useState(null)
-  const [validation, setValidation] = useState(null) // { valid, message }
+  const [validation, setValidation] = useState(null)
   const [dragOver, setDragOver] = useState(false)
   const [jobId, setJobId] = useState(null)
   const [error, setError] = useState(null)
@@ -99,17 +95,14 @@ export default function LexiRepTrainPage({ onBack }) {
   const fileInputRef = useRef(null)
   const pollRef = useRef(null)
 
-  // Cleanup polling on unmount
   useEffect(() => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current)
     }
   }, [])
 
-  // ── File validation ───────────────────────────────────────
   const validateFile = useCallback(async (file) => {
     const ext = file.name.split('.').pop().toLowerCase()
-
     if (ext === 'csv') {
       const text = await file.text()
       return validateCsvText(text)
@@ -125,12 +118,10 @@ export default function LexiRepTrainPage({ onBack }) {
     setSelectedFile(file)
     setValidation(null)
     setError(null)
-
     const result = await validateFile(file)
     setValidation(result)
   }, [validateFile])
 
-  // ── Drag and drop handlers ────────────────────────────────
   const handleDragOver = useCallback((e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -156,7 +147,6 @@ export default function LexiRepTrainPage({ onBack }) {
     if (file) handleFileSelect(file)
   }, [handleFileSelect])
 
-  // ── Remove file ───────────────────────────────────────────
   const handleRemoveFile = useCallback(() => {
     setSelectedFile(null)
     setValidation(null)
@@ -164,10 +154,8 @@ export default function LexiRepTrainPage({ onBack }) {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }, [])
 
-  // ── Submit training job ───────────────────────────────────
   const handleSubmit = useCallback(async () => {
     if (!selectedFile || !validation?.valid) return
-
     setPageState('uploading')
     setError(null)
 
@@ -190,7 +178,6 @@ export default function LexiRepTrainPage({ onBack }) {
       setJobId(data.job_id)
       setPageState('training')
 
-      // Start polling for status
       pollRef.current = setInterval(async () => {
         try {
           const statusRes = await fetch(getHttpUrl(`/lexirep/train-status/${data.job_id}`))
@@ -219,7 +206,6 @@ export default function LexiRepTrainPage({ onBack }) {
     }
   }, [selectedFile, validation, epochs])
 
-  // ── Reset ─────────────────────────────────────────────────
   const handleReset = useCallback(() => {
     if (pollRef.current) clearInterval(pollRef.current)
     setPageState('idle')
@@ -231,24 +217,18 @@ export default function LexiRepTrainPage({ onBack }) {
     setEpochs(10)
   }, [])
 
-  // ── Format file size ──────────────────────────────────────
   const formatSize = (bytes) => {
     if (bytes < 1024) return `${bytes} B`
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
-  // Slider fill percentage for the accent-colored track
-  const sliderPercent = ((epochs - 1) / (99)) * 100
-  const sliderBackground = `linear-gradient(to right, var(--lr-accent) 0%, var(--lr-accent) ${sliderPercent}%, var(--lr-border) ${sliderPercent}%, var(--lr-border) 100%)`
-
-  // ══════════════════════════════════════════════════════════
-  // RENDER
-  // ══════════════════════════════════════════════════════════
+  const sliderPercent = ((epochs - 1) / 99) * 100
+  const sliderBg = `linear-gradient(to right, var(--accent) 0%, var(--accent) ${sliderPercent}%, var(--text-faded) ${sliderPercent}%, var(--text-faded) 100%)`
 
   return (
     <div className="lexirep-container">
-      {/* ── Back button ──────────────────────────────────── */}
+      {/* ── Back ─────────────────────────────────────────── */}
       <motion.button
         className="lexirep-back"
         onClick={onBack}
@@ -272,128 +252,126 @@ export default function LexiRepTrainPage({ onBack }) {
         </p>
       </div>
 
-      {/* ── IDLE: Configuration Card ─────────────────────── */}
+      {/* ── IDLE ─────────────────────────────────────────── */}
       {pageState === 'idle' && (
         <motion.div
-          className="lexirep-config-card"
-          initial={{ opacity: 0, y: 8 }}
+          className="lexirep-content"
+          initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
         >
-          <div className="lexirep-config-card-header">
-            <span>Configuration</span>
-          </div>
-          <div className="lexirep-config-card-body">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleInputChange}
+            accept=".csv,.npy"
+            style={{ display: 'none' }}
+          />
 
-            {/* ── Section 01: Upload Dataset ─────────────── */}
-            <div className="lexirep-section">
-              <span className="lexirep-section-label">
-                <span className="accent-num">01</span> — upload dataset
-              </span>
+          {/* ── Dataset ──────────────────────────────────── */}
+          <div>
+            <div className="lexirep-step-label">dataset</div>
 
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleInputChange}
-                accept=".csv,.npy"
-                style={{ display: 'none' }}
-              />
-
-              {!selectedFile ? (
-                <div
-                  className={`lexirep-dropzone${dragOver ? ' drag-over' : ''}`}
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                >
-                  <div className="lexirep-dropzone-icon">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
-                      strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="17,8 12,3 7,8" />
-                      <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
-                  </div>
-                  <div className="lexirep-dropzone-text">
-                    Drop CSV or NPY file here
-                  </div>
-                  <div className="lexirep-dropzone-hint">
-                    Accepted: .csv · .npy — 768-dimensional feature vectors
-                  </div>
+            {!selectedFile ? (
+              <div
+                className={`lexirep-upload-zone${dragOver ? ' drag-over' : ''}`}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div className="lexirep-upload-zone-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
+                    strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17,8 12,3 7,8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
                 </div>
-              ) : (
-                <>
-                  <div className="lexirep-file-chip">
-                    <div className="lexirep-file-chip-left">
-                      <span className="lexirep-file-chip-name">{selectedFile.name}</span>
-                      <span className="lexirep-file-chip-meta">{formatSize(selectedFile.size)}</span>
-                    </div>
-                    <button
-                      className="lexirep-file-chip-remove"
-                      onClick={handleRemoveFile}
-                      title="Remove file"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
-                        strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                  </div>
-                  {validation && (
-                    <div className={`lexirep-validation-msg${validation.valid ? '' : ' error'}`}>
-                      {validation.valid ? '✓ ' : '✕ '}{validation.message}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* ── Section 02: Training Parameters ────────── */}
-            <div className="lexirep-section">
-              <span className="lexirep-section-label">
-                <span className="accent-num">02</span> — training parameters
-              </span>
-
-              <div className="lexirep-epoch-row">
-                <span className="lexirep-epoch-label">
-                  epochs — <span className="lexirep-epoch-value">{epochs}</span>
-                </span>
-                <div className="lexirep-epoch-slider-wrapper">
-                  <input
-                    type="range"
-                    className="lexirep-epoch-slider"
-                    min="1"
-                    max="100"
-                    value={epochs}
-                    onChange={(e) => setEpochs(parseInt(e.target.value, 10))}
-                    style={{ background: sliderBackground }}
-                  />
+                <div className="lexirep-upload-zone-text">
+                  Drop file or click to browse
                 </div>
-                <div className="lexirep-epoch-range-labels">
-                  <span>1</span>
-                  <span>100</span>
+                <div className="lexirep-upload-zone-hint">
+                  .csv or .npy — 768-dimensional vectors
                 </div>
               </div>
-            </div>
-
-            {/* ── Start Training Button ──────────────────── */}
-            <div className="lexirep-actions">
-              <motion.button
-                className="lexirep-btn primary"
-                onClick={handleSubmit}
-                disabled={!validation?.valid}
-                whileTap={validation?.valid ? { scale: 0.97 } : {}}
-                transition={tapSpring}
-              >
-                Start Training
-              </motion.button>
-            </div>
-
+            ) : (
+              <>
+                <div className="lexirep-file-pill">
+                  <div className="lexirep-file-pill-left">
+                    <div className="lexirep-file-pill-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
+                        strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14,2 14,8 20,8" />
+                      </svg>
+                    </div>
+                    <div className="lexirep-file-pill-info">
+                      <span className="lexirep-file-pill-name">{selectedFile.name}</span>
+                      <span className="lexirep-file-pill-meta">{formatSize(selectedFile.size)}</span>
+                    </div>
+                  </div>
+                  <button
+                    className="lexirep-file-pill-remove"
+                    onClick={handleRemoveFile}
+                    title="Remove file"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
+                      strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+                {validation && (
+                  <div className={`lexirep-validation-msg${validation.valid ? '' : ' error'}`}>
+                    {validation.valid ? '✓ ' : '✕ '}{validation.message}
+                  </div>
+                )}
+              </>
+            )}
           </div>
+
+          {/* ── Epochs ───────────────────────────────────── */}
+          <div>
+            <div className="lexirep-step-label">training</div>
+            <div className="lexirep-epoch-control">
+              <div className="lexirep-epoch-header">
+                <span className="lexirep-epoch-title">epochs</span>
+                <span className="lexirep-epoch-number">{epochs}</span>
+              </div>
+              <input
+                type="range"
+                className="lexirep-epoch-slider"
+                min="1"
+                max="100"
+                value={epochs}
+                onChange={(e) => setEpochs(parseInt(e.target.value, 10))}
+                style={{ background: sliderBg }}
+              />
+              <div className="lexirep-epoch-range">
+                <span>1</span>
+                <span>100</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Separator ────────────────────────────────── */}
+          <div className="lexirep-separator" />
+
+          {/* ── Submit ───────────────────────────────────── */}
+          <motion.button
+            className="lexirep-submit-btn"
+            onClick={handleSubmit}
+            disabled={!validation?.valid}
+            whileTap={validation?.valid ? { scale: 0.97 } : {}}
+            transition={tapSpring}
+          >
+            Start Training
+          </motion.button>
         </motion.div>
       )}
 
@@ -420,13 +398,8 @@ export default function LexiRepTrainPage({ onBack }) {
         >
           <div className="lexirep-spinner" />
           <span className="lexirep-status-label">training in progress…</span>
-          <span style={{
-            fontFamily: 'var(--font-secondary)',
-            fontSize: '0.55rem',
-            color: 'var(--lr-text-tertiary)',
-            letterSpacing: '0.06em'
-          }}>
-            training for {epochs} epoch{epochs !== 1 ? 's' : ''} — this may take several minutes
+          <span className="lexirep-status-sub">
+            {epochs} epoch{epochs !== 1 ? 's' : ''} — this may take several minutes
           </span>
         </motion.div>
       )}
@@ -473,11 +446,10 @@ export default function LexiRepTrainPage({ onBack }) {
           </a>
 
           <motion.button
-            className="lexirep-btn"
+            className="lexirep-reset-btn"
             onClick={handleReset}
             whileTap={{ scale: 0.97 }}
             transition={tapSpring}
-            style={{ marginTop: '0.5rem', maxWidth: '12rem' }}
           >
             Train Another
           </motion.button>
@@ -505,17 +477,16 @@ export default function LexiRepTrainPage({ onBack }) {
           <span className="lexirep-result-detail">{error}</span>
 
           <motion.button
-            className="lexirep-btn primary"
+            className="lexirep-submit-btn"
             onClick={handleReset}
             whileTap={{ scale: 0.97 }}
             transition={tapSpring}
-            style={{ marginTop: '0.5rem', maxWidth: '12rem' }}
+            style={{ maxWidth: '14rem' }}
           >
             Try Again
           </motion.button>
         </motion.div>
       )}
-
     </div>
   )
 }

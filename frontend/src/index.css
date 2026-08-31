@@ -1,21 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200..900&display=swap');
 
 :root {
-  /* Colors */
-  --bg: #0a0a0a;
-  --bg-subtle: #0e0e0e;
-  --text-primary: #e8e4de;
-  --text-muted: #6b6560;
-  --text-faded: #3a3632;
-  --accent: #c4956a;
-  --accent-dim: rgba(196, 149, 106, 0.3);
-  --error: #c46a6a;
-  --overlay-bg: #161514;
-  --overlay-border: #282421;
+  /* Colors — Light theme, black accent */
+  --bg: #ffffff;
+  --bg-subtle: #fafafa;
+  --text-primary: #1d1d1f;
+  --text-muted: #86868b;
+  --text-faded: #d2d2d7;
+  --accent: #1d1d1f;
+  --accent-dim: rgba(29, 29, 31, 0.15);
+  --error: #ff3b30;
+  --overlay-bg: #ffffff;
+  --overlay-border: #e5e5e7;
 
   /* Typography */
   --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-secondary: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-secondary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Motion */
   --transition-base: 0.3s cubic-bezier(0.22, 1, 0.36, 1);
@@ -82,7 +82,7 @@ body {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent);
+  background: var(--text-muted);
 }
 
 /* --- CSS-only hover tooltip for the question mark --- */
@@ -91,16 +91,16 @@ body {
   display: inline-block;
   margin-left: 4px;
   cursor: help;
-  color: #888;
+  color: var(--text-muted);
 }
 
 .info-tooltip-content {
   visibility: hidden;
   opacity: 0;
-  background-color: #333;
-  color: #fff;
+  background-color: var(--text-primary);
+  color: var(--bg);
   text-align: center;
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 6px 10px;
   position: absolute;
   z-index: 100;
@@ -113,7 +113,7 @@ body {
   font-weight: normal;
   transition: opacity 0.2s ease, visibility 0.2s ease;
   line-height: 1.4;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .info-tooltip-content::after {
@@ -124,7 +124,7 @@ body {
   margin-left: -5px;
   border-width: 5px;
   border-style: solid;
-  border-color: #333 transparent transparent transparent;
+  border-color: var(--text-primary) transparent transparent transparent;
 }
 
 .info-tooltip-trigger:hover .info-tooltip-content {
@@ -135,7 +135,7 @@ body {
 /* Breathing dots — pause indicator between words */
 @keyframes breatheDot {
   0%, 100% {
-    opacity: 0.25;
+    opacity: 0.3;
     transform: scale(0.8);
   }
   50% {
@@ -157,7 +157,7 @@ body {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background-color: #f97316;
+  background-color: var(--text-muted);
   animation: breatheDot 1.4s ease-in-out infinite;
 }
 
@@ -198,7 +198,7 @@ body {
    Raise overlay backgrounds to near-opaque, drop backdrop-filter. */
 @media (prefers-reduced-transparency) {
   .overlay-material {
-    background: rgba(22, 21, 20, 0.92) !important;
+    background: rgba(255, 255, 255, 0.96) !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
   }
@@ -208,9 +208,9 @@ body {
    Near-solid overlay backgrounds with a clearly defined border. */
 @media (prefers-contrast: more) {
   .overlay-material {
-    background: rgba(22, 21, 20, 0.95) !important;
+    background: rgba(255, 255, 255, 0.98) !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    border: 1px solid rgba(0, 0, 0, 0.2) !important;
   }
 }

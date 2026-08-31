@@ -175,15 +175,17 @@ function App() {
         bottom: '20px',
         left: '20px',
         zIndex: 9999,
-        background: 'rgba(0,0,0,0.5)',
+        background: 'rgba(255,255,255,0.8)',
+        backdropFilter: 'blur(12px)',
         padding: '8px 12px',
-        borderRadius: '8px',
+        borderRadius: '10px',
+        border: '1px solid var(--text-faded)',
         display: 'flex',
         alignItems: 'center',
         gap: '8px'
       }}>
         {/* Finding 10 audit: converted px font-sizes to rem */}
-        <label style={{ fontSize: '0.625rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-secondary)' }}>Tunnel URL:</label>
+        <label style={{ fontSize: '0.625rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-secondary)' }}>Tunnel URL:</label>
         <input 
           type="text" 
           value={backendUrl}
@@ -194,10 +196,10 @@ function App() {
           placeholder="e.g. random-words.trycloudflare.com"
           style={{
             background: 'transparent',
-            border: '1px solid #333',
-            color: '#ccc',
+            border: '1px solid var(--text-faded)',
+            color: 'var(--text-primary)',
             padding: '4px 8px',
-            borderRadius: '4px',
+            borderRadius: '6px',
             fontSize: '0.6875rem',
             fontFamily: 'monospace',
             width: '240px',

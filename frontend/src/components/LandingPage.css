@@ -1,6 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
    LandingPage — Two-option entry point
-   Uses existing design tokens from index.css
    ═══════════════════════════════════════════════════════════ */
 
 .landing-container {
@@ -17,11 +16,11 @@
 
 .landing-title {
   font-family: var(--font-secondary);
-  font-weight: 300;
+  font-weight: 400;
   font-size: 0.65rem;
   letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: var(--text-faded);
+  color: var(--text-muted);
   margin-bottom: 3rem;
 }
 
@@ -46,7 +45,7 @@
   width: 16rem;
   padding: 2.5rem 2rem;
   border: 1px solid var(--text-faded);
-  border-radius: 4px;
+  border-radius: 12px;
   background: transparent;
   cursor: pointer;
   text-align: center;
@@ -56,12 +55,14 @@
   gap: 1.2rem;
   transition:
     border-color var(--transition-base),
-    background var(--transition-base);
+    background var(--transition-base),
+    box-shadow var(--transition-base);
 }
 
 .landing-card:hover {
   border-color: var(--accent);
-  background: rgba(196, 149, 106, 0.03);
+  background: var(--bg-subtle);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
 }
 
 /* Card Icon */
@@ -99,13 +100,13 @@
   font-family: var(--font-secondary);
   font-size: 0.65rem;
   letter-spacing: 0.08em;
-  color: var(--text-faded);
+  color: var(--text-muted);
   line-height: 1.6;
   transition: color var(--transition-base);
 }
 
 .landing-card:hover .landing-card-subtitle {
-  color: var(--text-muted);
+  color: var(--text-primary);
 }
 
 /* ── Divider ────────────────────────────────────────────── */
@@ -121,7 +122,6 @@
   width: 1px;
   height: 3rem;
   background-color: var(--text-faded);
-  opacity: 0.4;
 }
 
 @media (max-width: 640px) {

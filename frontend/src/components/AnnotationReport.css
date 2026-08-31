@@ -54,7 +54,7 @@
 
 .models-row {
   font-size: 0.65rem;
-  color: var(--text-faded);
+  color: var(--text-muted);
   letter-spacing: 0.02em;
   margin-top: 0.2rem;
 }
@@ -67,10 +67,10 @@
 
 /* Control Buttons */
 .control-btn {
-  background: rgba(22, 21, 20, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--bg-subtle);
+  border: 1px solid var(--text-faded);
   padding: 0.4rem 0.8rem;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 0.65rem;
   color: var(--text-muted);
   letter-spacing: 0.12em;
@@ -86,11 +86,11 @@
 .control-btn:hover {
   color: var(--text-primary);
   border-color: var(--accent);
-  background: rgba(196, 149, 106, 0.1);
+  background: var(--bg);
 }
 
 .control-btn.primary {
-  border-color: var(--accent-dim);
+  border-color: var(--accent);
   color: var(--accent);
 }
 
@@ -116,15 +116,15 @@
 
 /* Phrase Cards */
 .phrase-card {
-  background: rgba(22, 21, 20, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.03);
-  border-radius: 6px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--text-faded);
+  border-radius: 10px;
   padding: 1.2rem;
   transition: border-color var(--transition-base);
 }
 
 .phrase-card:hover {
-  border-color: rgba(196, 149, 106, 0.15);
+  border-color: var(--text-muted);
 }
 
 .phrase-header {
@@ -132,7 +132,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--text-faded);
   padding-bottom: 0.4rem;
   font-family: var(--font-secondary);
   font-size: 0.7rem;
@@ -154,9 +154,9 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 4px;
+  background: var(--bg);
+  border: 1px solid var(--text-faded);
+  border-radius: 6px;
   padding: 0.6rem 0.8rem;
   margin-bottom: 0.8rem;
 }
@@ -202,7 +202,7 @@
   display: inline-flex;
   align-items: center;
   padding: 0.15rem 0.3rem;
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
   user-select: none;
   font-size: 0.95rem;
@@ -212,12 +212,12 @@
 }
 
 .word-default-view:hover {
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: var(--bg-subtle);
 }
 
 .word-default-view.expanded-word {
-  background-color: rgba(196, 149, 106, 0.12) !important;
-  border-color: var(--accent-dim) !important;
+  background-color: var(--accent-dim) !important;
+  border-color: var(--accent) !important;
 }
 
 .word-text {
@@ -239,7 +239,7 @@
   border-radius: 50%;
   background-color: var(--accent);
   margin-left: 2px;
-  box-shadow: 0 0 8px var(--accent);
+  box-shadow: none;
 }
 
 /* Pitch Trend Arrow */
@@ -257,7 +257,7 @@
 }
 .word-default-view.is-hesitation .word-text {
   font-style: italic;
-  text-decoration: dashed underline rgba(255, 255, 255, 0.2);
+  text-decoration: dashed underline var(--text-faded);
 }
 
 /* Pause Spacing indicator */
@@ -295,9 +295,9 @@
 .word-detail-card-content {
   background-color: var(--overlay-bg);
   border: 1px solid var(--overlay-border);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 0.8rem 1.2rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 1.2rem;
@@ -322,7 +322,7 @@
 
 .detail-divider {
   height: 1px;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--text-faded);
   margin: 4px 0;
 }
 
@@ -342,9 +342,9 @@
 }
 
 .sparkline-svg {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.02);
+  background: var(--bg-subtle);
+  border-radius: 4px;
+  border: 1px solid var(--text-faded);
 }
 
 /* Empty State */
@@ -369,9 +369,9 @@
 /* View Mode Segmented Controls */
 .view-toggle-container {
   display: inline-flex;
-  background: rgba(22, 21, 20, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--text-faded);
+  border-radius: 8px;
   padding: 2px;
   margin-right: 0.5rem;
 }
@@ -386,7 +386,7 @@
   text-transform: uppercase;
   cursor: pointer;
   font-family: var(--font-primary);
-  border-radius: 3px;
+  border-radius: 6px;
   transition: color var(--transition-base), background-color var(--transition-base);
 }
 
@@ -421,12 +421,12 @@
   letter-spacing: 0.05em;
   font-size: 0.625rem;
   padding: 0.6rem 0.8rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--text-faded);
 }
 
 .phrase-data-table td {
   padding: 0.55rem 0.8rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--text-faded);
   vertical-align: middle;
   color: var(--text-primary);
 }
@@ -437,15 +437,15 @@
 }
 
 .phrase-data-table tr.clickable-row:hover {
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: var(--bg-subtle);
 }
 
 .phrase-data-table tr.clickable-row.row-expanded {
-  background-color: rgba(196, 149, 106, 0.05);
+  background-color: var(--accent-dim);
 }
 
 .phrase-data-table tr.clickable-row.row-expanded td {
-  border-bottom-color: var(--accent-dim);
+  border-bottom-color: var(--accent);
 }
 
 /* High-Density Property Details Grid */
@@ -499,7 +499,7 @@
 }
 
 .property-details-table tr:hover {
-  background-color: rgba(255, 255, 255, 0.01);
+  background-color: var(--bg-subtle);
 }
 
 /* Voiced Segments Stylization Section */
@@ -514,19 +514,19 @@
 }
 
 .voiced-segments-table tr.clickable-row:hover {
-  background-color: rgba(255, 255, 255, 0.02) !important;
+  background-color: var(--bg-subtle) !important;
 }
 
 .voiced-segments-table tr.clickable-row.row-expanded {
-  background-color: rgba(196, 149, 106, 0.05) !important;
+  background-color: var(--accent-dim) !important;
 }
 
 .voiced-segments-table th {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--text-faded);
 }
 
 .graph-subrow-cell {
-  background-color: rgba(22, 21, 20, 0.15);
+  background-color: var(--bg-subtle);
 }
 
 .segment-graph-wrapper {
@@ -534,6 +534,5 @@
 }
 
 .segment-contour-svg {
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+  filter: none;
 }
-

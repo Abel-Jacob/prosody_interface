@@ -21,13 +21,13 @@
 }
 
 .word-tooltip-content {
-  background-color: #1a1a1a;
-  color: #e5e5e5;
+  background-color: var(--text-primary);
+  color: var(--bg);
   padding: 0.4rem 0.6rem;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 0.65rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  border: 1px solid #333;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   position: relative;
 }
 
@@ -43,12 +43,12 @@
 
 .word-tooltip-container.above .word-tooltip-content::after {
   top: 100%; /* Point arrow down */
-  border-color: #1a1a1a transparent transparent transparent;
+  border-color: var(--text-primary) transparent transparent transparent;
 }
 
 .word-tooltip-container.below .word-tooltip-content::after {
   bottom: 100%; /* Point arrow up */
-  border-color: transparent transparent #1a1a1a transparent;
+  border-color: transparent transparent var(--text-primary) transparent;
 }
 
 /* Layout for internal text */
@@ -58,5 +58,5 @@
   margin: 2px 0;
   gap: 8px;
 }
-.tooltip-label { color: #888; font-weight: 500; }
+.tooltip-label { color: rgba(255, 255, 255, 0.6); font-weight: 500; }
 .tooltip-value { font-weight: 600; font-family: monospace; }

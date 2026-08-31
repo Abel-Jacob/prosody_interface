@@ -137,7 +137,7 @@ export default function ListeningState({ onStop }) {
       // Static low-amplitude line
       ctx.clearRect(0, 0, width, height)
       ctx.lineWidth = 1.5
-      ctx.strokeStyle = 'rgba(196, 149, 106, 0.6)'
+      ctx.strokeStyle = 'rgba(29, 29, 31, 0.3)'
       ctx.beginPath()
       ctx.moveTo(0, height / 2)
       for (let i = 0; i < width; i += 20) {
@@ -159,7 +159,7 @@ export default function ListeningState({ onStop }) {
 
       // Draw faint background line
       ctx.lineWidth = 0.75
-      ctx.strokeStyle = 'rgba(196, 149, 106, 0.3)'
+      ctx.strokeStyle = 'rgba(29, 29, 31, 0.15)'
       ctx.beginPath()
       ctx.moveTo(0, height / 2)
       for (let i = 0; i < width; i += 20) {
@@ -169,7 +169,7 @@ export default function ListeningState({ onStop }) {
 
       // Draw main amplitude-deformed line
       ctx.lineWidth = 1.5
-      ctx.strokeStyle = 'rgba(196, 149, 106, 0.8)'
+      ctx.strokeStyle = 'rgba(29, 29, 31, 0.5)'
       ctx.beginPath()
 
       const sliceWidth = width * 1.0 / bufferLength
@@ -204,11 +204,11 @@ export default function ListeningState({ onStop }) {
 
   /* Finding 5: translucent overlay material styles */
   const overlayStyle = {
-    background: 'rgba(22, 21, 20, 0.6)',
+    background: 'rgba(255, 255, 255, 0.7)',
     WebkitBackdropFilter: 'blur(16px) saturate(160%)',
     backdropFilter: 'blur(16px) saturate(160%)',
-    borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+    borderTop: '1px solid rgba(0, 0, 0, 0.04)',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
   }
 
   return (
@@ -355,7 +355,7 @@ export default function ListeningState({ onStop }) {
                   color: 'var(--accent)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em',
-                  textShadow: '0 0 12px var(--accent-dim)'
+                  textShadow: 'none'
                 } : {}
 
                 /* Finding 3: keyed by word start-time + index for stable identity.
