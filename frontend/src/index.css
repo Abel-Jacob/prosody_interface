@@ -26,8 +26,18 @@ body { margin: 0; min-height: 100vh; overflow-x: hidden; background: var(--bg); 
 button, input { font: inherit; }
 button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 
-.canvas-bg { position: fixed; inset: 0; z-index: -1; width: 100vw; height: 100vh; background: var(--bg); transition: opacity 0.8s ease; }
+.canvas-bg { position: fixed; inset: 0; z-index: -1; width: 100vw; height: 100vh; background: var(--bg); transition: opacity 0.8s ease; pointer-events: none; }
 .canvas-bg.active { background: var(--bg); }
+.waveform-bg { z-index: 0; overflow: hidden; background: var(--bg); }
+.waveform-scene { position: absolute; inset: 8% -10% 0; opacity: .62; transform: perspective(900px) rotateX(58deg) rotateZ(-8deg) scale(1.15); transform-origin: center; filter: blur(.1px); pointer-events: none; }
+.waveform-ribbon { position: absolute; left: -8%; width: 116%; height: 34%; border-top: 2px solid var(--accent); border-bottom: 1px solid rgba(196,149,106,.42); border-radius: 50%; box-shadow: 0 0 12px rgba(196,149,106,.28); transform: rotate(-4deg) skewX(-12deg); animation: waveformRibbonDrift 7s ease-in-out infinite alternate; }
+.waveform-ribbon::after { content: ''; position: absolute; inset: 18% 0; background: linear-gradient(90deg, transparent, rgba(196,149,106,.5) 20%, rgba(196,149,106,.22) 50%, rgba(196,149,106,.5) 80%, transparent); mask-image: linear-gradient(90deg, transparent, black 18%, black 82%, transparent); }
+.waveform-ribbon-a { top: 14%; animation-delay: -2s; }
+.waveform-ribbon-b { top: 35%; height: 38%; opacity: .7; animation-duration: 9s; animation-delay: -7s; }
+.waveform-ribbon-c { top: 58%; height: 32%; opacity: .45; animation-duration: 11s; animation-delay: -11s; }
+@keyframes waveformRibbonDrift { from { transform: translate3d(-3%, -1%, 0) rotate(-4deg) skewX(-12deg) scaleY(.94); } to { transform: translate3d(3%, 5%, 0) rotate(-1deg) skewX(-12deg) scaleY(1.06); } }
+.landing-container { z-index: 1; }
+@media (prefers-reduced-motion: reduce) { .waveform-ribbon { animation: none; } }
 
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }

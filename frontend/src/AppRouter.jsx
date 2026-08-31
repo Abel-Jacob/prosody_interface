@@ -27,7 +27,7 @@ export default function AppRouter() {
     <>
       {/* Canvas background shown on landing and lexirep pages;
           App.jsx has its own CanvasBackground internally */}
-      {page !== 'prosody' && <CanvasBackground active={false} />}
+      {page !== 'prosody' && <CanvasBackground active={false} waveform={page === 'landing'} />}
 
       <AnimatePresence mode="wait">
         {page === 'landing' && (
