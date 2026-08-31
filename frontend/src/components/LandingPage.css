@@ -36,23 +36,22 @@
   position: relative;
   flex: 1;
   min-width: 0;
-  min-height: 220px;
-  padding: 28px 26px 26px;
+  min-height: 250px;
+  padding: 32px 28px 28px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 16px;
-  border: 1px solid rgba(242, 240, 234, 0.1);
-  border-radius: 12px;
-  background: rgba(17, 16, 15, 0.86);
+  border: 1px solid var(--text-faded);
+  border-radius: 3px;
+  background: var(--bg);
   cursor: pointer;
   text-align: left;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(242, 240, 234, 0.045);
-  transition: transform var(--transition-base), border-color var(--transition-base), background var(--transition-base), box-shadow var(--transition-base);
+  transition: transform var(--transition-base), border-color var(--transition-base), background var(--transition-base);
 }
 
 .landing-card::after { content: '↗'; position: absolute; right: 24px; bottom: 22px; color: var(--text-faded); font-size: 1.1rem; transition: color var(--transition-base), transform var(--transition-base); }
-.landing-card:hover { transform: translateY(-3px); border-color: rgba(196, 149, 106, 0.42); background: rgba(28, 25, 22, 0.94); box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(242, 240, 234, 0.06); }
+.landing-card:hover { transform: translateY(-3px); border-color: var(--border-strong); background: var(--bg-subtle); }
 .landing-card:hover::after { color: var(--text-primary); transform: translate(2px, -2px); }
 .landing-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
 
@@ -71,7 +70,7 @@
   .landing-container::before { top: 20px; left: 20px; }
   .landing-title { align-self: flex-start; margin-bottom: 28px; font-size: 2rem; }
   .landing-cards { width: 100%; flex-direction: column; gap: 12px; }
-  .landing-card { width: 100%; min-height: 180px; padding: 24px; border-radius: 10px; }
+  .landing-card { width: 100%; min-height: 180px; padding: 24px; }
   .landing-divider { justify-content: center; margin: 0; }
   .landing-divider-line { width: 48px; height: 1px; }
 }
