@@ -312,7 +312,7 @@ export default function ListeningState({ onStop }) {
               color: 'var(--text-muted)',
               margin: 0
             }}>
-              listening
+              agent listening...
             </h1>
 
             <p style={{

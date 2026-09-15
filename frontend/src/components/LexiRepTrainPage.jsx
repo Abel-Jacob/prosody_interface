@@ -397,7 +397,7 @@ export default function LexiRepTrainPage({ onBack }) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
         >
-          <ThinkingOrb state="working" size={64} dark={false} />
+          <ThinkingOrb state="solving" size={64} dark={false} />
           <span className="lexirep-status-label">training in progress…</span>
           <span className="lexirep-status-sub">
             {epochs} epoch{epochs !== 1 ? 's' : ''} — this may take several minutes
