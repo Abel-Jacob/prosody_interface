@@ -194,61 +194,67 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
       }}
     >
       
-      {/* Transcript View — spring config migrated from stiffness/damping */}
-      <motion.div 
-        initial={{ y: 30, opacity: 0.85 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={transcriptSpring}
+      {/* Background content layer — blurs into authentic optical bokeh when a word is inspected */}
+      <div 
+        className="summary-bokeh-background"
         style={{
-          maxWidth: '48rem',
           width: '100%',
           flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
           minHeight: 0,
-          overflowY: 'auto',
-          paddingRight: '1rem',
-          marginBottom: '1rem',
-          marginTop: '1.5rem',
-          textAlign: 'center'
+          filter: inspectedWord ? 'blur(16px) brightness(0.35) saturate(1.2)' : 'none',
+          transform: inspectedWord ? 'scale(0.985)' : 'scale(1)',
+          transition: 'filter 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+          pointerEvents: inspectedWord ? 'none' : 'auto',
+          userSelect: inspectedWord ? 'none' : 'auto'
         }}
       >
-        <div style={{
-          fontSize: 'clamp(0.95rem, 1.6vw, 1.4rem)',
-          lineHeight: 1.65,
-          color: 'var(--text-primary)',
-          fontFamily: 'var(--font-primary)'
-        }}>
-          {processedPhrases.map((phrase, pIndex) => (
-            <div key={pIndex} style={{ marginBottom: '1.2rem' }}>
-              {phrase.words.map((w, wIndex) => (
-                <TranscribedWord 
-                  key={wIndex} 
-                  w={w} 
-                  isLast={wIndex === phrase.words.length - 1} 
-                  inspectedWord={inspectedWord}
-                  setInspectedWord={setInspectedWord}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-      </motion.div>
+        {/* Transcript View — spring config migrated from stiffness/damping */}
+        <motion.div 
+          initial={{ y: 30, opacity: 0.85 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={transcriptSpring}
+          style={{
+            maxWidth: '48rem',
+            width: '100%',
+            flex: 1,
+            minHeight: 0,
+            overflowY: 'auto',
+            paddingRight: '1rem',
+            marginBottom: '1rem',
+            marginTop: '1.5rem',
+            textAlign: 'center'
+          }}
+        >
+          <div style={{
+            fontSize: 'clamp(0.95rem, 1.6vw, 1.4rem)',
+            lineHeight: 1.65,
+            color: 'var(--text-primary)',
+            fontFamily: 'var(--font-primary)'
+          }}>
+            {processedPhrases.map((phrase, pIndex) => (
+              <div key={pIndex} style={{ marginBottom: '1.2rem' }}>
+                {phrase.words.map((w, wIndex) => (
+                  <TranscribedWord 
+                    key={wIndex} 
+                    w={w} 
+                    isLast={wIndex === phrase.words.length - 1} 
+                    inspectedWord={inspectedWord}
+                    setInspectedWord={setInspectedWord}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </motion.div>
 
-      {/* LexiRep Syllable Bokeh Modal with lexical stress + prosody data */}
-      <AnimatePresence>
-        {inspectedWord && (
-          <SyllableBokeh 
-            key="syllable-bokeh"
-            wordData={inspectedWord.data} 
-            onClose={() => setInspectedWord(null)} 
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Summary Panel — spring config migrated */}
-      <motion.div
-        initial={{ y: 25, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={panelSpring}
+        {/* Summary Panel — spring config migrated */}
+        <motion.div
+          initial={{ y: 25, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={panelSpring}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -399,6 +405,18 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
           </motion.button>
         </div>
       </motion.div>
+      </div>
+
+      {/* LexiRep Syllable Bokeh Modal with lexical stress + prosody data */}
+      <AnimatePresence>
+        {inspectedWord && (
+          <SyllableBokeh 
+            key="syllable-bokeh"
+            wordData={inspectedWord.data} 
+            onClose={() => setInspectedWord(null)} 
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

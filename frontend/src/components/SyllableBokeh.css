@@ -15,62 +15,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(8, 8, 10, 0.82);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(8, 8, 10, 0.55);
   cursor: pointer;
   overflow: hidden;
-}
-
-/* ── Ambient floating bokeh light orbs ──────────────────────── */
-.bokeh-circle {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-  filter: blur(50px);
-  opacity: 0.22;
-}
-
-.bokeh-circle-1 {
-  width: 380px;
-  height: 380px;
-  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
-  top: 18%;
-  left: 25%;
-  animation: floatBokeh1 12s ease-in-out infinite alternate;
-}
-
-.bokeh-circle-2 {
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle, #e0a96d 0%, transparent 70%);
-  bottom: 18%;
-  right: 22%;
-  animation: floatBokeh2 14s ease-in-out infinite alternate;
-}
-
-.bokeh-circle-3 {
-  width: 260px;
-  height: 260px;
-  background: radial-gradient(circle, rgba(196, 149, 106, 0.4) 0%, transparent 70%);
-  top: 55%;
-  left: 45%;
-  animation: floatBokeh3 10s ease-in-out infinite alternate;
-}
-
-@keyframes floatBokeh1 {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(40px, -30px) scale(1.15); }
-}
-
-@keyframes floatBokeh2 {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(-35px, 25px) scale(0.9); }
-}
-
-@keyframes floatBokeh3 {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(25px, 35px) scale(1.08); }
 }
 
 /* ── Central card ─────────────────────────────────────────────── */
@@ -136,10 +83,10 @@
 }
 
 .syllable-bokeh-model-btn.active {
-  color: var(--accent);
-  background: rgba(196, 149, 106, 0.16);
-  border: 1px solid rgba(196, 149, 106, 0.4);
-  box-shadow: 0 0 12px rgba(196, 149, 106, 0.2);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.12);
   font-weight: 600;
 }
 

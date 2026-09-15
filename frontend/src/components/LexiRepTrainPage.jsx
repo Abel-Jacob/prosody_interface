@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { ThinkingOrb } from 'thinking-orbs'
 import { getHttpUrl } from '../apiConfig'
 import './LexiRepTrainPage.css'
 
@@ -396,7 +397,7 @@ export default function LexiRepTrainPage({ onBack }) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
         >
-          <div className="lexirep-spinner" />
+          <ThinkingOrb state="solving" size={64} />
           <span className="lexirep-status-label">training in progress…</span>
           <span className="lexirep-status-sub">
             {epochs} epoch{epochs !== 1 ? 's' : ''} — this may take several minutes

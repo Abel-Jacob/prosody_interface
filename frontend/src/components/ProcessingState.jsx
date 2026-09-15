@@ -1,5 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
+import { ThinkingOrb } from 'thinking-orbs'
 import { useJobPolling } from '../services/useJobPolling'
 
 /* Finding 4: spring-driven progress bar width.
@@ -19,7 +20,7 @@ export default function ProcessingState({ jobId, onComplete }) {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: '1.2rem',
+      gap: '1.4rem',
       maxWidth: '32rem',
       margin: '0 auto',
       width: '100%',
@@ -29,6 +30,7 @@ export default function ProcessingState({ jobId, onComplete }) {
         <h1 style={{ color: 'var(--error)' }}>Error: {error}</h1>
       ) : (
         <>
+          <ThinkingOrb state="solving" size={64} />
           <h1 style={{
             fontFamily: 'var(--font-secondary)',
             fontSize: '1.15rem',

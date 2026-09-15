@@ -107,11 +107,6 @@ export default function SyllableBokeh({ wordData, onClose }) {
       transition={{ duration: 0.25, ease: 'easeOut' }}
       onClick={onClose}
     >
-      {/* Ambient bokeh light orbs */}
-      <div className="bokeh-circle bokeh-circle-1" />
-      <div className="bokeh-circle bokeh-circle-2" />
-      <div className="bokeh-circle bokeh-circle-3" />
-
       {/* Center Bokeh Presentation Card */}
       <motion.div
         className="syllable-bokeh-card"
