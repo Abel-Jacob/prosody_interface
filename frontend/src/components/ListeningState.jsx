@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { AudioService } from '../services/audioService'
+import { ThinkingOrb } from 'thinking-orbs'
 
 /* Finding 2: whileTap spring for the click-to-stop area */
 const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
@@ -301,6 +302,7 @@ export default function ListeningState({ onStop }) {
       >
         {!previewText && words.length === 0 ? (
           <>
+            <ThinkingOrb state="listening" size={64} dark={false} />
             <h1 style={{
               fontFamily: 'var(--font-secondary)',
               fontWeight: 'bold',

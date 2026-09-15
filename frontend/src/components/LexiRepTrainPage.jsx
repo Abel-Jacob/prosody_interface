@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { getHttpUrl } from '../apiConfig'
+import { ThinkingOrb } from 'thinking-orbs'
 import './LexiRepTrainPage.css'
 
 const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
@@ -383,7 +384,7 @@ export default function LexiRepTrainPage({ onBack }) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
         >
-          <div className="lexirep-spinner" />
+          <ThinkingOrb state="connecting" size={64} dark={false} />
           <span className="lexirep-status-label">uploading dataset…</span>
         </motion.div>
       )}
@@ -396,7 +397,7 @@ export default function LexiRepTrainPage({ onBack }) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
         >
-          <div className="lexirep-spinner" />
+          <ThinkingOrb state="working" size={64} dark={false} />
           <span className="lexirep-status-label">training in progress…</span>
           <span className="lexirep-status-sub">
             {epochs} epoch{epochs !== 1 ? 's' : ''} — this may take several minutes
