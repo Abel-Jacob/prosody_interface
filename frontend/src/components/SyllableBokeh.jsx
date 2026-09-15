@@ -107,12 +107,7 @@ export default function SyllableBokeh({ wordData, onClose }) {
       transition={{ duration: 0.25, ease: 'easeOut' }}
       onClick={onClose}
     >
-      {/* Ambient bokeh light orbs */}
-      <div className="bokeh-circle bokeh-circle-1" />
-      <div className="bokeh-circle bokeh-circle-2" />
-      <div className="bokeh-circle bokeh-circle-3" />
-
-      {/* Center Bokeh Presentation Card */}
+      {/* Minimal syllable detail surface */}
       <motion.div
         className="syllable-bokeh-card"
         initial={{ scale: 0.88, opacity: 0, y: 15 }}
@@ -172,18 +167,6 @@ export default function SyllableBokeh({ wordData, onClose }) {
           )}
         </div>
 
-        {/* Consensus / Divergence Tag */}
-        {hasBothLearnerModels && (
-          <div className={`syllable-bokeh-consensus ${isConsensus ? 'agreed' : 'divergent'}`}>
-            <span className="consensus-indicator" />
-            {isConsensus ? (
-              <span>GER &amp; ITA Models Agree: <strong>"{gerWinner.text.toUpperCase()}"</strong></span>
-            ) : (
-              <span>Model Split: GER prefers <strong>"{gerWinner.text}"</strong>, ITA prefers <strong>"{itaWinner.text}"</strong></span>
-            )}
-          </div>
-        )}
-
         {/* Sub-label describing stress status */}
         <div className="syllable-bokeh-info">
           {isPolysyllabic ? (
@@ -200,43 +183,6 @@ export default function SyllableBokeh({ wordData, onClose }) {
             </span>
           ) : (
             <span>Monosyllabic word — single syllable (no intra-word stress contrast)</span>
-          )}
-        </div>
-
-        {/* Badges: WhiStress Sentence Prominence + ASR score + Duration + Pitch */}
-        <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <div className={`syllable-bokeh-badge ${isWordStressed ? 'emphasized' : 'neutral'}`}>
-            <span>Utterance Prominence:</span>
-            <strong>{isWordStressed ? 'STRESSED' : 'UNSTRESSED'}</strong>
-            {stressScore != null && <span style={{ opacity: 0.7 }}>({stressScore}%)</span>}
-          </div>
-
-          <div className="syllable-bokeh-badge neutral">
-            <span>ASR:</span>
-            <strong>{confPercent}%</strong>
-          </div>
-
-          {durationMs != null && (
-            <div className="syllable-bokeh-badge neutral">
-              <span>Duration:</span>
-              <strong>{durationMs} ms</strong>
-            </div>
-          )}
-
-          {meanPitch != null && (
-            <div className="syllable-bokeh-badge neutral">
-              <span>Pitch:</span>
-              <strong>{Math.round(meanPitch)} Hz</strong>
-              {pitchTrend && (
-                <span style={{
-                  color: pitchTrend === '↑' ? '#4ade80' : pitchTrend === '↓' ? '#f87171' : '#94a3b8',
-                  marginLeft: '2px',
-                  fontWeight: 700
-                }}>
-                  {pitchTrend}
-                </span>
-              )}
-            </div>
           )}
         </div>
 
