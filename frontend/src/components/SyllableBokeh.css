@@ -15,9 +15,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(8, 8, 10, 0.82);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: transparent;
   cursor: pointer;
   overflow: hidden;
 }
@@ -78,8 +76,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2rem;
-  padding: 2.5rem 3.5rem;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
   max-width: 90vw;
   cursor: default;
   position: relative;
@@ -139,7 +137,7 @@
   color: var(--accent);
   background: rgba(196, 149, 106, 0.16);
   border: 1px solid rgba(196, 149, 106, 0.4);
-  box-shadow: 0 0 12px rgba(196, 149, 106, 0.2);
+  box-shadow: none;
   font-weight: 600;
 }
 
@@ -200,7 +198,7 @@
   font-family: var(--font-primary);
   font-size: clamp(2.5rem, 6vw, 4.5rem);
   font-weight: 300;
-  color: var(--text-secondary, #999);
+  color: var(--text-primary, #fff);
   letter-spacing: 0.02em;
   transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   position: relative;
