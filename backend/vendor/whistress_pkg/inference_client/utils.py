@@ -7,7 +7,31 @@ from torch.nn import functional as F
 from ..model import WhiStress
 
 
-PATH_TO_WEIGHTS = pathlib.Path(__file__).parent.parent / "weights"
+import os
+
+def _resolve_whistress_weights_path() -> pathlib.Path:
+    # 1. Check environment variable
+    if "WHISTRESS_WEIGHTS_DIR" in os.environ:
+        p = pathlib.Path(os.environ["WHISTRESS_WEIGHTS_DIR"])
+        if (p / "classifier.pt").exists():
+            return p
+    # 2. Local vendor directory
+    local_p = pathlib.Path(__file__).parent.parent / "weights"
+    if (local_p / "classifier.pt").exists():
+        return local_p
+    # 3. Kaggle dataset /kaggle/input/lexirep/
+    kaggle_p = pathlib.Path("/kaggle/input/lexirep")
+    if (kaggle_p / "classifier.pt").exists():
+        return kaggle_p
+    # 4. Search any /kaggle/input/**/
+    try:
+        for p in pathlib.Path("/kaggle/input").glob("**/classifier.pt"):
+            return p.parent
+    except Exception:
+        pass
+    return local_p
+
+PATH_TO_WEIGHTS = _resolve_whistress_weights_path()
 
 
 def get_loaded_model(device="cuda"):

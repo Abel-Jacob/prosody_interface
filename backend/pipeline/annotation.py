@@ -182,4 +182,5 @@ def _build_word_entry(word_data: dict, phrase_index: int, phrase_intonation: Opt
         "pitch_trend": word_data.get("pitch_trend"),
         "char_pitches": word_data.get("char_pitches"),
         "voiced_segment_index": word_data.get("voiced_segment_index"),
+        "syllables": word_data.get("syllables"),
     }

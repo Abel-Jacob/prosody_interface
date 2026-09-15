@@ -1,8 +1,8 @@
 import React, { useState, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ProsodyWord from './ProsodyWord'
-import ProsodyTooltip from './ProsodyTooltip'
 import PauseTooltip from './PauseTooltip'
+import SyllableBokeh from './SyllableBokeh'
 
 /* Spring configs migrated from legacy stiffness/damping API to
    duration/bounce API per the apple-design skill's mapping table.
@@ -233,14 +233,12 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
         </div>
       </motion.div>
 
-      {/* Feature 2: Render Prosody Tooltip (with pitch data when available) */}
-      {/* Finding 6: AnimatePresence for tooltip exit animation */}
+      {/* LexiRep Syllable Bokeh Modal with lexical stress + prosody data */}
       <AnimatePresence>
         {inspectedWord && (
-          <ProsodyTooltip 
-            key="prosody-tooltip"
+          <SyllableBokeh 
+            key="syllable-bokeh"
             wordData={inspectedWord.data} 
-            wordRef={inspectedWord.ref} 
             onClose={() => setInspectedWord(null)} 
           />
         )}

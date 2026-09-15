@@ -17,6 +17,23 @@ class JobStatus(str, Enum):
     FAILED = "failed"
 
 
+class SyllableModelInfo(BaseModel):
+    """Stress prediction from a specific LexiRep model (fused, ger, ita, ensemble)."""
+    stressed: bool = Field(default=False, description="Whether this model predicts primary stress")
+    margin: float = Field(default=0.0, description="Cosine stress margin")
+
+
+class SyllableResult(BaseModel):
+    """A single syllable with its lexical stress prediction from LexiRep."""
+    text: str = Field(description="Syllable text (e.g. 're', 'cord')")
+    stressed: bool = Field(default=False, description="Whether this syllable carries primary lexical stress (active model)")
+    stress_margin: float = Field(default=0.0, description="Cosine margin to stressed prototype (higher = more stressed)")
+    models: Optional[dict[str, SyllableModelInfo]] = Field(
+        default=None,
+        description="Per-model stress predictions: 'fused', 'ensemble', 'ger', 'ita'"
+    )
+
+
 class WordResult(BaseModel):
     """A single word with all its analysis results."""
     word: str
@@ -25,6 +42,7 @@ class WordResult(BaseModel):
     confidence: float = Field(default=1.0, description="ASR confidence 0-1")
     stressed: bool = Field(default=False, description="Whether word is stressed")
     stress_score: float = Field(default=0.0, description="Stress probability 0-1")
+    syllables: Optional[list[SyllableResult]] = Field(default=None, description="LexiRep syllable-level stress breakdown (null for monosyllabic words)")
     pause_after: float = Field(default=0.0, description="Silent pause duration after this word in seconds")
     is_hesitation: bool = Field(default=False, description="Whether this word is a vocalized hesitation (e.g. um, uh)")
     pitch_mean: Optional[float] = Field(default=None, description="Average F0 pitch in Hz over the word")

@@ -167,6 +167,28 @@ class Worker:
                             # Sentence-level intonation pattern
                             if "intonation_pattern" in res:
                                 phrase.intonation_pattern = res["intonation_pattern"]
+                        # Apply syllable-level stress results (LexiRep)
+                        if "word_syllables" in res:
+                            from schemas import SyllableResult
+                            syl_data = res["word_syllables"]
+                            for syl_entry in syl_data:
+                                # Match by start time (more reliable than word text for punctuation)
+                                entry_start = syl_entry.get("start", -1)
+                                entry_word = syl_entry.get("word", "")
+                                for w in phrase.words:
+                                    if abs(w.start - entry_start) < 0.01:
+                                        raw_syls = syl_entry.get("syllables")
+                                        if raw_syls is not None:
+                                            w.syllables = [
+                                                SyllableResult(
+                                                    text=s["text"],
+                                                    stressed=s["stressed"],
+                                                    stress_margin=s.get("stress_margin", 0.0),
+                                                    models=s.get("models"),
+                                                )
+                                                for s in raw_syls
+                                            ]
+                                        break
                     except Exception as ae:
                         logger.warning(f"Job {job_id}: analyzer '{analyzer.name}' failed on sentence {idx+1}: {ae}")
 

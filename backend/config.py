@@ -15,7 +15,26 @@ AUDIO_UPLOADS_DIR = BASE_DIR / "audio_uploads"
 ANNOTATIONS_DIR = BASE_DIR / "annotations"
 DB_PATH = BASE_DIR / "jobs.db"
 VENDOR_DIR = BASE_DIR / "vendor"
-WHISTRESS_WEIGHTS_DIR = VENDOR_DIR / "whistress_pkg" / "weights"
+# Function to automatically resolve WhiStress weights directory
+def _resolve_whistress_weights_dir() -> Path:
+    if "WHISTRESS_WEIGHTS_DIR" in os.environ:
+        p = Path(os.environ["WHISTRESS_WEIGHTS_DIR"])
+        if (p / "classifier.pt").exists():
+            return p
+    local_p = VENDOR_DIR / "whistress_pkg" / "weights"
+    if (local_p / "classifier.pt").exists():
+        return local_p
+    kaggle_p = Path("/kaggle/input/lexirep")
+    if (kaggle_p / "classifier.pt").exists():
+        return kaggle_p
+    try:
+        for p in Path("/kaggle/input").glob("**/classifier.pt"):
+            return p.parent
+    except Exception:
+        pass
+    return local_p
+
+WHISTRESS_WEIGHTS_DIR = _resolve_whistress_weights_dir()
 
 # Ensure runtime directories exist
 AUDIO_UPLOADS_DIR.mkdir(exist_ok=True)
@@ -51,3 +70,50 @@ CORS_ORIGINS = ["*"]
 
 # ── Worker ─────────────────────────────────────────────────────
 WORKER_POLL_INTERVAL_SEC = 0.2  # How often worker checks for new jobs
+
+# ── LexiRep Syllable Stress ───────────────────────────────────
+def _resolve_lexirep_checkpoint(key: str) -> Path:
+    """Resolve checkpoint path for 'fused', 'ger', or 'ita' model across local and Kaggle."""
+    # 1. Environment variable override
+    env_var = f"LEXIREP_{key.upper()}_CHECKPOINT"
+    if env_var in os.environ:
+        p = Path(os.environ[env_var])
+        if p.exists():
+            return p
+
+    # 2. Kaggle dataset with exact uploaded filename: final_lexirep_model_{key}.pt
+    kaggle_p = Path(f"/kaggle/input/lexirep/final_lexirep_model_{key}.pt")
+    if kaggle_p.exists():
+        return kaggle_p
+
+    # 3. Local workspace path: results_{key}/final_lexirep_model_{key}.pt or final_lexirep_model.pt
+    isle_dir = BASE_DIR.parent / "ISLE 768"
+    local_candidates = [
+        isle_dir / f"results_{key}" / f"final_lexirep_model_{key}.pt",
+        isle_dir / f"results_{key}" / "final_lexirep_model.pt",
+        BASE_DIR / f"final_lexirep_model_{key}.pt",
+        BASE_DIR / "final_lexirep_model.pt",
+    ]
+    for cand in local_candidates:
+        if cand.exists():
+            return cand
+
+    # 4. Search recursively in /kaggle/input/
+    try:
+        for p in Path("/kaggle/input").glob(f"**/final_lexirep_model_{key}.pt"):
+            return p
+        for p in Path("/kaggle/input").glob(f"**/final_lexirep_model.pt"):
+            return p
+    except Exception:
+        pass
+
+    return local_candidates[0]
+
+LEXIREP_CHECKPOINT_PATHS = {
+    "fused": _resolve_lexirep_checkpoint("fused"),
+    "ger": _resolve_lexirep_checkpoint("ger"),
+    "ita": _resolve_lexirep_checkpoint("ita"),
+}
+
+LEXIREP_CHECKPOINT_PATH = LEXIREP_CHECKPOINT_PATHS["fused"]
+

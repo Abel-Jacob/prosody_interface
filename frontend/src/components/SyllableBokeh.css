@@ -1,0 +1,304 @@
+/* =========================================
+   SyllableBokeh.css — Bokeh overlay for syllable stress breakdown
+
+   When user clicks a word, the transcript blurs out and the word
+   appears enlarged in the center with its syllable breakdown.
+   The stressed syllable glows with the same --accent orange.
+   ========================================= */
+
+/* ── Full-screen backdrop overlay ─────────────────────────────── */
+.syllable-bokeh-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 8, 10, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+/* ── Ambient floating bokeh light orbs ──────────────────────── */
+.bokeh-circle {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(50px);
+  opacity: 0.22;
+}
+
+.bokeh-circle-1 {
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+  top: 18%;
+  left: 25%;
+  animation: floatBokeh1 12s ease-in-out infinite alternate;
+}
+
+.bokeh-circle-2 {
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, #e0a96d 0%, transparent 70%);
+  bottom: 18%;
+  right: 22%;
+  animation: floatBokeh2 14s ease-in-out infinite alternate;
+}
+
+.bokeh-circle-3 {
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(196, 149, 106, 0.4) 0%, transparent 70%);
+  top: 55%;
+  left: 45%;
+  animation: floatBokeh3 10s ease-in-out infinite alternate;
+}
+
+@keyframes floatBokeh1 {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(40px, -30px) scale(1.15); }
+}
+
+@keyframes floatBokeh2 {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-35px, 25px) scale(0.9); }
+}
+
+@keyframes floatBokeh3 {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(25px, 35px) scale(1.08); }
+}
+
+/* ── Central card ─────────────────────────────────────────────── */
+.syllable-bokeh-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2.5rem 3.5rem;
+  max-width: 90vw;
+  cursor: default;
+  position: relative;
+  z-index: 10;
+}
+
+/* ── Model Selector Bar ───────────────────────────────────────── */
+.syllable-bokeh-model-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: -0.5rem;
+}
+
+.model-bar-label {
+  font-family: var(--font-secondary, var(--font-primary));
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.syllable-bokeh-model-selector {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.syllable-bokeh-model-btn {
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0.35rem 0.9rem;
+  font-family: var(--font-secondary, var(--font-primary));
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  white-space: nowrap;
+}
+
+.syllable-bokeh-model-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.syllable-bokeh-model-btn.active {
+  color: var(--accent);
+  background: rgba(196, 149, 106, 0.16);
+  border: 1px solid rgba(196, 149, 106, 0.4);
+  box-shadow: 0 0 12px rgba(196, 149, 106, 0.2);
+  font-weight: 600;
+}
+
+/* ── Consensus / Divergence indicator badge ───────────────────── */
+.syllable-bokeh-consensus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-secondary, var(--font-primary));
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid;
+  margin-top: -0.8rem;
+}
+
+.syllable-bokeh-consensus.agreed {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.35);
+  background: rgba(74, 222, 128, 0.08);
+}
+
+.syllable-bokeh-consensus.divergent {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.consensus-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* ── Word title (original word text) ──────────────────────────── */
+.syllable-bokeh-word-title {
+  font-family: var(--font-primary);
+  font-size: 1rem;
+  font-weight: 300;
+  color: var(--text-muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* ── Syllable breakdown container ─────────────────────────────── */
+.syllable-bokeh-syllables {
+  display: flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  flex-wrap: nowrap;
+}
+
+/* ── Individual syllable ──────────────────────────────────────── */
+.syllable-bokeh-syl {
+  font-family: var(--font-primary);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 300;
+  color: var(--text-secondary, #999);
+  letter-spacing: 0.02em;
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+}
+
+/* ── Separator between syllables ──────────────────────────────── */
+.syllable-bokeh-sep {
+  font-family: var(--font-primary);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 200;
+  color: var(--text-faded, #555);
+  margin: 0 0.1rem;
+  user-select: none;
+}
+
+/* ── Stressed syllable — glowing orange accent ────────────────── */
+.syllable-bokeh-syl.stressed {
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-shadow:
+    0 0 8px var(--accent-dim),
+    0 0 24px rgba(196, 149, 106, 0.35),
+    0 0 48px rgba(196, 149, 106, 0.15);
+  animation: syllableGlow 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes syllableGlow {
+  0% {
+    text-shadow:
+      0 0 8px var(--accent-dim),
+      0 0 24px rgba(196, 149, 106, 0.35),
+      0 0 48px rgba(196, 149, 106, 0.15);
+  }
+  100% {
+    text-shadow:
+      0 0 12px var(--accent-dim),
+      0 0 32px rgba(196, 149, 106, 0.45),
+      0 0 64px rgba(196, 149, 106, 0.25);
+  }
+}
+
+/* ── Stress indicator bar under stressed syllable ─────────────── */
+.syllable-bokeh-syl.stressed::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 10%;
+  width: 80%;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+  box-shadow: 0 0 8px rgba(196, 149, 106, 0.5);
+}
+
+/* ── Monosyllabic / no-data info label ────────────────────────── */
+.syllable-bokeh-info {
+  font-family: var(--font-secondary, var(--font-primary));
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: -0.5rem;
+}
+
+/* ── Footer hint ──────────────────────────────────────────────── */
+.syllable-bokeh-hint {
+  font-family: var(--font-secondary, var(--font-primary));
+  font-size: 0.6rem;
+  color: var(--text-faded);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 1rem;
+}
+
+/* ── WhiStress word-level stress badge ────────────────────────── */
+.syllable-bokeh-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-secondary, var(--font-primary));
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.8rem;
+  border-radius: 2px;
+  border: 1px solid;
+}
+
+.syllable-bokeh-badge.emphasized {
+  color: var(--accent);
+  border-color: rgba(196, 149, 106, 0.4);
+  background: rgba(196, 149, 106, 0.08);
+}
+
+.syllable-bokeh-badge.neutral {
+  color: var(--text-muted);
+  border-color: rgba(140, 140, 140, 0.25);
+  background: rgba(140, 140, 140, 0.05);
+}

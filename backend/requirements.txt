@@ -30,5 +30,8 @@ torch>=2.0.0
 # Silero VAD (loaded via torch.hub, no separate pip package)
 # Already covered by torch
 
+# Syllable-level lexical stress (LexiRep)
+pyphen>=0.14.0
+
 # Data validation
 pydantic>=2.0.0

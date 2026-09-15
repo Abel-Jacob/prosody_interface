@@ -56,3 +56,6 @@ backend/tests/test_audio/
 *.webm
 *.ogg
 !backend/tests/fixtures/*.wav
+
+# Datasets and research artifacts (do not upload)
+ISLE 768/

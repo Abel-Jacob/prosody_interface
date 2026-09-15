@@ -89,12 +89,64 @@ def load_all_models() -> dict:
         logger.error(f"Failed to load WhiStress model: {e}", exc_info=True)
         models["whistress"] = None
 
+    # 4. Load Wav2Vec 2.0 + LexiRep for syllable-level stress
+    _load_lexirep_models(models)
+
     logger.info("=" * 50)
     loaded = [k for k, v in models.items() if v is not None]
     failed = [k for k, v in models.items() if v is None]
     logger.info(f"Model loading complete. Loaded: {loaded}. Failed: {failed}")
 
     return models
+
+
+def _load_lexirep_models(models: dict) -> None:
+    """
+    Load Wav2Vec 2.0 and LexiRep checkpoint for syllable-level stress detection.
+    Called separately because these are heavier models that may not be needed
+    in all deployment scenarios.
+    """
+    import torch
+    from config import LEXIREP_CHECKPOINT_PATH
+
+    # 4a. Load Wav2Vec 2.0 base model
+    logger.info("=" * 50)
+    logger.info("Loading Wav2Vec 2.0 (facebook/wav2vec2-base) for LexiRep...")
+    try:
+        from transformers import Wav2Vec2Model
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        w2v = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base")
+        w2v.eval()
+        w2v.to(device)
+        models["wav2vec2"] = w2v
+        logger.info(f"Wav2Vec 2.0 loaded on {device}")
+    except Exception as e:
+        logger.error(f"Failed to load Wav2Vec 2.0: {e}", exc_info=True)
+        models["wav2vec2"] = None
+
+    # 4b. Load LexiRep checkpoints (FUSED, GER, ITA)
+    from config import LEXIREP_CHECKPOINT_PATHS
+    models["lexirep_ckpts"] = {}
+
+    for model_key, ckpt_path in LEXIREP_CHECKPOINT_PATHS.items():
+        logger.info(f"Loading LexiRep checkpoint [{model_key}] from {ckpt_path}...")
+        try:
+            p = Path(ckpt_path)
+            if p.exists():
+                ckpt = torch.load(str(p), map_location="cpu", weights_only=False)
+                models["lexirep_ckpts"][model_key] = ckpt
+                logger.info(
+                    f"LexiRep [{model_key}] checkpoint loaded: dataset={ckpt.get('dataset_name', '?')}, "
+                    f"seed={ckpt.get('seed', '?')}"
+                )
+            else:
+                logger.warning(f"LexiRep [{model_key}] checkpoint not found at {p}")
+        except Exception as e:
+            logger.error(f"Failed to load LexiRep [{model_key}] checkpoint: {e}", exc_info=True)
+
+    # Maintain backwards compatibility
+    models["lexirep_ckpt"] = models["lexirep_ckpts"].get("fused")
+
 
 def warmup_models(models: dict):
     """Run a dummy forward pass to force CUDA memory allocation and cuDNN benchmarking."""
