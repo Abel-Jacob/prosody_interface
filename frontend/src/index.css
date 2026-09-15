@@ -29,13 +29,10 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 .canvas-bg { position: fixed; inset: 0; z-index: -1; width: 100vw; height: 100vh; background: var(--bg); transition: opacity 0.8s ease; pointer-events: none; }
 .canvas-bg.active { background: var(--bg); }
 .waveform-bg { z-index: 0; overflow: hidden; background: var(--bg); }
-.waveform-scene { position: absolute; inset: 8% -10% 0; opacity: .62; transform: perspective(900px) rotateX(58deg) rotateZ(-8deg) scale(1.15); transform-origin: center; filter: blur(.1px); pointer-events: none; }
-.waveform-ribbon { position: absolute; left: -8%; width: 116%; height: 25%; border: 1px solid rgba(196,149,106,.62); border-radius: 50%; background: linear-gradient(90deg, transparent, rgba(196,149,106,.16) 18%, rgba(196,149,106,.3) 50%, rgba(196,149,106,.16) 82%, transparent); box-shadow: 0 0 10px rgba(196,149,106,.2); transform: rotate(-4deg) skewX(-12deg); animation: waveformRibbonDrift 4.8s ease-in-out infinite alternate; }
-.waveform-ribbon::after { content: ''; position: absolute; inset: 42% 0; background: rgba(196,149,106,.5); mask-image: linear-gradient(90deg, transparent, black 18%, black 82%, transparent); }
-.waveform-ribbon-a { top: 14%; animation-delay: -1.2s; }
-.waveform-ribbon-b { top: 35%; height: 28%; opacity: .7; animation-duration: 5.8s; animation-delay: -4s; }
-.waveform-ribbon-c { top: 58%; height: 24%; opacity: .45; animation-duration: 7.2s; animation-delay: -6s; }
-@keyframes waveformRibbonDrift { 0% { transform: translate3d(-3%, -1%, 0) rotate(-4deg) skewX(-12deg) scaleY(.96); } 45% { transform: translate3d(1%, 2%, 0) rotate(-2deg) skewX(-12deg) scaleY(1.02); } 100% { transform: translate3d(3%, 5%, 0) rotate(-1deg) skewX(-12deg) scaleY(1.04); } }
+.waveform-scene { position: absolute; inset: 4% -10% -8%; opacity: .7; transform: perspective(900px) rotateX(58deg) rotateZ(-8deg) scale(1.15); transform-origin: center; filter: blur(.1px); pointer-events: none; }
+.waveform-ribbon { position: absolute; top: 26%; left: -8%; width: 116%; height: 31%; border: 1px solid rgba(196,149,106,.72); border-radius: 48% 52% 46% 54%; background: linear-gradient(90deg, rgba(196,149,106,.08), rgba(196,149,106,.34) 28%, rgba(196,149,106,.52) 50%, rgba(196,149,106,.3) 74%, rgba(196,149,106,.08)); box-shadow: 0 0 14px rgba(196,149,106,.24); transform: rotate(-4deg) skewX(-12deg); animation: waveformRibbonDrift 2.8s cubic-bezier(.45,.05,.55,.95) infinite alternate; }
+.waveform-ribbon::after { content: ''; position: absolute; inset: 38% 0; background: rgba(222,178,132,.48); border-radius: 50%; mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent); }
+@keyframes waveformRibbonDrift { 0% { transform: translate3d(-4%, -2%, 0) rotate(-5deg) skewX(-12deg) scaleY(.94); } 50% { transform: translate3d(0, 2%, 0) rotate(-1deg) skewX(-12deg) scaleY(1.04); } 100% { transform: translate3d(4%, -1%, 0) rotate(2deg) skewX(-12deg) scaleY(.97); } }
 .landing-container { z-index: 1; }
 @media (prefers-reduced-motion: reduce) { .waveform-ribbon { animation: none; } }
 
