@@ -384,7 +384,7 @@ export default function LexiRepTrainPage({ onBack }) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
         >
-          <div className="lexirep-spinner" />
+          <ThinkingOrb state="connecting" size={64} dark={false} />
           <span className="lexirep-status-label">uploading dataset…</span>
         </motion.div>
       )}

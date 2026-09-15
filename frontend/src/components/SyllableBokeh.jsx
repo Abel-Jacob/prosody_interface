@@ -184,7 +184,7 @@ export default function SyllableBokeh({ wordData, onClose }) {
           {isPolysyllabic ? (
             <span>
               {activeModelOption.label} primary stress on syllable:{' '}
-              <strong style={{ color: 'var(--accent)', letterSpacing: '0.04em' }}>
+              <strong style={{ color: '#ffffff', letterSpacing: '0.04em' }}>
                 "{activeStressedSyl ? activeStressedSyl.text.toUpperCase() : 'N/A'}"
               </strong>
               {activeMargin != null && (
