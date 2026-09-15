@@ -73,28 +73,8 @@ export default function SyllableBokeh({ wordData, onClose }) {
   const activeStressedSyl = isPolysyllabic ? syllables.find(s => getIsSylStressed(s)) : null
   const activeMargin = activeStressedSyl ? getSylMargin(activeStressedSyl) : null
 
-  // Consensus calculation between GER and ITA models
-  const gerWinner = isPolysyllabic && syllables.find(s => s.models?.ger?.stressed)
-  const itaWinner = isPolysyllabic && syllables.find(s => s.models?.ita?.stressed)
-  const hasBothLearnerModels = !!(gerWinner && itaWinner)
-  const isConsensus = hasBothLearnerModels && (gerWinner.text === itaWinner.text)
-
-  // WhiStress sentence-level prominence
+  // WhiStress sentence-level prominence (for monosyllabic word fallback)
   const isWordStressed = !!wordData.stressed
-  const stressScore = wordData.stress_score != null ? Math.round(wordData.stress_score * 100) : null
-
-  // Prosody intonation metrics
-  const inton = wordData.intonation || {}
-  const meanPitch = inton.mean_pitch ?? wordData.pitch_mean
-  const pitchTrend = inton.pitch_trend || (wordData.pitch_direction === 'rising' ? '↑' : wordData.pitch_direction === 'falling' ? '↓' : null)
-
-  const startVal = wordData.start !== undefined ? wordData.start : wordData.start_time
-  const endVal = wordData.end !== undefined ? wordData.end : wordData.end_time
-  const durationMs = (startVal !== undefined && endVal !== undefined)
-    ? Math.round((endVal - startVal) * 1000)
-    : null
-
-  const confPercent = wordData.confidence !== undefined ? Math.round(wordData.confidence * 100) : 100
 
   const activeModelOption = MODEL_OPTIONS.find(m => m.id === activeModel) || MODEL_OPTIONS[0]
 
@@ -167,18 +147,6 @@ export default function SyllableBokeh({ wordData, onClose }) {
           )}
         </div>
 
-        {/* Consensus / Divergence Tag */}
-        {hasBothLearnerModels && (
-          <div className={`syllable-bokeh-consensus ${isConsensus ? 'agreed' : 'divergent'}`}>
-            <span className="consensus-indicator" />
-            {isConsensus ? (
-              <span>GER &amp; ITA Models Agree: <strong>"{gerWinner.text.toUpperCase()}"</strong></span>
-            ) : (
-              <span>Model Split: GER prefers <strong>"{gerWinner.text}"</strong>, ITA prefers <strong>"{itaWinner.text}"</strong></span>
-            )}
-          </div>
-        )}
-
         {/* Sub-label describing stress status */}
         <div className="syllable-bokeh-info">
           {isPolysyllabic ? (
@@ -195,43 +163,6 @@ export default function SyllableBokeh({ wordData, onClose }) {
             </span>
           ) : (
             <span>Monosyllabic word — single syllable (no intra-word stress contrast)</span>
-          )}
-        </div>
-
-        {/* Badges: WhiStress Sentence Prominence + ASR score + Duration + Pitch */}
-        <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <div className={`syllable-bokeh-badge ${isWordStressed ? 'emphasized' : 'neutral'}`}>
-            <span>Utterance Prominence:</span>
-            <strong>{isWordStressed ? 'STRESSED' : 'UNSTRESSED'}</strong>
-            {stressScore != null && <span style={{ opacity: 0.7 }}>({stressScore}%)</span>}
-          </div>
-
-          <div className="syllable-bokeh-badge neutral">
-            <span>ASR:</span>
-            <strong>{confPercent}%</strong>
-          </div>
-
-          {durationMs != null && (
-            <div className="syllable-bokeh-badge neutral">
-              <span>Duration:</span>
-              <strong>{durationMs} ms</strong>
-            </div>
-          )}
-
-          {meanPitch != null && (
-            <div className="syllable-bokeh-badge neutral">
-              <span>Pitch:</span>
-              <strong>{Math.round(meanPitch)} Hz</strong>
-              {pitchTrend && (
-                <span style={{
-                  color: pitchTrend === '↑' ? '#4ade80' : pitchTrend === '↓' ? '#f87171' : '#94a3b8',
-                  marginLeft: '2px',
-                  fontWeight: 700
-                }}>
-                  {pitchTrend}
-                </span>
-              )}
-            </div>
           )}
         </div>
 

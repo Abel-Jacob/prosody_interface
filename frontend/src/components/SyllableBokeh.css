@@ -90,39 +90,6 @@
   font-weight: 600;
 }
 
-/* ── Consensus / Divergence indicator badge ───────────────────── */
-.syllable-bokeh-consensus {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-family: var(--font-secondary, var(--font-primary));
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  border: 1px solid;
-  margin-top: -0.8rem;
-}
-
-.syllable-bokeh-consensus.agreed {
-  color: #4ade80;
-  border-color: rgba(74, 222, 128, 0.35);
-  background: rgba(74, 222, 128, 0.08);
-}
-
-.syllable-bokeh-consensus.divergent {
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.35);
-  background: rgba(251, 191, 36, 0.08);
-}
-
-.consensus-indicator {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  box-shadow: 0 0 6px currentColor;
-}
 
 /* ── Word title (original word text) ──────────────────────────── */
 .syllable-bokeh-word-title {
@@ -224,28 +191,3 @@
   margin-top: 1rem;
 }
 
-/* ── WhiStress word-level stress badge ────────────────────────── */
-.syllable-bokeh-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-family: var(--font-secondary, var(--font-primary));
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 0.3rem 0.8rem;
-  border-radius: 2px;
-  border: 1px solid;
-}
-
-.syllable-bokeh-badge.emphasized {
-  color: var(--accent);
-  border-color: rgba(196, 149, 106, 0.4);
-  background: rgba(196, 149, 106, 0.08);
-}
-
-.syllable-bokeh-badge.neutral {
-  color: var(--text-muted);
-  border-color: rgba(140, 140, 140, 0.25);
-  background: rgba(140, 140, 140, 0.05);
-}
