@@ -38,6 +38,13 @@ function validateCsvText(text) {
 /**
  * Parse NPY header to read shape. Returns { valid, shape, message }.
  */
+function validateNpzFile(file) {
+  if (file.size === 0) {
+    return { valid: false, shape: null, message: 'NPZ archive is empty' }
+  }
+  return { valid: true, shape: null, message: 'NPZ archive selected — dimensions will be checked during training' }
+}
+
 function validateNpyBuffer(buffer) {
   try {
     const view = new DataView(buffer)
@@ -88,6 +95,7 @@ export default function LexiRepTrainPage({ onBack }) {
   const [selectedFile, setSelectedFile] = useState(null)
   const [validation, setValidation] = useState(null)
   const [dragOver, setDragOver] = useState(false)
+  const [fileActionsOpen, setFileActionsOpen] = useState(false)
   const [jobId, setJobId] = useState(null)
   const [error, setError] = useState(null)
   const [outputFiles, setOutputFiles] = useState([])
@@ -109,8 +117,10 @@ export default function LexiRepTrainPage({ onBack }) {
     } else if (ext === 'npy') {
       const buffer = await file.arrayBuffer()
       return validateNpyBuffer(buffer)
+    } else if (ext === 'npz') {
+      return validateNpzFile(file)
     } else {
-      return { valid: false, message: `Unsupported file type .${ext}. Use .csv or .npy` }
+      return { valid: false, message: `Unsupported file type .${ext}. Use .csv, .npy, or .npz` }
     }
   }, [])
 
@@ -248,7 +258,7 @@ export default function LexiRepTrainPage({ onBack }) {
         <h1>lexirep training</h1>
         <p>
           Upload a 768-dimensional dataset to train a custom
-          LexiRep model. Accepts .csv or .npy files.
+          LexiRep model. Accepts .csv, .npy, or .npz files.
         </p>
       </div>
 
@@ -264,7 +274,7 @@ export default function LexiRepTrainPage({ onBack }) {
             type="file"
             ref={fileInputRef}
             onChange={handleInputChange}
-            accept=".csv,.npy"
+            accept=".csv,.npy,.npz"
             style={{ display: 'none' }}
           />
 
@@ -293,7 +303,7 @@ export default function LexiRepTrainPage({ onBack }) {
                   Drop file or click to browse
                 </div>
                 <div className="lexirep-upload-zone-hint">
-                  .csv or .npy — 768-dimensional vectors
+                  .csv, .npy, or .npz — 768-dimensional vectors
                 </div>
               </div>
             ) : (
@@ -373,6 +383,44 @@ export default function LexiRepTrainPage({ onBack }) {
             Start Training
           </motion.button>
         </motion.div>
+      )}
+
+      {pageState === 'idle' && (
+        <div className="lexirep-file-actions">
+          {fileActionsOpen && (
+            <motion.div
+              className="lexirep-file-action-list"
+              initial={{ opacity: 0, y: 8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.16 }}
+            >
+              {[['CSV', '.csv'], ['NPY', '.npy'], ['NPZ', '.npz']].map(([label, extension]) => (
+                <button
+                  key={extension}
+                  className="lexirep-file-action"
+                  onClick={() => {
+                    setFileActionsOpen(false)
+                    fileInputRef.current?.click()
+                  }}
+                >
+                  <span className="lexirep-file-action-icon">{label}</span>
+                  {extension} dataset
+                </button>
+              ))}
+            </motion.div>
+          )}
+          <button
+            className={`lexirep-file-action-trigger${fileActionsOpen ? ' open' : ''}`}
+            onClick={() => setFileActionsOpen(open => !open)}
+            aria-label={fileActionsOpen ? 'Close file type menu' : 'Choose dataset file type'}
+            aria-expanded={fileActionsOpen}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        </div>
       )}
 
       {/* ── UPLOADING ──────────────────────────────────── */}
