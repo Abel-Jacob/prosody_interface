@@ -4,7 +4,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 32px;
+  padding: 48px 32px 88px;
   position: relative;
   z-index: 1;
 }
@@ -67,9 +67,12 @@
 
 /* ── Seamless Minimalist Backend Connection Bar ── */
 .landing-backend-bar {
-  width: 100%;
-  max-width: 440px;
-  margin: 36px auto 0;
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(100% - 64px), 440px);
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -78,6 +81,7 @@
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.015);
   transition: all 0.2s ease;
+  z-index: 10;
 }
 
 .landing-backend-bar:focus-within {
@@ -180,12 +184,33 @@
 }
 
 @media (max-width: 640px) {
-  .landing-container { padding-top: 88px; }
-  .landing-container::before { top: 20px; left: 20px; }
+  .landing-container { padding-top: 88px; padding-bottom: 48px; }
   .landing-title { align-self: flex-start; margin-bottom: 28px; font-size: 2rem; }
   .landing-cards { width: 100%; flex-direction: column; gap: 12px; }
   .landing-card { width: 100%; min-height: 180px; padding: 24px; }
   .landing-divider { justify-content: center; margin: 0; }
   .landing-divider-line { width: 48px; height: 1px; }
-  .landing-backend-bar { width: 100%; margin-top: 24px; }
+  .landing-backend-bar {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    width: 100%;
+    margin-top: 36px;
+  }
+}
+
+@media (max-height: 640px) {
+  .landing-container {
+    justify-content: flex-start;
+    padding-top: 72px;
+    padding-bottom: 36px;
+  }
+  .landing-backend-bar {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    margin: 36px auto 0;
+  }
 }
