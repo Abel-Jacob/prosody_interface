@@ -169,7 +169,6 @@ export default function LexiRepTrainPage({ onBack }) {
   const [modelSummary, setModelSummary] = useState(null)
   const [serverLogs, setServerLogs] = useState([])
   const [statusText, setStatusText] = useState('training in progress…')
-  const [activeTab, setActiveTab] = useState('blueprint') // 'blueprint' | 'weights' | 'scorecard'
 
   const fileInputRef = useRef(null)
   const pollRef = useRef(null)
@@ -554,7 +553,7 @@ export default function LexiRepTrainPage({ onBack }) {
       {/* ── UPLOADING ──────────────────────────────────── */}
       {pageState === 'uploading' && (
         <motion.div
-          className="lexirep-status"
+          className="lexirep-loading-view"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
@@ -562,20 +561,19 @@ export default function LexiRepTrainPage({ onBack }) {
           <div className="lexirep-orb-wrapper">
             <SafeThinkingOrb state="connecting" size={64} />
           </div>
-          <span className="lexirep-status-label">Preparing &amp; uploading dataset…</span>
+          <span className="lexirep-status-label">PREPARING &amp; UPLOADING DATASET...</span>
           <span className="lexirep-status-sub">Validating 768-D representation tensors</span>
         </motion.div>
       )}
 
-      {/* ── TRAINING (Connecting Orb) ─────────────────── */}
+      {/* ── TRAINING (Connecting Orb — Image 2 Style) ───── */}
       {pageState === 'training' && (
         <motion.div
-          className="lexirep-training-dashboard"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
+          className="lexirep-loading-view"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.25 }}
         >
-          {/* Explicitly using state="connecting" with safe size 64 */}
           <div className="lexirep-orb-wrapper">
             <SafeThinkingOrb state="connecting" size={64} />
           </div>
@@ -599,252 +597,64 @@ export default function LexiRepTrainPage({ onBack }) {
             Loop <span className="highlight">{currentLoop}</span> / {totalLoops}
           </div>
 
-          {/* Progress bar */}
+          {/* Minimalist 2px Progress Bar right under text */}
           <div className="lexirep-progress-track">
             <motion.div
               className="lexirep-progress-fill"
               initial={{ width: '0%' }}
               animate={{ width: `${Math.max(progress, 5)}%` }}
-              transition={{ ease: 'easeOut', duration: 0.4 }}
+              transition={{ ease: 'easeOut', duration: 0.35 }}
             />
           </div>
-
-          {/* Real-time metrics pills */}
-          {currentMetrics && (
-            <div className="lexirep-live-metrics">
-              <div className="lexirep-live-pill btq">
-                <span className="pill-title">Test BTQ Accuracy</span>
-                <span className="pill-val">{currentMetrics.BTQ ?? '—'}%</span>
-              </div>
-              <div className="lexirep-live-pill">
-                <span className="pill-title">Pseudo Train Acc</span>
-                <span className="pill-val">{currentMetrics.train ?? '—'}%</span>
-              </div>
-              <div className="lexirep-live-pill">
-                <span className="pill-title">IDEC Loss</span>
-                <span className="pill-val">{currentMetrics.loss ?? '—'}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Live Server Telemetry Logs Box */}
-          <div className="lexirep-live-log-box">
-            <div className="lexirep-live-log-header">
-              <span className="lexirep-log-pulse" />
-              <span>LIVE BACKEND TRAINING TELEMETRY</span>
-            </div>
-            <div className="lexirep-live-log-list">
-              {serverLogs && serverLogs.length > 0 ? (
-                serverLogs.map((log, idx) => (
-                  <div key={idx} className="lexirep-log-line">
-                    <span className="lexirep-log-prompt">&gt;</span> {log}
-                  </div>
-                ))
-              ) : (
-                <div className="lexirep-log-line muted">
-                  <span className="lexirep-log-prompt">&gt;</span> Connected to backend. Initializing PyTorch pipeline...
-                </div>
-              )}
-            </div>
-          </div>
-
-          <span className="lexirep-status-sub">
-            Optimizing 5-layer encoder and Student-t clustering representations
-          </span>
         </motion.div>
       )}
 
-      {/* ── COMPLETE: Creative Model & Weights Display ─── */}
+      {/* ── COMPLETE: Minimalist BTQ Scorecard & Download Options ─── */}
       {pageState === 'complete' && (
         <motion.div
-          className="lexirep-complete-container"
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.35, ease: 'easeOut' }}
+          className="lexirep-complete-minimal"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
         >
-          {/* Celebratory badge */}
-          <div className="lexirep-complete-badge">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-            <span>TRAINING CONVERGED &amp; VALIDATED</span>
+          <div className="lexirep-complete-header">
+            <span className="lexirep-step-label">Training Complete</span>
+            <h2 className="lexirep-complete-title">evaluation results</h2>
           </div>
 
-          <h2 className="lexirep-complete-title">LexiRep Model Generated</h2>
-          <p className="lexirep-complete-desc">
-            109,466 weights trained across 5 representation layers. Tested against the BTQ linguistic constraint.
-          </p>
-
-          {/* Navigation Tabs */}
-          <div className="lexirep-tabs">
-            <button
-              className={`lexirep-tab-btn ${activeTab === 'blueprint' ? 'active' : ''}`}
-              onClick={() => setActiveTab('blueprint')}
-            >
-              Network Architecture
-            </button>
-            <button
-              className={`lexirep-tab-btn ${activeTab === 'weights' ? 'active' : ''}`}
-              onClick={() => setActiveTab('weights')}
-            >
-              Layer Weight Stats
-            </button>
-            <button
-              className={`lexirep-tab-btn ${activeTab === 'scorecard' ? 'active' : ''}`}
-              onClick={() => setActiveTab('scorecard')}
-            >
-              BTQ Scorecard
-            </button>
+          {/* Minimalist BTQ Scorecard */}
+          <div className="lexirep-scorecard-grid">
+            <div className="scorecard-card">
+              <span className="sc-label">Bi-syllabic (B)</span>
+              <strong className="sc-val">{modelSummary?.final_metrics?.B ?? currentMetrics?.B ?? '—'}%</strong>
+              <span className="sc-target">2 syllables</span>
+            </div>
+            <div className="scorecard-card">
+              <span className="sc-label">Bi + Tri (BT)</span>
+              <strong className="sc-val">{modelSummary?.final_metrics?.BT ?? currentMetrics?.BT ?? '—'}%</strong>
+              <span className="sc-target">2–3 syllables</span>
+            </div>
+            <div className="scorecard-card highlight">
+              <span className="sc-label">Bi + Tri + Quad (BTQ)</span>
+              <strong className="sc-val">{modelSummary?.final_metrics?.BTQ ?? currentMetrics?.BTQ ?? '—'}%</strong>
+              <span className="sc-target">Polysyllabic constraint</span>
+            </div>
+            <div className="scorecard-card">
+              <span className="sc-label">Training Duration</span>
+              <strong className="sc-val">{modelSummary?.duration_seconds ? `${modelSummary.duration_seconds}s` : '—'}</strong>
+              <span className="sc-target">{modelSummary?.epochs_trained ?? totalLoops} Loops</span>
+            </div>
           </div>
 
-          {/* ── TAB 1: Network Blueprint ───────────────────── */}
-          {activeTab === 'blueprint' && (
-            <div className="lexirep-blueprint-view">
-              <div className="blueprint-nodes-flow">
-                <div className="blueprint-node input">
-                  <span className="node-type">Input</span>
-                  <strong className="node-dim">768-D</strong>
-                  <span className="node-sub">Wav2Vec 2.0</span>
-                </div>
-                <div className="blueprint-arrow">→</div>
-
-                <div className="blueprint-node layer">
-                  <span className="node-type">Layer 1</span>
-                  <strong className="node-dim">128</strong>
-                  <span className="node-sub">ReLU (98.4k)</span>
-                </div>
-                <div className="blueprint-arrow">→</div>
-
-                <div className="blueprint-node layer">
-                  <span className="node-type">Layer 2</span>
-                  <strong className="node-dim">64</strong>
-                  <span className="node-sub">ReLU (8.2k)</span>
-                </div>
-                <div className="blueprint-arrow">→</div>
-
-                <div className="blueprint-node layer">
-                  <span className="node-type">Layer 3</span>
-                  <strong className="node-dim">32</strong>
-                  <span className="node-sub">ReLU (2.0k)</span>
-                </div>
-                <div className="blueprint-arrow">→</div>
-
-                <div className="blueprint-node layer">
-                  <span className="node-type">Layer 4</span>
-                  <strong className="node-dim">16</strong>
-                  <span className="node-sub">ReLU (528)</span>
-                </div>
-                <div className="blueprint-arrow">→</div>
-
-                <div className="blueprint-node bottleneck">
-                  <span className="node-type">Bottleneck</span>
-                  <strong className="node-dim">10-D</strong>
-                  <span className="node-sub">Sigmoid</span>
-                </div>
-              </div>
-
-              {/* Latent Space & Prototypes Box */}
-              {modelSummary?.prototypes && (
-                <div className="lexirep-prototypes-box">
-                  <div className="prototype-item">
-                    <span className="proto-dot stressed" />
-                    <div>
-                      <div className="proto-label">Stressed Prototype (z_s^h)</div>
-                      <div className="proto-vector">
-                        [{Array.isArray(modelSummary.prototypes.stressed_vector)
-                          ? modelSummary.prototypes.stressed_vector.slice(0, 5).join(', ')
-                          : '—'} …]
-                      </div>
-                    </div>
-                  </div>
-                  <div className="proto-divider" />
-                  <div className="prototype-item">
-                    <span className="proto-dot unstressed" />
-                    <div>
-                      <div className="proto-label">Unstressed Prototype (z_u^h)</div>
-                      <div className="proto-vector">
-                        [{Array.isArray(modelSummary.prototypes.unstressed_vector)
-                          ? modelSummary.prototypes.unstressed_vector.slice(0, 5).join(', ')
-                          : '—'} …]
-                      </div>
-                    </div>
-                  </div>
-                  <div className="proto-cosine-badge">
-                    <span>Cosine Distance:</span>
-                    <strong>{modelSummary.prototypes.cosine_similarity ?? '—'}</strong>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── TAB 2: Weight Statistics ───────────────────── */}
-          {activeTab === 'weights' && (
-            <div className="lexirep-weights-table-wrapper">
-              <table className="lexirep-weights-table">
-                <thead>
-                  <tr>
-                    <th>Tensor Layer</th>
-                    <th>Shape</th>
-                    <th>Weights</th>
-                    <th>Mean</th>
-                    <th>Std Dev</th>
-                    <th>L2 Norm</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {modelSummary?.weight_stats?.map((w, idx) => (
-                    <tr key={idx}>
-                      <td><code>{w.name}</code></td>
-                      <td>{Array.isArray(w.shape) ? w.shape.join(' × ') : String(w.shape || '—')}</td>
-                      <td>{w.params?.toLocaleString?.() ?? w.params ?? '—'}</td>
-                      <td>{w.mean ?? '—'}</td>
-                      <td>{w.std ?? '—'}</td>
-                      <td><span className="norm-tag">{w.l2_norm ?? '—'}</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* ── TAB 3: BTQ Scorecard ─────────────────────── */}
-          {activeTab === 'scorecard' && (
-            <div className="lexirep-scorecard-grid">
-              <div className="scorecard-card">
-                <span className="sc-label">Bi-syllabic (B)</span>
-                <strong className="sc-val">{modelSummary?.final_metrics?.B ?? 0}%</strong>
-                <span className="sc-target">2 syllables</span>
-              </div>
-              <div className="scorecard-card">
-                <span className="sc-label">Bi + Tri (BT)</span>
-                <strong className="sc-val">{modelSummary?.final_metrics?.BT ?? 0}%</strong>
-                <span className="sc-target">2–3 syllables</span>
-              </div>
-              <div className="scorecard-card highlight">
-                <span className="sc-label">Bi + Tri + Quad (BTQ)</span>
-                <strong className="sc-val">{modelSummary?.final_metrics?.BTQ ?? 0}%</strong>
-                <span className="sc-target">Polysyllabic constraint</span>
-              </div>
-              <div className="scorecard-card">
-                <span className="sc-label">Training Duration</span>
-                <strong className="sc-val">{modelSummary?.duration_seconds ?? 0}s</strong>
-                <span className="sc-target">{modelSummary?.epochs_trained ?? epochs} Loops</span>
-              </div>
-            </div>
-          )}
-
-          {/* ── Download Action Buttons ───────────────────── */}
+          {/* Clean Download Options */}
           <div className="lexirep-download-section">
             <div className="lexirep-download-grid">
-              {/* Primary Model Download Button */}
               <a
                 className="lexirep-action-btn primary"
                 href={jobId ? getHttpUrl(`/lexirep/train-result/${jobId}?file=final_lexirep_model.pt`) : '#'}
                 download="final_lexirep_model.pt"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="7,10 12,15 17,10" />
@@ -853,30 +663,28 @@ export default function LexiRepTrainPage({ onBack }) {
                 <span>Download Model (.pt)</span>
               </a>
 
-              {/* Complete Zip Package Download */}
               <a
                 className="lexirep-action-btn secondary"
                 href={jobId ? getHttpUrl(`/lexirep/train-result/${jobId}`) : '#'}
                 download={`lexirep_bundle_${jobId ? jobId.slice(0, 8) : 'export'}.zip`}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                   <polyline points="7 10 12 15 17 10" />
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
-                <span>Download Checkpoint Bundle (.zip)</span>
+                <span>Download Bundle (.zip)</span>
               </a>
 
-              {/* NPZ Cache Download (if CSV was converted) */}
               {hasCacheFile && (
                 <a
                   className="lexirep-action-btn cache"
                   href={jobId ? getHttpUrl(`/lexirep/train-result/${jobId}?file=dataset_cache.npz`) : '#'}
                   download="dataset_cache.npz"
-                  title="Download the precomputed binary NPZ cache for future instant training"
+                  title="Download precomputed binary NPZ cache"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                     <polyline points="17 21 17 13 7 13 7 21" />
