@@ -617,100 +617,107 @@ export default function LexiRepTrainPage({ onBack }) {
         </motion.div>
       )}
 
-      {/* ── COMPLETE: Minimalist BTQ Scorecard & Download Options ─── */}
+      {/* ── COMPLETE: Seamless Minimalist Results (No Boxes, No Colors) ── */}
       {pageState === 'complete' && (
         <motion.div
-          className="lexirep-complete-minimal"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
+          className="lexirep-complete-view"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.35 }}
         >
-          <div className="lexirep-complete-header">
-            <span className="lexirep-step-label">Training Complete</span>
-            <h2 className="lexirep-complete-title">evaluation results</h2>
+          {/* Calm resting orb — seamless continuation from training state */}
+          <div className="lexirep-orb-wrapper">
+            <SafeThinkingOrb state="idle" size={64} />
           </div>
 
-          {/* Minimalist BTQ Scorecard */}
-          <div className="lexirep-scorecard-grid">
-            <div className="scorecard-card">
-              <span className="sc-label">Bi-syllabic (B)</span>
-              <strong className="sc-val">{modelSummary?.final_metrics?.B ?? currentMetrics?.B ?? '—'}%</strong>
-              <span className="sc-target">2 syllables</span>
+          <div className="lexirep-complete-meta">
+            <span className="lexirep-complete-kicker">training complete</span>
+          </div>
+
+          {/* Hero Score: Pure Typography, NO BOX */}
+          <div className="lexirep-hero-metric">
+            <span className="hero-val">
+              {modelSummary?.final_metrics?.BTQ ?? currentMetrics?.BTQ ?? '—'}%
+            </span>
+            <span className="hero-label">
+              bi + tri + quad (btq) linguistic accuracy
+            </span>
+          </div>
+
+          {/* Supporting Metrics: Clean horizontal row, zero boxes, zero borders */}
+          <div className="lexirep-metric-row">
+            <div className="metric-item">
+              <span className="metric-val">{modelSummary?.final_metrics?.B ?? currentMetrics?.B ?? '—'}%</span>
+              <span className="metric-lbl">bi-syllabic</span>
             </div>
-            <div className="scorecard-card">
-              <span className="sc-label">Bi + Tri (BT)</span>
-              <strong className="sc-val">{modelSummary?.final_metrics?.BT ?? currentMetrics?.BT ?? '—'}%</strong>
-              <span className="sc-target">2–3 syllables</span>
+            <span className="metric-sep">/</span>
+            <div className="metric-item">
+              <span className="metric-val">{modelSummary?.final_metrics?.BT ?? currentMetrics?.BT ?? '—'}%</span>
+              <span className="metric-lbl">bi + tri</span>
             </div>
-            <div className="scorecard-card highlight">
-              <span className="sc-label">Bi + Tri + Quad (BTQ)</span>
-              <strong className="sc-val">{modelSummary?.final_metrics?.BTQ ?? currentMetrics?.BTQ ?? '—'}%</strong>
-              <span className="sc-target">Polysyllabic constraint</span>
-            </div>
-            <div className="scorecard-card">
-              <span className="sc-label">Training Duration</span>
-              <strong className="sc-val">{modelSummary?.duration_seconds ? `${modelSummary.duration_seconds}s` : '—'}</strong>
-              <span className="sc-target">{modelSummary?.epochs_trained ?? totalLoops} Loops</span>
+            <span className="metric-sep">/</span>
+            <div className="metric-item">
+              <span className="metric-val">{modelSummary?.duration_seconds ? `${modelSummary.duration_seconds}s` : '—'}</span>
+              <span className="metric-lbl">{modelSummary?.epochs_trained ?? totalLoops} loops</span>
             </div>
           </div>
 
-          {/* Clean Download Options */}
+          {/* Minimal Monochrome Actions — hairline outlines, zero solid colored fills */}
           <div className="lexirep-download-section">
             <div className="lexirep-download-grid">
               <a
-                className="lexirep-action-btn primary"
+                className="lexirep-action-btn"
                 href={jobId ? getHttpUrl(`/lexirep/train-result/${jobId}?file=final_lexirep_model.pt`) : '#'}
                 download="final_lexirep_model.pt"
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="7,10 12,15 17,10" />
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
-                <span>Download Model (.pt)</span>
+                <span>download model (.pt)</span>
               </a>
 
               <a
-                className="lexirep-action-btn secondary"
+                className="lexirep-action-btn"
                 href={jobId ? getHttpUrl(`/lexirep/train-result/${jobId}`) : '#'}
                 download={`lexirep_bundle_${jobId ? jobId.slice(0, 8) : 'export'}.zip`}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                   <polyline points="7 10 12 15 17 10" />
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
-                <span>Download Bundle (.zip)</span>
+                <span>download bundle (.zip)</span>
               </a>
 
               {hasCacheFile && (
                 <a
-                  className="lexirep-action-btn cache"
+                  className="lexirep-action-btn"
                   href={jobId ? getHttpUrl(`/lexirep/train-result/${jobId}?file=dataset_cache.npz`) : '#'}
                   download="dataset_cache.npz"
                   title="Download precomputed binary NPZ cache"
                 >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                     <polyline points="17 21 17 13 7 13 7 21" />
                     <polyline points="7 3 7 8 15 8" />
                   </svg>
-                  <span>Download .npz Cache</span>
+                  <span>download .npz cache</span>
                 </a>
               )}
             </div>
 
-            <motion.button
-              className="lexirep-reset-btn"
+            <button
+              type="button"
+              className="lexirep-reset-link"
               onClick={handleReset}
-              whileTap={{ scale: 0.97 }}
-              transition={tapSpring}
             >
-              Train Another Model
-            </motion.button>
+              train another model
+            </button>
           </div>
         </motion.div>
       )}

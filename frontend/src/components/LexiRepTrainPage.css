@@ -397,166 +397,159 @@
 }
 
 /* ── COMPLETE: Minimalist BTQ Scorecard & Downloads ───────────── */
-.lexirep-complete-minimal {
+/* ── COMPLETE: Seamless Minimalist Results (No Boxes, No AI Slop) ── */
+.lexirep-complete-view {
   width: 100%;
   max-width: 540px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
-  padding: 32px 0 48px;
+  gap: 18px;
+  padding: 48px 0 64px;
+  background: transparent;
+  border: none;
   text-align: center;
 }
 
-.lexirep-complete-header {
+.lexirep-complete-meta {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
 }
 
-.lexirep-complete-title {
-  margin: 0;
+.lexirep-complete-kicker {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* Hero Metric — Pure typography floating directly on canvas */
+.lexirep-hero-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 10px;
+}
+
+.lexirep-hero-metric .hero-val {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: clamp(3.2rem, 8vw, 4.6rem);
+  font-weight: 400; /* strictly not bold */
   color: var(--text-primary);
-  font-size: clamp(1.8rem, 4vw, 2.4rem);
-  font-weight: 600;
   letter-spacing: -0.04em;
-  text-align: center;
+  line-height: 1;
+}
+
+.lexirep-hero-metric .hero-label {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
   text-transform: lowercase;
 }
 
-/* Scorecard Grid */
-.lexirep-scorecard-grid {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+/* Supporting Metrics — Clean airy typographic row, zero boxes */
+.lexirep-metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin: 8px 0 20px;
 }
 
-.scorecard-card {
-  padding: 16px 18px;
-  border-radius: 6px;
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  background: var(--bg-subtle, rgba(255, 255, 255, 0.02));
+.metric-item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  text-align: left;
+  align-items: center;
+  gap: 3px;
 }
 
-.scorecard-card.highlight {
-  border-color: rgba(196, 149, 106, 0.35);
-  background: rgba(196, 149, 106, 0.05);
-}
-
-.sc-label {
+.metric-item .metric-val {
   font-family: Helvetica, Arial, sans-serif;
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.sc-val {
-  font-family: Helvetica, Arial, sans-serif;
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.15rem;
+  font-weight: 400;
   color: var(--text-primary);
 }
 
-.scorecard-card.highlight .sc-val {
-  color: var(--accent);
-}
-
-.sc-target {
+.metric-item .metric-lbl {
   font-family: Helvetica, Arial, sans-serif;
   font-size: 0.65rem;
+  font-weight: 400;
   color: var(--text-muted);
-  opacity: 0.7;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
 }
 
-/* Download Actions Section */
+.metric-sep {
+  color: rgba(255, 255, 255, 0.12);
+  font-size: 0.85rem;
+  user-select: none;
+}
+
+/* Understated Minimalist Actions — Hairline monochrome, zero solid fills */
 .lexirep-download-section {
-  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .lexirep-download-grid {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
-  width: 100%;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .lexirep-action-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
+  gap: 7px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 4px;
+  color: var(--text-muted);
   font-family: Helvetica, Arial, sans-serif;
   font-size: 0.72rem;
-  font-weight: 700;
+  font-weight: 400;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  text-transform: lowercase;
   text-decoration: none;
   cursor: pointer;
-  transition: all var(--transition-base, 0.2s ease);
+  transition: all 0.2s ease;
 }
 
-.lexirep-action-btn.primary {
-  background: var(--accent);
-  color: var(--bg);
-  border: 1px solid var(--accent);
-}
-
-.lexirep-action-btn.primary:hover {
-  opacity: 0.88;
-  transform: translateY(-1px);
-}
-
-.lexirep-action-btn.secondary {
-  background: rgba(255, 255, 255, 0.05);
+.lexirep-action-btn:hover {
   color: var(--text-primary);
-  border: 1px solid var(--border-strong, rgba(255, 255, 255, 0.2));
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.03);
 }
 
-.lexirep-action-btn.secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-1px);
-}
-
-.lexirep-action-btn.cache {
+.lexirep-reset-link {
   background: transparent;
+  border: none;
   color: var(--text-muted);
-  border: 1px dashed var(--border-strong, rgba(255, 255, 255, 0.2));
-}
-
-.lexirep-action-btn.cache:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-  background: rgba(196, 149, 106, 0.04);
-}
-
-.lexirep-reset-btn {
-  background: transparent;
-  border: 0;
-  color: var(--text-muted);
-  font: 500 0.7rem Helvetica, Arial, sans-serif;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 400;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  text-transform: lowercase;
   cursor: pointer;
-  padding: 6px 12px;
+  padding: 4px 8px;
   transition: color 0.15s ease;
 }
 
-.lexirep-reset-btn:hover {
+.lexirep-reset-link:hover {
   color: var(--text-primary);
+  text-decoration: underline;
 }
 
 /* Result Error State */
