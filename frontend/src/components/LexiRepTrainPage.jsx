@@ -169,16 +169,19 @@ export default function LexiRepTrainPage({ onBack }) {
   const [modelSummary, setModelSummary] = useState(null)
   const [serverLogs, setServerLogs] = useState([])
   const [statusText, setStatusText] = useState('training in progress…')
+  const [startTime, setStartTime] = useState(null)
 
   const fileInputRef = useRef(null)
   const pollRef = useRef(null)
 
   const formatStatusMessage = useCallback((raw) => {
-    if (!raw) return 'training in progress…'
-    return raw
+    if (!raw) return null
+    const cleaned = raw
       .replace(/^\[PROG\]\s*/i, '')
       .replace(/^\[LexiRep Training\]\s*/i, '')
+      .replace(/^\[LexiRep API\]\s*/i, '')
       .trim()
+    return cleaned || null
   }, [])
 
   useEffect(() => {
@@ -263,6 +266,7 @@ export default function LexiRepTrainPage({ onBack }) {
     setCurrentMetrics(null)
     setHistory([])
     setModelSummary(null)
+    setStartTime(Date.now())
 
     if (pollRef.current) {
       clearInterval(pollRef.current)
@@ -310,7 +314,7 @@ export default function LexiRepTrainPage({ onBack }) {
       setJobId(data.job_id)
       setTotalLoops(data.epochs || epochs)
       setPageState('training')
-      setStatusText('Initializing pipeline…')
+      setStatusText('Ingesting dataset & validating 768-D representation tensors…')
 
       pollRef.current = setInterval(async () => {
         try {
@@ -333,11 +337,14 @@ export default function LexiRepTrainPage({ onBack }) {
           if (statusData.history) {
             setHistory(statusData.history)
           }
-          if (statusData.logs && Array.isArray(statusData.logs)) {
+          if (statusData.logs && Array.isArray(statusData.logs) && statusData.logs.length > 0) {
             setServerLogs(statusData.logs)
-            if (statusData.logs.length > 0) {
-              const latest = statusData.logs[statusData.logs.length - 1]
-              if (latest) setStatusText(formatStatusMessage(latest))
+            const latest = statusData.logs[statusData.logs.length - 1]
+            if (latest) {
+              const formatted = formatStatusMessage(latest)
+              if (formatted) {
+                setStatusText(prev => (prev !== formatted ? formatted : prev))
+              }
             }
           }
 
@@ -367,7 +374,7 @@ export default function LexiRepTrainPage({ onBack }) {
       setError(err.message || 'An unexpected error occurred during dataset upload.')
       setPageState('failed')
     }
-  }, [selectedFile, validation, epochs])
+  }, [selectedFile, validation, epochs, formatStatusMessage])
 
   const handleReset = useCallback(() => {
     if (pollRef.current) {
@@ -386,6 +393,8 @@ export default function LexiRepTrainPage({ onBack }) {
     setHistory([])
     setModelSummary(null)
     setServerLogs([])
+    setStatusText('training in progress…')
+    setStartTime(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }, [])
 
@@ -593,31 +602,28 @@ export default function LexiRepTrainPage({ onBack }) {
             </AnimatePresence>
           </div>
 
-          {/* Minimalist Progress Container with seamlessly iterating loop count & percentage */}
-          <div className="lexirep-progress-container">
-            <div className="lexirep-progress-meta">
-              <span className="lexirep-progress-loop">
-                {currentLoop > 0 ? (
-                  <>loop <span className="highlight">{currentLoop}</span> of {totalLoops}</>
-                ) : (
-                  'initializing pipeline'
-                )}
-              </span>
-              <span className="lexirep-progress-percent">{Math.min(100, Math.max(0, progress))}%</span>
-            </div>
-            <div className="lexirep-progress-track">
-              <motion.div
-                className="lexirep-progress-fill"
-                initial={{ width: '0%' }}
-                animate={{ width: `${Math.max(progress, 4)}%` }}
-                transition={{ ease: 'easeOut', duration: 0.3 }}
-              />
-            </div>
+          {/* Minimalist Loop Counter restored */}
+          <div className="lexirep-loop-counter">
+            {currentLoop > 0 ? (
+              <>Loop <span className="highlight">{currentLoop}</span> / {totalLoops}</>
+            ) : (
+              'Initializing pipeline'
+            )}
+          </div>
+
+          {/* Minimalist 2px Progress Bar right under loop counter */}
+          <div className="lexirep-progress-track">
+            <motion.div
+              className="lexirep-progress-fill"
+              initial={{ width: '0%' }}
+              animate={{ width: `${Math.max(progress, 4)}%` }}
+              transition={{ ease: 'easeOut', duration: 0.3 }}
+            />
           </div>
         </motion.div>
       )}
 
-      {/* ── COMPLETE: Seamless Minimalist Results (No Boxes, No Colors) ── */}
+      {/* ── COMPLETE: Seamless Minimalist Results (No Boxes, No Colors, No Indefinite Spinner) ── */}
       {pageState === 'complete' && (
         <motion.div
           className="lexirep-complete-view"
@@ -625,11 +631,6 @@ export default function LexiRepTrainPage({ onBack }) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.35 }}
         >
-          {/* Calm resting orb — seamless continuation from training state */}
-          <div className="lexirep-orb-wrapper">
-            <SafeThinkingOrb state="idle" size={64} />
-          </div>
-
           <div className="lexirep-complete-meta">
             <span className="lexirep-complete-kicker">training complete</span>
           </div>
@@ -657,7 +658,11 @@ export default function LexiRepTrainPage({ onBack }) {
             </div>
             <span className="metric-sep">/</span>
             <div className="metric-item">
-              <span className="metric-val">{modelSummary?.duration_seconds ? `${modelSummary.duration_seconds}s` : '—'}</span>
+              <span className="metric-val">
+                {modelSummary?.duration_seconds
+                  ? `${modelSummary.duration_seconds}s`
+                  : (startTime ? `${((Date.now() - startTime) / 1000).toFixed(1)}s` : '—')}
+              </span>
               <span className="metric-lbl">{modelSummary?.epochs_trained ?? totalLoops} loops</span>
             </div>
           </div>

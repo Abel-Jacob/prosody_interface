@@ -585,6 +585,28 @@ def find_best_anchor(
     results.sort(key=lambda x: x[3], reverse=True)
     best_w, best_s, best_u, best_acc = results[0]
     return int(best_s), int(best_u), best_w, float(best_acc)
+def _get_loop_phase_description(loop: int, total: int) -> str:
+    """Return an informative, non-repetitive description of the current training objective."""
+    phase_descriptions = {
+        1: "Contrastive warmup: learning initial stress-separating embeddings...",
+        2: "Enforcing polar margin: pulling stressed syllables toward anchor...",
+        3: "Refining cluster boundaries: Student-t soft assignment pass...",
+        4: "Updating pseudo-labels via polysyllabic linguistic constraints...",
+        5: "Joint IDEC clustering: minimizing reconstruction & KL divergence...",
+        6: "Maximizing angular contrast between stressed & unstressed prototypes...",
+        7: "Propagating high-confidence pseudo-labels across polysyllabic words...",
+        8: "Aligning bi-syllabic & tri-syllabic stress margins (Δ_i)...",
+        9: "Refining deep latent representations (10-D bottleneck)...",
+        10: "Sharpening cluster centroids across polysyllabic vocabulary...",
+        11: "Contrastive fine-tuning: penalizing cross-cluster confusion...",
+        12: "Near convergence: stabilizing Student-t soft distributions...",
+        13: "Final convergence pass: generating optimal model weights...",
+    }
+    if loop in phase_descriptions:
+        return phase_descriptions[loop]
+    if loop == total:
+        return "Final convergence pass: generating optimal model weights..."
+    return f"Deep convergence pass {loop}/{total}: fine-tuning representation manifolds..."
 
 
 # ── Full Iterative LexiRep Training Runner ─────────────────────
@@ -737,30 +759,6 @@ def run_lexirep_training(
             "log": f"Cold-start ready: Base BTQ {init_btq:.1f}%. Starting iterative self-training..."
         })
 
-def _get_loop_phase_description(loop: int, total: int) -> str:
-    """Return an informative, non-repetitive description of the current training objective."""
-    phase_descriptions = {
-        1: "Contrastive warmup: learning initial stress-separating embeddings...",
-        2: "Enforcing polar margin: pulling stressed syllables toward anchor...",
-        3: "Refining cluster boundaries: Student-t soft assignment pass...",
-        4: "Updating pseudo-labels via polysyllabic linguistic constraints...",
-        5: "Joint IDEC clustering: minimizing reconstruction & KL divergence...",
-        6: "Maximizing angular contrast between stressed & unstressed prototypes...",
-        7: "Propagating high-confidence pseudo-labels across polysyllabic words...",
-        8: "Aligning bi-syllabic & tri-syllabic stress margins (Δ_i)...",
-        9: "Refining deep latent representations (10-D bottleneck)...",
-        10: "Sharpening cluster centroids across polysyllabic vocabulary...",
-        11: "Contrastive fine-tuning: penalizing cross-cluster confusion...",
-        12: "Near convergence: stabilizing Student-t soft distributions...",
-        13: "Final convergence pass: generating optimal model weights...",
-    }
-    if loop in phase_descriptions:
-        return phase_descriptions[loop]
-    if loop == total:
-        return "Final convergence pass: generating optimal model weights..."
-    return f"Deep convergence pass {loop}/{total}: fine-tuning representation manifolds..."
-
-
     # 6. Iterative Self-Training Loops
     best_btq = init_btq
     best_loss = 1.0
@@ -776,7 +774,7 @@ def _get_loop_phase_description(loop: int, total: int) -> str:
                 "current_loop": loop,
                 "total_loops": epochs,
                 "progress": loop_start_prog,
-                "log": phase_desc
+                "log": f"Loop {loop}/{epochs}: {phase_desc}"
             })
 
         # 6a. Contrastive Learning on refined pseudo-labels
@@ -810,7 +808,7 @@ def _get_loop_phase_description(loop: int, total: int) -> str:
                 "current_loop": loop,
                 "total_loops": epochs,
                 "progress": loop_mid_prog,
-                "log": "Optimizing latent cluster centers & Student-t distribution..."
+                "log": f"Loop {loop}/{epochs}: Joint IDEC clustering & Student-t distribution..."
             })
 
         # 6c. IDEC Joint Clustering
@@ -905,6 +903,11 @@ def _get_loop_phase_description(loop: int, total: int) -> str:
 
     # 7. Compute Layer Weight Statistics & Parameter Counts
     log_lexirep("[LexiRep Training] Computing layer parameter statistics & Frobenius norms...")
+    if on_progress:
+        on_progress({
+            "progress": 96,
+            "log": "Computing layer parameter statistics & Frobenius norms..."
+        })
     layer_stats = []
     total_params = 0
     cl_state = cl_encoder.state_dict()
@@ -951,6 +954,11 @@ def _get_loop_phase_description(loop: int, total: int) -> str:
     }
 
     # 8. Save Model Artifacts
+    if on_progress:
+        on_progress({
+            "progress": 98,
+            "log": "Exporting neural weights & .pt model checkpoint..."
+        })
     model_pt_path = output_dir / "final_lexirep_model.pt"
     torch.save({
         "cl_encoder": cl_encoder.state_dict(),

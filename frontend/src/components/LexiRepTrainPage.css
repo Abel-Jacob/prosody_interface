@@ -317,48 +317,31 @@
   line-height: 1.4;
 }
 
-/* Minimalist Progress Container: loop count & percentage alongside 2px track */
-.lexirep-progress-container {
-  width: 100%;
-  max-width: 420px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.lexirep-progress-meta {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* Loop Counter: sleek, minimalist font Helvetica */
+.lexirep-loop-counter {
   font-family: Helvetica, Arial, sans-serif;
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   font-weight: 400;
   color: var(--text-muted);
-  letter-spacing: 0.05em;
-  text-transform: lowercase;
+  letter-spacing: 0.04em;
+  margin-top: 4px;
 }
 
-.lexirep-progress-meta .highlight {
+.lexirep-loop-counter .highlight {
   color: var(--accent);
   font-weight: 500;
 }
 
-.lexirep-progress-percent {
-  font-family: Helvetica, Arial, sans-serif;
-  font-size: 0.72rem;
-  font-weight: 400;
-  color: var(--text-muted);
-}
-
+/* Minimalist Progress Track: 2px line right under loop counter */
 .lexirep-progress-track {
   width: 100%;
+  max-width: 400px;
   height: 2px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
   position: relative;
+  margin-top: 8px;
 }
 
 .lexirep-progress-fill {
