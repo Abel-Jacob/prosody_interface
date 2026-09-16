@@ -62,8 +62,8 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 .app-wordmark { position: fixed; top: 24px; left: 28px; z-index: 5; color: var(--text-primary); font: 600 0.7rem/1 var(--font-mono); letter-spacing: .16em; }
 
 .app-backend-config { position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--text-faded); background: rgba(17,16,15,.94); border-radius: 3px; }
-.app-backend-config label { color: var(--text-muted); font: 0.625rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
-.app-backend-config input { width: 240px; padding: 4px 8px; border: 1px solid var(--text-faded); border-radius: 2px; background: transparent; color: var(--text-primary); font: .6875rem var(--font-mono); outline: none; }
+.app-backend-config label { color: var(--text-muted); font: 400 0.625rem var(--font-primary); letter-spacing: .08em; text-transform: uppercase; }
+.app-backend-config input { width: 240px; padding: 4px 8px; border: 1px solid var(--text-faded); border-radius: 2px; background: transparent; color: var(--text-primary); font: 400 .6875rem var(--font-primary); outline: none; }
 @media (max-width: 640px) { .app-backend-config { right: 12px; bottom: 12px; left: 12px; } .app-backend-config input { min-width: 0; width: 100%; } }
 
 .landing-container, .idle-container { background: transparent; }

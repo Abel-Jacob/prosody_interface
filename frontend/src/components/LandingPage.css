@@ -153,6 +153,8 @@
   background: rgba(148, 163, 184, 0.1);
   border: 1px solid rgba(148, 163, 184, 0.2);
   color: var(--text-muted);
+  font-family: var(--font-primary);
+  font-weight: 400;
 }
 .landing-tunnel-status.local .status-dot,
 .landing-tunnel-status.idle .status-dot {
