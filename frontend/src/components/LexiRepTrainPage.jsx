@@ -168,10 +168,19 @@ export default function LexiRepTrainPage({ onBack }) {
   const [history, setHistory] = useState([])
   const [modelSummary, setModelSummary] = useState(null)
   const [serverLogs, setServerLogs] = useState([])
+  const [statusText, setStatusText] = useState('training in progress…')
   const [activeTab, setActiveTab] = useState('blueprint') // 'blueprint' | 'weights' | 'scorecard'
 
   const fileInputRef = useRef(null)
   const pollRef = useRef(null)
+
+  const formatStatusMessage = useCallback((raw) => {
+    if (!raw) return 'training in progress…'
+    return raw
+      .replace(/^\[PROG\]\s*/i, '')
+      .replace(/^\[LexiRep Training\]\s*/i, '')
+      .trim()
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -248,6 +257,7 @@ export default function LexiRepTrainPage({ onBack }) {
   const handleSubmit = useCallback(async () => {
     if (!selectedFile || !validation?.valid) return
     setPageState('uploading')
+    setStatusText('Preparing & uploading dataset…')
     setError(null)
     setCurrentLoop(0)
     setProgress(0)
@@ -301,6 +311,7 @@ export default function LexiRepTrainPage({ onBack }) {
       setJobId(data.job_id)
       setTotalLoops(data.epochs || epochs)
       setPageState('training')
+      setStatusText('Initializing pipeline…')
 
       pollRef.current = setInterval(async () => {
         try {
@@ -325,6 +336,10 @@ export default function LexiRepTrainPage({ onBack }) {
           }
           if (statusData.logs && Array.isArray(statusData.logs)) {
             setServerLogs(statusData.logs)
+            if (statusData.logs.length > 0) {
+              const latest = statusData.logs[statusData.logs.length - 1]
+              if (latest) setStatusText(formatStatusMessage(latest))
+            }
           }
 
           if (statusData.status === 'complete') {
@@ -565,9 +580,19 @@ export default function LexiRepTrainPage({ onBack }) {
             <SafeThinkingOrb state="connecting" size={64} />
           </div>
 
-          <div className="lexirep-training-header">
-            <span className="lexirep-status-pulse" />
-            <span className="lexirep-status-label">training in progress…</span>
+          <div className="lexirep-training-status-wrapper">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={statusText}
+                initial={{ opacity: 0, y: 3 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -3 }}
+                transition={{ duration: 0.28, ease: 'easeInOut' }}
+                className="lexirep-status-fader-text"
+              >
+                {statusText}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           <div className="lexirep-loop-counter">

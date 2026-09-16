@@ -452,30 +452,123 @@ def load_dataset_file(filepath: Path, cache_npz_path: Optional[Path] = None):
         raise ValueError(f"Unsupported file format: {ext}")
 
 
-def find_canonical_anchor(W_train, Y_train):
+def find_best_anchor(
+    X_train: np.ndarray,
+    Y_train: np.ndarray,
+    W_train: np.ndarray,
+    device: str = "cpu"
+) -> tuple[int, int, any, float]:
     """
-    Find a reference word in the training set that contains at least
-    1 stressed (Y=1) and 1 unstressed (Y=0) syllable.
-    Returns (rs_idx, ru_idx, word_id).
+    Offline Anchor Selection Pipeline (Paper Section III-B.1):
+    Strict adherence to zero-test-leakage methodology:
+    Systematically scans candidate bisyllabic/polysyllabic word pairs strictly within the
+    training set (X_train, Y_train, W_train) to select the polar reference anchor (rs, ru)
+    with maximal intra-word training separation accuracy.
+    Test set is NEVER touched, accessed, or referenced during this selection.
+
+    Returns: (rs_idx, ru_idx, word_id, train_separation_acc)
     """
-    wmap = defaultdict(list)
+    wmap_tr = defaultdict(list)
     for i, w in enumerate(W_train):
-        wmap[w].append(i)
+        wmap_tr[w].append(i)
 
-    for w, idxs in wmap.items():
-        if len(idxs) in (2, 3):
-            s_candidates = [i for i in idxs if Y_train[i] == 1]
-            u_candidates = [i for i in idxs if Y_train[i] == 0]
-            if s_candidates and u_candidates:
-                return s_candidates[0], u_candidates[0], w
+    # 1. Identify all candidate words with at least 1 stressed and 1 unstressed syllable
+    b_words = [
+        w for w, idxs in wmap_tr.items()
+        if len(idxs) == 2 and any(Y_train[i] == 1 for i in idxs) and any(Y_train[i] == 0 for i in idxs)
+    ]
 
-    # Fallback to any two available indices
-    s_any = np.where(Y_train == 1)[0]
-    u_any = np.where(Y_train == 0)[0]
-    if len(s_any) > 0 and len(u_any) > 0:
-        return s_any[0], u_any[0], W_train[s_any[0]]
+    # If fewer than 10 bisyllabic words, expand to tri-syllabic and all polysyllabic words
+    if len(b_words) < 10:
+        b_words = [
+            w for w, idxs in wmap_tr.items()
+            if len(idxs) >= 2 and any(Y_train[i] == 1 for i in idxs) and any(Y_train[i] == 0 for i in idxs)
+        ]
 
-    return 0, 1, W_train[0]
+    # Graceful fallback if no labeled words exist
+    if not b_words:
+        s_any = np.where(Y_train == 1)[0]
+        u_any = np.where(Y_train == 0)[0]
+        if len(s_any) > 0 and len(u_any) > 0:
+            return int(s_any[0]), int(u_any[0]), W_train[s_any[0]], 50.0
+        return 0, 1, W_train[0], 50.0
+
+    # 2. Pre-normalize training representations for fast PyTorch cosine evaluation
+    torch_device = torch.device(device if torch.cuda.is_available() and device == "cuda" else "cpu")
+    X_norm = torch.tensor(X_train, dtype=torch.float32, device=torch_device)
+    X_norm = F.normalize(X_norm, dim=1)
+
+    # Group words into:
+    # - exactly 2 syllables (1 stressed, 1 unstressed) -> m2_s, m2_u
+    # - >2 syllables (1 stressed, multiple unstressed) -> other_words: (s_idx, [u_idxs])
+    m2_s, m2_u, other_words = [], [], []
+    for w, idxs in wmap_tr.items():
+        s_list = [i for i in idxs if Y_train[i] == 1]
+        u_list = [i for i in idxs if Y_train[i] == 0]
+        if s_list and u_list:
+            s_idx = s_list[0]
+            if len(u_list) == 1:
+                m2_s.append(s_idx)
+                m2_u.append(u_list[0])
+            else:
+                other_words.append((s_idx, torch.tensor(u_list, dtype=torch.long, device=torch_device)))
+
+    m2_s_tensor = torch.tensor(m2_s, dtype=torch.long, device=torch_device) if m2_s else None
+    m2_u_tensor = torch.tensor(m2_u, dtype=torch.long, device=torch_device) if m2_u else None
+
+    # Collect candidate anchor pairs (s, u)
+    candidates = []
+    s_cand, u_cand = [], []
+    for w in b_words:
+        idxs = wmap_tr[w]
+        s_idxs = [i for i in idxs if Y_train[i] == 1]
+        u_idxs = [i for i in idxs if Y_train[i] == 0]
+        if s_idxs and u_idxs:
+            s = s_idxs[0]
+            u = u_idxs[0]
+            candidates.append((w, s, u))
+            s_cand.append(s)
+            u_cand.append(u)
+
+    s_cand_tensor = torch.tensor(s_cand, dtype=torch.long, device=torch_device)
+    u_cand_tensor = torch.tensor(u_cand, dtype=torch.long, device=torch_device)
+
+    # 3. Batched evaluation across candidates
+    cand_accs = []
+    batch_size = 500
+    base_correct = len(Y_train) - 2 * len(wmap_tr)
+
+    with torch.no_grad():
+        for b_start in range(0, len(candidates), batch_size):
+            b_end = min(b_start + batch_size, len(candidates))
+            sb = s_cand_tensor[b_start:b_end]
+            ub = u_cand_tensor[b_start:b_end]
+
+            # Difference vector in normalized space: (rs - ru)
+            diff_vec = X_norm[sb] - X_norm[ub]  # [B, 768]
+            diffs = torch.mm(X_norm, diff_vec.t())  # [N_tr, B]
+
+            if m2_s_tensor is not None and len(m2_s_tensor) > 0:
+                m2_correct = (diffs[m2_s_tensor] > diffs[m2_u_tensor]).long().sum(dim=0)
+            else:
+                m2_correct = torch.zeros(b_end - b_start, dtype=torch.long, device=torch_device)
+
+            other_correct = torch.zeros(b_end - b_start, dtype=torch.long, device=torch_device)
+            for s_idx, u_idx_tensor in other_words:
+                u_max = torch.max(diffs[u_idx_tensor], dim=0).values
+                other_correct += (diffs[s_idx] > u_max).long()
+
+            tot_correct = base_correct + (m2_correct + other_correct) * 2
+            b_accs = (tot_correct.float() / len(Y_train) * 100.0).cpu().tolist()
+            cand_accs.extend(b_accs)
+
+    results = [
+        (candidates[i][0], candidates[i][1], candidates[i][2], cand_accs[i])
+        for i in range(len(candidates))
+    ]
+    results.sort(key=lambda x: x[3], reverse=True)
+    best_w, best_s, best_u, best_acc = results[0]
+    return int(best_s), int(best_u), best_w, float(best_acc)
 
 
 # ── Full Iterative LexiRep Training Runner ─────────────────────
@@ -529,15 +622,21 @@ def run_lexirep_training(
     mask_bt = np.array([i for w, idxs in wmap_te.items() if len(idxs) in (2, 3) for i in idxs])
     mask_btq = np.array([i for w, idxs in wmap_te.items() if len(idxs) in (2, 3, 4) for i in idxs])
 
-    # 3. Locate reference anchor syllables (Paper Section III-B.1)
-    rs_idx, ru_idx, anc_word = find_canonical_anchor(W_train, Y_train)
-    rs_vec = X_train[rs_idx:rs_idx + 1]
-    ru_vec = X_train[ru_idx:ru_idx + 1]
-    log_lexirep(f"[LexiRep Training] Canonical polar anchor selected from word #{anc_word} (rs={rs_idx}, ru={ru_idx}).")
+    # 3. Locate reference anchor syllables via Offline Anchor Selection Pipeline (Paper Section III-B.1)
     if on_progress:
         on_progress({
-            "progress": 10,
-            "log": f"Polar anchors located: 1 stressed, 1 unstressed from reference word #{anc_word}."
+            "progress": 9,
+            "log": "Executing offline anchor selection pipeline across training split..."
+        })
+    log_lexirep("[LexiRep Training] Executing offline anchor selection pipeline (zero test leakage)...")
+    rs_idx, ru_idx, anc_word, tr_sep_acc = find_best_anchor(X_train, Y_train, W_train, device=str(device))
+    rs_vec = X_train[rs_idx:rs_idx + 1]
+    ru_vec = X_train[ru_idx:ru_idx + 1]
+    log_lexirep(f"[LexiRep Training] Optimal polar anchor selected from Word #{anc_word} (rs={rs_idx}, ru={ru_idx}) with {tr_sep_acc:.2f}% train separation.")
+    if on_progress:
+        on_progress({
+            "progress": 11,
+            "log": f"Optimal polar anchor: Word #{anc_word} (train separation: {tr_sep_acc:.1f}%)."
         })
 
     # 4. Initialize Models & Optimizers
@@ -548,8 +647,8 @@ def run_lexirep_training(
     idec_model = IDECAutoencoder(in_dim=CL_LATENT_DIM, shape=IDEC_AE_SHAPE, alpha=ALPHA).to(device)
     idec_optimizer = optim.Adam(idec_model.parameters(), lr=IDEC_LR)
 
-    # 5. Loop 0: Cold-Start Pseudo-Labels via reference anchor
-    diff_tr0 = np.abs(cosine_similarity(X_train, rs_vec).flatten() - cosine_similarity(X_train, ru_vec).flatten())
+    # 5. Loop 0: Cold-Start Pseudo-Labels via reference anchor (directional stress margin)
+    diff_tr0 = cosine_similarity(X_train, rs_vec).flatten() - cosine_similarity(X_train, ru_vec).flatten()
     labels_tr = np.zeros(len(Y_train), dtype=int)
     for w, idxs in wmap_tr.items():
         labels_tr[idxs[np.argmax(diff_tr0[idxs])]] = 1
@@ -593,8 +692,8 @@ def run_lexirep_training(
     km_init = KMeans(n_clusters=2, random_state=SEED, n_init=5).fit(z_norm_init)
     idec_model.cluster_centers.data = torch.tensor(km_init.cluster_centers_, dtype=torch.float32).to(device)
 
-    # Initial test evaluation
-    diff_te0 = np.abs(cosine_similarity(X_test, rs_vec).flatten() - cosine_similarity(X_test, ru_vec).flatten())
+    # Initial test evaluation (directional stress margin)
+    diff_te0 = cosine_similarity(X_test, rs_vec).flatten() - cosine_similarity(X_test, ru_vec).flatten()
     preds_te0 = np.zeros(len(Y_test), dtype=int)
     for w, idxs in wmap_te.items():
         preds_te0[idxs[np.argmax(diff_te0[idxs])]] = 1
@@ -702,15 +801,16 @@ def run_lexirep_training(
         z_s_h = h_tr_np[idx_s_h:idx_s_h + 1]
         z_u_h = h_tr_np[idx_u_h:idx_u_h + 1]
 
-        diff_tr = np.abs(cosine_similarity(h_tr_np, z_s_h).flatten() - cosine_similarity(h_tr_np, z_u_h).flatten())
+        # 6e. Linguistic Constraint Enforcement (directional prototype similarity)
+        diff_tr = cosine_similarity(h_tr_np, z_s_h).flatten() - cosine_similarity(h_tr_np, z_u_h).flatten()
         new_labels_tr = np.zeros(len(Y_train), dtype=int)
         for w, idxs in wmap_tr.items():
             new_labels_tr[idxs[np.argmax(diff_tr[idxs])]] = 1
         labels_tr = new_labels_tr
         train_acc = float(accuracy_score(Y_train, labels_tr) * 100)
 
-        # 6f. Unseen Test Set Evaluation (BTQ argmax)
-        diff_te = np.abs(cosine_similarity(h_te_np, z_s_h).flatten() - cosine_similarity(h_te_np, z_u_h).flatten())
+        # 6f. Unseen Test Set Evaluation (BTQ argmax, directional)
+        diff_te = cosine_similarity(h_te_np, z_s_h).flatten() - cosine_similarity(h_te_np, z_u_h).flatten()
         preds_te = np.zeros(len(Y_test), dtype=int)
         for w, idxs in wmap_te.items():
             preds_te[idxs[np.argmax(diff_te[idxs])]] = 1
