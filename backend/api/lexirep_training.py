@@ -737,6 +737,30 @@ def run_lexirep_training(
             "log": f"Cold-start ready: Base BTQ {init_btq:.1f}%. Starting iterative self-training..."
         })
 
+def _get_loop_phase_description(loop: int, total: int) -> str:
+    """Return an informative, non-repetitive description of the current training objective."""
+    phase_descriptions = {
+        1: "Contrastive warmup: learning initial stress-separating embeddings...",
+        2: "Enforcing polar margin: pulling stressed syllables toward anchor...",
+        3: "Refining cluster boundaries: Student-t soft assignment pass...",
+        4: "Updating pseudo-labels via polysyllabic linguistic constraints...",
+        5: "Joint IDEC clustering: minimizing reconstruction & KL divergence...",
+        6: "Maximizing angular contrast between stressed & unstressed prototypes...",
+        7: "Propagating high-confidence pseudo-labels across polysyllabic words...",
+        8: "Aligning bi-syllabic & tri-syllabic stress margins (Δ_i)...",
+        9: "Refining deep latent representations (10-D bottleneck)...",
+        10: "Sharpening cluster centroids across polysyllabic vocabulary...",
+        11: "Contrastive fine-tuning: penalizing cross-cluster confusion...",
+        12: "Near convergence: stabilizing Student-t soft distributions...",
+        13: "Final convergence pass: generating optimal model weights...",
+    }
+    if loop in phase_descriptions:
+        return phase_descriptions[loop]
+    if loop == total:
+        return "Final convergence pass: generating optimal model weights..."
+    return f"Deep convergence pass {loop}/{total}: fine-tuning representation manifolds..."
+
+
     # 6. Iterative Self-Training Loops
     best_btq = init_btq
     best_loss = 1.0
@@ -746,12 +770,13 @@ def run_lexirep_training(
     for loop in range(1, epochs + 1):
         log_lexirep(f"[LexiRep Training] Starting Loop {loop}/{epochs}...")
         loop_start_prog = int(14 + ((loop - 1) / epochs) * 82)
+        phase_desc = _get_loop_phase_description(loop, epochs)
         if on_progress:
             on_progress({
                 "current_loop": loop,
                 "total_loops": epochs,
                 "progress": loop_start_prog,
-                "log": f"Loop {loop}/{epochs}: Running SupCon contrastive learning & IDEC joint clustering..."
+                "log": phase_desc
             })
 
         # 6a. Contrastive Learning on refined pseudo-labels
@@ -785,7 +810,7 @@ def run_lexirep_training(
                 "current_loop": loop,
                 "total_loops": epochs,
                 "progress": loop_mid_prog,
-                "log": f"Loop {loop}/{epochs}: IDEC joint clustering & polar alignment..."
+                "log": "Optimizing latent cluster centers & Student-t distribution..."
             })
 
         # 6c. IDEC Joint Clustering
@@ -864,7 +889,9 @@ def run_lexirep_training(
             z_u_h_best = z_u_h
 
         prog_pct = int(14 + (loop / epochs) * 82)
-        log_lexirep(f"[LexiRep Training] Loop {loop}/{epochs} Complete -> Train: {train_acc:.1f}%, Test BTQ: {btq_acc:.1f}%, IDEC Loss: {last_idec_loss:.4f}")
+        delta_str = f" (+{btq_acc - init_btq:.1f}%)" if btq_acc > init_btq else ""
+        eval_log = f"Loop {loop}: BTQ reached {btq_acc:.1f}%{delta_str} · Train: {train_acc:.1f}%"
+        log_lexirep(f"[LexiRep Training] {eval_log}, Loss: {last_idec_loss:.4f}")
 
         if on_progress:
             on_progress({
@@ -873,7 +900,7 @@ def run_lexirep_training(
                 "progress": prog_pct,
                 "current_metrics": loop_record,
                 "history": history_scorecard,
-                "log": f"Loop {loop}/{epochs}: Train {train_acc:.1f}%, Test BTQ {btq_acc:.1f}%, Loss {last_idec_loss:.4f}"
+                "log": eval_log
             })
 
     # 7. Compute Layer Weight Statistics & Parameter Counts
