@@ -22,6 +22,7 @@ backend/models/cache/
 
 # Audio uploads and database
 backend/audio_uploads/
+backend/lexirep_jobs/
 backend/jobs.db
 backend/jobs.db-wal
 backend/jobs.db-shm

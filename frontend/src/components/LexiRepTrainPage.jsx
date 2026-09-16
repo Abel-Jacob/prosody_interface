@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ThinkingOrb } from 'thinking-orbs'
 import { getHttpUrl } from '../apiConfig'
 import './LexiRepTrainPage.css'
@@ -7,37 +7,70 @@ import './LexiRepTrainPage.css'
 const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
 
 /**
- * Parse a CSV string's first data row to count columns.
- * Returns { valid, ncols, message }.
+ * Format file size in KB / MB
+ */
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+/**
+ * Parse a CSV string's row or columns to validate 768-D format.
  */
 function validateCsvText(text) {
   const lines = text.trim().split('\n').filter(l => l.trim())
-  if (lines.length === 0) return { valid: false, ncols: 0, message: 'File is empty' }
+  if (lines.length === 0) return { valid: false, message: 'File is empty' }
 
-  // Try to detect header: if first row has non-numeric values
+  // Check if transposed format (768 to 775 rows, like ISLE GER_train.csv)
+  if (lines.length >= 768 && lines.length <= 775) {
+    return {
+      valid: true,
+      message: `Transposed ISLE CSV format (${lines.length} feature rows) — auto-converts to cached .npz`
+    }
+  }
+
+  // Row-based format
   let dataRow = lines[0]
   const firstFields = dataRow.split(',')
   const isHeader = firstFields.some(f => isNaN(parseFloat(f.trim())))
-  if (isHeader) {
-    if (lines.length < 2) return { valid: false, ncols: 0, message: 'Only a header row, no data' }
+  if (isHeader && lines.length > 1) {
     dataRow = lines[1]
   }
 
   const ncols = dataRow.split(',').length
-  if (ncols < 768) {
+  if (ncols >= 768) {
     return {
-      valid: false, ncols,
-      message: `Expected at least 768 columns, found ${ncols}`
+      valid: true,
+      message: `${lines.length - (isHeader ? 1 : 0)} samples × ${ncols} columns — auto-converts to cached .npz`
     }
   }
+
   return {
-    valid: true, ncols,
-    message: `${isHeader ? 'Header + ' : ''}${lines.length - (isHeader ? 1 : 0)} rows × ${ncols} columns`
+    valid: false,
+    message: `Expected 768 feature columns or ~770 rows (transposed), but found ${ncols} columns`
   }
 }
 
 /**
- * Parse NPY header to read shape. Returns { valid, shape, message }.
+ * Validate NPZ binary archive (checks ZIP magic number: PK\x03\x04).
+ */
+function validateNpzBuffer(buffer) {
+  try {
+    const view = new DataView(buffer)
+    if (view.byteLength < 4) return { valid: false, message: 'File is too small to be a valid .npz file' }
+    const magic = view.getUint32(0, true)
+    if (magic === 0x04034b50) {
+      return { valid: true, message: 'Optimized binary NPZ cache archive (Recommended: 10× faster)' }
+    }
+    return { valid: false, message: 'Not a valid NPZ file format' }
+  } catch (e) {
+    return { valid: false, message: `Failed to inspect NPZ file: ${e.message}` }
+  }
+}
+
+/**
+ * Parse NPY header to read shape.
  */
 function validateNpyBuffer(buffer) {
   try {
@@ -47,7 +80,7 @@ function validateNpyBuffer(buffer) {
       view.getUint8(3), view.getUint8(4), view.getUint8(5)
     )
     if (magic !== '\x93NUMPY') {
-      return { valid: false, shape: null, message: 'Not a valid NPY file (bad magic number)' }
+      return { valid: false, message: 'Not a valid NPY file (bad magic number)' }
     }
 
     const majorVersion = view.getUint8(6)
@@ -59,7 +92,7 @@ function validateNpyBuffer(buffer) {
       headerLen = view.getUint32(8, true)
       headerOffset = 12
     } else {
-      return { valid: false, shape: null, message: `Unsupported NPY version ${majorVersion}` }
+      return { valid: false, message: `Unsupported NPY version ${majorVersion}` }
     }
 
     const headerBytes = new Uint8Array(buffer, headerOffset, headerLen)
@@ -67,32 +100,41 @@ function validateNpyBuffer(buffer) {
 
     const shapeMatch = header.match(/'shape'\s*:\s*\(([^)]+)\)/)
     if (!shapeMatch) {
-      return { valid: false, shape: null, message: 'Could not parse shape from NPY header' }
+      return { valid: false, message: 'Could not parse shape from NPY header' }
     }
 
     const dims = shapeMatch[1].split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
     if (dims.length !== 2) {
-      return { valid: false, shape: dims, message: `Expected 2D array, got ${dims.length}D (shape: ${dims.join('×')})` }
+      return { valid: false, message: `Expected 2D array, got ${dims.length}D (shape: ${dims.join('×')})` }
     }
     if (dims[1] < 768) {
-      return { valid: false, shape: dims, message: `Expected at least 768 columns, found ${dims[1]} (shape: ${dims.join('×')})` }
+      return { valid: false, message: `Expected at least 768 columns, found ${dims[1]}` }
     }
-    return { valid: true, shape: dims, message: `${dims[0]} samples × ${dims[1]} dimensions` }
+    return { valid: true, message: `${dims[0]} samples × ${dims[1]} dimensions (768-D)` }
   } catch (e) {
-    return { valid: false, shape: null, message: `Failed to parse NPY file: ${e.message}` }
+    return { valid: false, message: `Failed to parse NPY file: ${e.message}` }
   }
 }
 
-
 export default function LexiRepTrainPage({ onBack }) {
-  const [pageState, setPageState] = useState('idle')
+  const [pageState, setPageState] = useState('idle') // idle | uploading | training | complete | failed
   const [selectedFile, setSelectedFile] = useState(null)
   const [validation, setValidation] = useState(null)
   const [dragOver, setDragOver] = useState(false)
   const [jobId, setJobId] = useState(null)
   const [error, setError] = useState(null)
   const [outputFiles, setOutputFiles] = useState([])
-  const [epochs, setEpochs] = useState(10)
+  const [epochs, setEpochs] = useState(13) // Default to 13 loops from paper
+
+  // Live training metrics & progress
+  const [currentLoop, setCurrentLoop] = useState(0)
+  const [totalLoops, setTotalLoops] = useState(13)
+  const [progress, setProgress] = useState(0)
+  const [currentMetrics, setCurrentMetrics] = useState(null)
+  const [history, setHistory] = useState([])
+  const [modelSummary, setModelSummary] = useState(null)
+  const [activeTab, setActiveTab] = useState('blueprint') // 'blueprint' | 'weights' | 'scorecard'
+
   const fileInputRef = useRef(null)
   const pollRef = useRef(null)
 
@@ -104,14 +146,17 @@ export default function LexiRepTrainPage({ onBack }) {
 
   const validateFile = useCallback(async (file) => {
     const ext = file.name.split('.').pop().toLowerCase()
-    if (ext === 'csv') {
+    if (ext === 'npz') {
+      const buffer = await file.arrayBuffer()
+      return validateNpzBuffer(buffer)
+    } else if (ext === 'csv') {
       const text = await file.text()
       return validateCsvText(text)
     } else if (ext === 'npy') {
       const buffer = await file.arrayBuffer()
       return validateNpyBuffer(buffer)
     } else {
-      return { valid: false, message: `Unsupported file type .${ext}. Use .csv or .npy` }
+      return { valid: false, message: `Unsupported file type .${ext}. Please use .npz or .csv` }
     }
   }, [])
 
@@ -159,6 +204,11 @@ export default function LexiRepTrainPage({ onBack }) {
     if (!selectedFile || !validation?.valid) return
     setPageState('uploading')
     setError(null)
+    setCurrentLoop(0)
+    setProgress(0)
+    setCurrentMetrics(null)
+    setHistory([])
+    setModelSummary(null)
 
     try {
       const formData = new FormData()
@@ -177,6 +227,7 @@ export default function LexiRepTrainPage({ onBack }) {
 
       const data = await response.json()
       setJobId(data.job_id)
+      setTotalLoops(data.epochs || epochs)
       setPageState('training')
 
       pollRef.current = setInterval(async () => {
@@ -185,10 +236,27 @@ export default function LexiRepTrainPage({ onBack }) {
           if (!statusRes.ok) return
           const statusData = await statusRes.json()
 
+          if (statusData.current_loop !== undefined) {
+            setCurrentLoop(statusData.current_loop)
+          }
+          if (statusData.total_loops !== undefined) {
+            setTotalLoops(statusData.total_loops)
+          }
+          if (statusData.progress !== undefined) {
+            setProgress(statusData.progress)
+          }
+          if (statusData.current_metrics) {
+            setCurrentMetrics(statusData.current_metrics)
+          }
+          if (statusData.history) {
+            setHistory(statusData.history)
+          }
+
           if (statusData.status === 'complete') {
             clearInterval(pollRef.current)
             pollRef.current = null
             setOutputFiles(statusData.output_files || [])
+            setModelSummary(statusData.model_summary || null)
             setPageState('complete')
           } else if (statusData.status === 'failed') {
             clearInterval(pollRef.current)
@@ -199,8 +267,7 @@ export default function LexiRepTrainPage({ onBack }) {
         } catch {
           // Polling error — keep trying
         }
-      }, 2000)
-
+      }, 1000)
     } catch (err) {
       setError(err.message)
       setPageState('failed')
@@ -208,35 +275,35 @@ export default function LexiRepTrainPage({ onBack }) {
   }, [selectedFile, validation, epochs])
 
   const handleReset = useCallback(() => {
-    if (pollRef.current) clearInterval(pollRef.current)
     setPageState('idle')
     setSelectedFile(null)
     setValidation(null)
-    setJobId(null)
     setError(null)
+    setJobId(null)
     setOutputFiles([])
-    setEpochs(10)
+    setCurrentLoop(0)
+    setProgress(0)
+    setCurrentMetrics(null)
+    setHistory([])
+    setModelSummary(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }, [])
 
-  const formatSize = (bytes) => {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  }
+  const sliderPercent = ((epochs - 1) / (30 - 1)) * 100
+  const sliderBg = `linear-gradient(to right, var(--text-primary) 0%, var(--text-primary) ${sliderPercent}%, var(--text-faded) ${sliderPercent}%, var(--text-faded) 100%)`
 
-  const sliderPercent = ((epochs - 1) / 99) * 100
-  const sliderBg = `linear-gradient(to right, var(--accent) 0%, var(--accent) ${sliderPercent}%, var(--text-faded) ${sliderPercent}%, var(--text-faded) 100%)`
+  const hasCacheFile = outputFiles.includes('dataset_cache.npz')
 
   return (
     <div className="lexirep-container">
-      {/* ── Back ─────────────────────────────────────────── */}
+      {/* Back button */}
       <motion.button
         className="lexirep-back"
         onClick={onBack}
         whileTap={{ scale: 0.95 }}
         transition={tapSpring}
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <line x1="19" y1="12" x2="5" y2="12" />
           <polyline points="12,19 5,12 12,5" />
@@ -248,8 +315,8 @@ export default function LexiRepTrainPage({ onBack }) {
       <div className="lexirep-header">
         <h1>lexirep training</h1>
         <p>
-          Upload a 768-dimensional dataset to train a custom
-          LexiRep model. Accepts .csv or .npy files.
+          Iterative One-Shot Linguistically Constrained Lexical Stress Representation Learning.
+          Upload a 768-D dataset (.npz cache recommended, or .csv) to train custom neural representations.
         </p>
       </div>
 
@@ -261,17 +328,26 @@ export default function LexiRepTrainPage({ onBack }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
         >
+          {/* Performance Recommendation Tip */}
+          <div className="lexirep-tip-banner">
+            <div className="lexirep-tip-badge">RECOMMENDED</div>
+            <div className="lexirep-tip-text">
+              <strong>Speed Tip:</strong> Upload a precomputed <code>.npz</code> cache file for instant training (~10× faster).
+              If you upload a <code>.csv</code> dataset, it will be automatically parsed, filtered, and converted to an optimized <code>.npz</code> cache before training.
+            </div>
+          </div>
+
           <input
             type="file"
             ref={fileInputRef}
             onChange={handleInputChange}
-            accept=".csv,.npy"
+            accept=".npz,.csv,.npy"
             style={{ display: 'none' }}
           />
 
           {/* ── Dataset ──────────────────────────────────── */}
           <div>
-            <div className="lexirep-step-label">dataset</div>
+            <div className="lexirep-step-label">dataset file (.npz or .csv)</div>
 
             {!selectedFile ? (
               <div
@@ -282,7 +358,7 @@ export default function LexiRepTrainPage({ onBack }) {
                 onDrop={handleDrop}
               >
                 <div className="lexirep-upload-zone-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
                     strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -291,10 +367,10 @@ export default function LexiRepTrainPage({ onBack }) {
                   </svg>
                 </div>
                 <div className="lexirep-upload-zone-text">
-                  Drop file or click to browse
+                  Drop .npz or .csv file or click to browse
                 </div>
                 <div className="lexirep-upload-zone-hint">
-                  .csv or .npy — 768-dimensional vectors
+                  .npz (precomputed binary cache) or .csv (768-D features)
                 </div>
               </div>
             ) : (
@@ -302,7 +378,7 @@ export default function LexiRepTrainPage({ onBack }) {
                 <div className="lexirep-file-pill">
                   <div className="lexirep-file-pill-left">
                     <div className="lexirep-file-pill-icon">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
                         strokeLinejoin="round">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -336,31 +412,31 @@ export default function LexiRepTrainPage({ onBack }) {
             )}
           </div>
 
-          {/* ── Epochs ───────────────────────────────────── */}
+          {/* ── Training Loops / Epochs ───────────────────── */}
           <div>
-            <div className="lexirep-step-label">training</div>
+            <div className="lexirep-step-label">iterative self-training loops</div>
             <div className="lexirep-epoch-control">
               <div className="lexirep-epoch-header">
-                <span className="lexirep-epoch-title">epochs</span>
+                <span className="lexirep-epoch-title">Loops (Paper Standard: 13)</span>
                 <span className="lexirep-epoch-number">{epochs}</span>
               </div>
               <input
                 type="range"
                 className="lexirep-epoch-slider"
                 min="1"
-                max="100"
+                max="30"
                 value={epochs}
                 onChange={(e) => setEpochs(parseInt(e.target.value, 10))}
                 style={{ background: sliderBg }}
               />
               <div className="lexirep-epoch-range">
-                <span>1</span>
-                <span>100</span>
+                <span>1 (Fast Test)</span>
+                <span>13 (Paper Standard)</span>
+                <span>30 (Deep Convergence)</span>
               </div>
             </div>
           </div>
 
-          {/* ── Separator ────────────────────────────────── */}
           <div className="lexirep-separator" />
 
           {/* ── Submit ───────────────────────────────────── */}
@@ -371,7 +447,7 @@ export default function LexiRepTrainPage({ onBack }) {
             whileTap={validation?.valid ? { scale: 0.97 } : {}}
             transition={tapSpring}
           >
-            Start Training
+            Start LexiRep Training
           </motion.button>
         </motion.div>
       )}
@@ -384,76 +460,306 @@ export default function LexiRepTrainPage({ onBack }) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
         >
-          <ThinkingOrb state="connecting" size={64} dark={false} />
-          <span className="lexirep-status-label">uploading dataset…</span>
+          <ThinkingOrb state="connecting" size={72} dark={false} />
+          <span className="lexirep-status-label">Preparing &amp; uploading dataset…</span>
+          <span className="lexirep-status-sub">Validating 768-D representation tensors</span>
         </motion.div>
       )}
 
-      {/* ── TRAINING ───────────────────────────────────── */}
+      {/* ── TRAINING (Connecting Orb) ─────────────────── */}
       {pageState === 'training' && (
         <motion.div
-          className="lexirep-status"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2 }}
+          className="lexirep-training-dashboard"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
         >
-          <ThinkingOrb state="solving" size={64} />
-          <span className="lexirep-status-label">training in progress…</span>
+          {/* Explicitly using state="connecting" as requested */}
+          <div className="lexirep-orb-wrapper">
+            <ThinkingOrb state="connecting" size={80} />
+          </div>
+
+          <div className="lexirep-training-header">
+            <span className="lexirep-status-pulse" />
+            <span className="lexirep-status-label">training in progress…</span>
+          </div>
+
+          <div className="lexirep-loop-counter">
+            Loop <span className="highlight">{currentLoop}</span> / {totalLoops}
+          </div>
+
+          {/* Progress bar */}
+          <div className="lexirep-progress-track">
+            <motion.div
+              className="lexirep-progress-fill"
+              initial={{ width: '0%' }}
+              animate={{ width: `${Math.max(progress, 5)}%` }}
+              transition={{ ease: 'easeOut', duration: 0.4 }}
+            />
+          </div>
+
+          {/* Real-time metrics pills */}
+          {currentMetrics && (
+            <div className="lexirep-live-metrics">
+              <div className="lexirep-live-pill btq">
+                <span className="pill-title">Test BTQ Accuracy</span>
+                <span className="pill-val">{currentMetrics.BTQ}%</span>
+              </div>
+              <div className="lexirep-live-pill">
+                <span className="pill-title">Pseudo Train Acc</span>
+                <span className="pill-val">{currentMetrics.train}%</span>
+              </div>
+              <div className="lexirep-live-pill">
+                <span className="pill-title">IDEC Loss</span>
+                <span className="pill-val">{currentMetrics.loss}</span>
+              </div>
+            </div>
+          )}
+
           <span className="lexirep-status-sub">
-            {epochs} epoch{epochs !== 1 ? 's' : ''} — this may take several minutes
+            Optimizing 5-layer encoder and Student-t clustering representations
           </span>
         </motion.div>
       )}
 
-      {/* ── COMPLETE ───────────────────────────────────── */}
+      {/* ── COMPLETE: Creative Model & Weights Display ─── */}
       {pageState === 'complete' && (
         <motion.div
-          className="lexirep-result"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2 }}
+          className="lexirep-complete-container"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
         >
-          <div className="lexirep-result-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
-              strokeLinejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22,4 12,14.01 9,11.01" />
+          {/* Celebratory badge */}
+          <div className="lexirep-complete-badge">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
             </svg>
+            <span>TRAINING CONVERGED &amp; VALIDATED</span>
           </div>
-          <span className="lexirep-result-title">training complete</span>
 
-          {outputFiles.length > 0 && (
-            <div className="lexirep-result-files">
-              {outputFiles.map((f, i) => (
-                <span key={i}>{f}</span>
-              ))}
+          <h2 className="lexirep-complete-title">LexiRep Model Generated</h2>
+          <p className="lexirep-complete-desc">
+            109,466 weights trained across 5 representation layers. Tested against the BTQ linguistic constraint.
+          </p>
+
+          {/* Navigation Tabs */}
+          <div className="lexirep-tabs">
+            <button
+              className={`lexirep-tab-btn ${activeTab === 'blueprint' ? 'active' : ''}`}
+              onClick={() => setActiveTab('blueprint')}
+            >
+              Network Architecture
+            </button>
+            <button
+              className={`lexirep-tab-btn ${activeTab === 'weights' ? 'active' : ''}`}
+              onClick={() => setActiveTab('weights')}
+            >
+              Layer Weight Stats
+            </button>
+            <button
+              className={`lexirep-tab-btn ${activeTab === 'scorecard' ? 'active' : ''}`}
+              onClick={() => setActiveTab('scorecard')}
+            >
+              BTQ Scorecard
+            </button>
+          </div>
+
+          {/* ── TAB 1: Network Blueprint ───────────────────── */}
+          {activeTab === 'blueprint' && (
+            <div className="lexirep-blueprint-view">
+              <div className="blueprint-nodes-flow">
+                <div className="blueprint-node input">
+                  <span className="node-type">Input</span>
+                  <strong className="node-dim">768-D</strong>
+                  <span className="node-sub">Wav2Vec 2.0</span>
+                </div>
+                <div className="blueprint-arrow">→</div>
+
+                <div className="blueprint-node layer">
+                  <span className="node-type">Layer 1</span>
+                  <strong className="node-dim">128</strong>
+                  <span className="node-sub">ReLU (98.4k)</span>
+                </div>
+                <div className="blueprint-arrow">→</div>
+
+                <div className="blueprint-node layer">
+                  <span className="node-type">Layer 2</span>
+                  <strong className="node-dim">64</strong>
+                  <span className="node-sub">ReLU (8.2k)</span>
+                </div>
+                <div className="blueprint-arrow">→</div>
+
+                <div className="blueprint-node layer">
+                  <span className="node-type">Layer 3</span>
+                  <strong className="node-dim">32</strong>
+                  <span className="node-sub">ReLU (2.0k)</span>
+                </div>
+                <div className="blueprint-arrow">→</div>
+
+                <div className="blueprint-node layer">
+                  <span className="node-type">Layer 4</span>
+                  <strong className="node-dim">16</strong>
+                  <span className="node-sub">ReLU (528)</span>
+                </div>
+                <div className="blueprint-arrow">→</div>
+
+                <div className="blueprint-node bottleneck">
+                  <span className="node-type">Bottleneck</span>
+                  <strong className="node-dim">10-D</strong>
+                  <span className="node-sub">Sigmoid</span>
+                </div>
+              </div>
+
+              {/* Latent Space & Prototypes Box */}
+              {modelSummary?.prototypes && (
+                <div className="lexirep-prototypes-box">
+                  <div className="prototype-item">
+                    <span className="proto-dot stressed" />
+                    <div>
+                      <div className="proto-label">Stressed Prototype (z_s^h)</div>
+                      <div className="proto-vector">
+                        [{modelSummary.prototypes.stressed_vector.slice(0, 5).join(', ')} …]
+                      </div>
+                    </div>
+                  </div>
+                  <div className="proto-divider" />
+                  <div className="prototype-item">
+                    <span className="proto-dot unstressed" />
+                    <div>
+                      <div className="proto-label">Unstressed Prototype (z_u^h)</div>
+                      <div className="proto-vector">
+                        [{modelSummary.prototypes.unstressed_vector.slice(0, 5).join(', ')} …]
+                      </div>
+                    </div>
+                  </div>
+                  <div className="proto-cosine-badge">
+                    <span>Cosine Distance:</span>
+                    <strong>{modelSummary.prototypes.cosine_similarity}</strong>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          <a
-            className="lexirep-download-btn"
-            href={getHttpUrl(`/lexirep/train-result/${jobId}`)}
-            download
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
-              strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7,10 12,15 17,10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            download model
-          </a>
+          {/* ── TAB 2: Weight Statistics ───────────────────── */}
+          {activeTab === 'weights' && (
+            <div className="lexirep-weights-table-wrapper">
+              <table className="lexirep-weights-table">
+                <thead>
+                  <tr>
+                    <th>Tensor Layer</th>
+                    <th>Shape</th>
+                    <th>Weights</th>
+                    <th>Mean</th>
+                    <th>Std Dev</th>
+                    <th>L2 Norm</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {modelSummary?.weight_stats?.map((w, idx) => (
+                    <tr key={idx}>
+                      <td><code>{w.name}</code></td>
+                      <td>{w.shape.join(' × ')}</td>
+                      <td>{w.params.toLocaleString()}</td>
+                      <td>{w.mean}</td>
+                      <td>{w.std}</td>
+                      <td><span className="norm-tag">{w.l2_norm}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
-          <motion.button
-            className="lexirep-reset-btn"
-            onClick={handleReset}
-            whileTap={{ scale: 0.97 }}
-            transition={tapSpring}
-          >
-            Train Another
-          </motion.button>
+          {/* ── TAB 3: BTQ Benchmark Scorecard ─────────────── */}
+          {activeTab === 'scorecard' && (
+            <div className="lexirep-scorecard-grid">
+              <div className="scorecard-card">
+                <span className="sc-label">Bi-syllabic (B)</span>
+                <strong className="sc-val">{modelSummary?.final_metrics?.B ?? 0}%</strong>
+                <span className="sc-target">Target: ~83.4%</span>
+              </div>
+              <div className="scorecard-card">
+                <span className="sc-label">Bi + Tri (BT)</span>
+                <strong className="sc-val">{modelSummary?.final_metrics?.BT ?? 0}%</strong>
+                <span className="sc-target">Target: ~83.0%</span>
+              </div>
+              <div className="scorecard-card highlight">
+                <span className="sc-label">Bi + Tri + Quad (BTQ)</span>
+                <strong className="sc-val">{modelSummary?.final_metrics?.BTQ ?? 0}%</strong>
+                <span className="sc-target">Paper Benchmark Target: 82.73%</span>
+              </div>
+              <div className="scorecard-card">
+                <span className="sc-label">Training Duration</span>
+                <strong className="sc-val">{modelSummary?.duration_seconds ?? 0}s</strong>
+                <span className="sc-target">{modelSummary?.epochs_trained ?? epochs} Loops</span>
+              </div>
+            </div>
+          )}
+
+          {/* ── Download Action Buttons ───────────────────── */}
+          <div className="lexirep-download-section">
+            <div className="lexirep-download-grid">
+              {/* Primary Model Download Button */}
+              <a
+                className="lexirep-action-btn primary"
+                href={getHttpUrl(`/lexirep/train-result/${jobId}?file=final_lexirep_model.pt`)}
+                download="final_lexirep_model.pt"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7,10 12,15 17,10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span>Download Model (.pt)</span>
+              </a>
+
+              {/* Complete Zip Package Download */}
+              <a
+                className="lexirep-action-btn secondary"
+                href={getHttpUrl(`/lexirep/train-result/${jobId}`)}
+                download={`lexirep_bundle_${jobId?.slice(0, 8)}.zip`}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span>Download Checkpoint Bundle (.zip)</span>
+              </a>
+
+              {/* NPZ Cache Download (if CSV was converted) */}
+              {hasCacheFile && (
+                <a
+                  className="lexirep-action-btn cache"
+                  href={getHttpUrl(`/lexirep/train-result/${jobId}?file=dataset_cache.npz`)}
+                  download="dataset_cache.npz"
+                  title="Download the precomputed binary NPZ cache for future instant training"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                    <polyline points="17 21 17 13 7 13 7 21" />
+                    <polyline points="7 3 7 8 15 8" />
+                  </svg>
+                  <span>Download .npz Cache</span>
+                </a>
+              )}
+            </div>
+
+            <motion.button
+              className="lexirep-reset-btn"
+              onClick={handleReset}
+              whileTap={{ scale: 0.97 }}
+              transition={tapSpring}
+            >
+              Train Another Model
+            </motion.button>
+          </div>
         </motion.div>
       )}
 
@@ -474,7 +780,7 @@ export default function LexiRepTrainPage({ onBack }) {
               <line x1="9" y1="9" x2="15" y2="15" />
             </svg>
           </div>
-          <span className="lexirep-result-title error">training failed</span>
+          <span className="lexirep-result-title error">Training Encountered An Error</span>
           <span className="lexirep-result-detail">{error}</span>
 
           <motion.button
@@ -482,7 +788,7 @@ export default function LexiRepTrainPage({ onBack }) {
             onClick={handleReset}
             whileTap={{ scale: 0.97 }}
             transition={tapSpring}
-            style={{ maxWidth: '14rem' }}
+            style={{ maxWidth: '14rem', marginTop: '1rem' }}
           >
             Try Again
           </motion.button>

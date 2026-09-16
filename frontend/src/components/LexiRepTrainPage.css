@@ -1,42 +1,877 @@
-.lexirep-container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 72px 32px 48px; position: relative; }
-.lexirep-container::before { content: 'PROSODY / LEXIREP'; position: absolute; top: 28px; left: 28px; color: var(--text-primary); font: 600 .7rem/1 var(--font-mono); letter-spacing: .12em; }
-.lexirep-back { position: absolute; top: 24px; right: 28px; padding: 8px 0; background: none; border: 0; color: var(--text-muted); font: .65rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; cursor: pointer; transition: color var(--transition-base); }
-.lexirep-back:hover { color: var(--text-primary); }
-.lexirep-header { width: 100%; max-width: 56rem; margin: 0 0 32px; text-align: left; }
-.lexirep-header h1 { margin: 0 0 12px; color: var(--text-primary); font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 600; letter-spacing: -.06em; line-height: 1; text-transform: none; }
-.lexirep-header p { max-width: 32rem; color: var(--text-muted); font-size: .9rem; line-height: 1.65; }
-.lexirep-content { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 28px; }
-.lexirep-step-label { margin-bottom: 14px; color: var(--text-muted); font: 500 .65rem var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
-.lexirep-upload-zone { padding: 64px 32px; border: 1px dashed var(--border-strong); border-radius: 3px; background: transparent; text-align: center; cursor: pointer; transition: border-color var(--transition-base), background var(--transition-base), transform var(--transition-base); }
-.lexirep-upload-zone:hover, .lexirep-upload-zone.drag-over { border-color: var(--accent); background: var(--bg-subtle); transform: translateY(-2px); }
-.lexirep-upload-zone-icon { margin-bottom: 16px; color: var(--text-muted); }
-.lexirep-upload-zone-text { margin-bottom: 6px; color: var(--text-primary); font-size: .85rem; font-weight: 600; }
-.lexirep-upload-zone-hint { color: var(--text-muted); font: .72rem var(--font-mono); }
-.lexirep-file-pill { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px solid var(--text-faded); border-radius: 3px; background: var(--bg-subtle); }
-.lexirep-file-pill-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.lexirep-file-pill-icon { flex: 0 0 28px; color: var(--text-muted); }
-.lexirep-file-pill-info { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.lexirep-file-pill-name { overflow: hidden; color: var(--text-primary); font: .78rem var(--font-mono); text-overflow: ellipsis; white-space: nowrap; }
-.lexirep-file-pill-meta, .lexirep-validation-msg { color: var(--text-muted); font: .68rem var(--font-mono); }
-.lexirep-file-pill-remove { padding: 8px; background: none; border: 0; color: var(--text-muted); cursor: pointer; }
-.lexirep-file-pill-remove:hover { color: var(--text-primary); }
-.lexirep-validation-msg { margin-top: 10px; }
-.lexirep-validation-msg.error { color: var(--text-primary); font-weight: 600; }
-.lexirep-epoch-control { display: flex; flex-direction: column; gap: 12px; }
-.lexirep-epoch-header { display: flex; align-items: baseline; justify-content: space-between; }
-.lexirep-epoch-title { color: var(--text-muted); font: .68rem var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
-.lexirep-epoch-number { color: var(--text-primary); font: 500 1.5rem var(--font-mono); font-variant-numeric: tabular-nums; }
-.lexirep-epoch-slider { width: 100%; height: 3px; accent-color: var(--text-primary); cursor: pointer; }
-.lexirep-epoch-range { display: flex; justify-content: space-between; color: var(--text-muted); font: .65rem var(--font-mono); }
-.lexirep-submit-btn { width: 100%; min-height: 44px; padding: 12px; border: 1px solid var(--accent); border-radius: 3px; background: var(--accent); color: var(--bg); cursor: pointer; font: 600 .68rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; transition: opacity var(--transition-base), transform var(--transition-base); }
-.lexirep-submit-btn:hover { opacity: .78; }
-.lexirep-submit-btn:active { transform: translateY(1px); }
-.lexirep-submit-btn:disabled { opacity: .28; cursor: not-allowed; }
-.lexirep-separator { width: 100%; height: 1px; background: var(--text-faded); }
-.lexirep-status { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 48px 0; text-align: center; }
-.lexirep-status-label { color: var(--text-primary); font: 600 .72rem var(--font-mono); letter-spacing: .1em; text-transform: uppercase; }
-.lexirep-status-sub { color: var(--text-muted); font: .7rem var(--font-mono); }
-.lexirep-spinner { width: 24px; height: 24px; border: 2px solid var(--text-faded); border-top-color: var(--text-primary); border-radius: 50%; animation: lexirep-spin .8s linear infinite; }
-@keyframes lexirep-spin { to { transform: rotate(360deg); } }
-@media (max-width: 640px) { .lexirep-container { padding: 88px 20px 48px; } .lexirep-container::before { top: 20px; left: 20px; } .lexirep-back { top: 16px; right: 20px; } .lexirep-header { margin-bottom: 40px; } .lexirep-content { gap: 36px; } }
-@media (prefers-reduced-motion: reduce) { .lexirep-spinner { animation: none; } }
+.lexirep-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 72px 32px 64px;
+  position: relative;
+  background: var(--bg);
+}
+
+.lexirep-container::before {
+  content: 'PROSODY / LEXIREP';
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  color: var(--text-primary);
+  font: 600 .7rem/1 var(--font-mono);
+  letter-spacing: .12em;
+}
+
+.lexirep-back {
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  padding: 8px 12px;
+  background: none;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 4px;
+  color: var(--text-muted);
+  font: .65rem var(--font-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--transition-base, 0.2s ease);
+}
+
+.lexirep-back:hover {
+  color: var(--text-primary);
+  border-color: var(--text-faded);
+  background: var(--bg-subtle, rgba(255, 255, 255, 0.03));
+}
+
+.lexirep-header {
+  width: 100%;
+  max-width: 56rem;
+  margin: 0 0 28px;
+  text-align: left;
+}
+
+.lexirep-header h1 {
+  margin: 0 0 10px;
+  color: var(--text-primary);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 600;
+  letter-spacing: -.05em;
+  line-height: 1;
+  text-transform: none;
+}
+
+.lexirep-header p {
+  max-width: 38rem;
+  color: var(--text-muted);
+  font-size: .88rem;
+  line-height: 1.6;
+}
+
+/* ── Recommendation Tip Banner ────────────────────────────────── */
+.lexirep-tip-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(196, 149, 106, 0.08);
+  border: 1px solid rgba(196, 149, 106, 0.25);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.lexirep-tip-badge {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 3px;
+  margin-top: 1px;
+}
+
+.lexirep-tip-text {
+  color: var(--text-primary);
+}
+
+.lexirep-tip-text code {
+  font-family: var(--font-mono);
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.85em;
+  color: var(--accent);
+}
+
+.lexirep-content {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.lexirep-step-label {
+  margin-bottom: 12px;
+  color: var(--text-muted);
+  font: 500 .65rem var(--font-mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.lexirep-upload-zone {
+  padding: 56px 28px;
+  border: 1px dashed var(--border-strong, rgba(255, 255, 255, 0.15));
+  border-radius: 6px;
+  background: var(--bg-subtle, rgba(255, 255, 255, 0.015));
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-base, 0.2s ease);
+}
+
+.lexirep-upload-zone:hover,
+.lexirep-upload-zone.drag-over {
+  border-color: var(--accent);
+  background: rgba(196, 149, 106, 0.04);
+  transform: translateY(-2px);
+}
+
+.lexirep-upload-zone-icon {
+  margin-bottom: 14px;
+  color: var(--accent);
+}
+
+.lexirep-upload-zone-text {
+  margin-bottom: 6px;
+  color: var(--text-primary);
+  font-size: .9rem;
+  font-weight: 600;
+}
+
+.lexirep-upload-zone-hint {
+  color: var(--text-muted);
+  font: .72rem var(--font-mono);
+}
+
+.lexirep-file-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
+  border-radius: 6px;
+  background: var(--bg-subtle, rgba(255, 255, 255, 0.03));
+}
+
+.lexirep-file-pill-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.lexirep-file-pill-icon {
+  flex: 0 0 24px;
+  color: var(--accent);
+}
+
+.lexirep-file-pill-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.lexirep-file-pill-name {
+  overflow: hidden;
+  color: var(--text-primary);
+  font: .82rem var(--font-mono);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lexirep-file-pill-meta,
+.lexirep-validation-msg {
+  color: var(--text-muted);
+  font: .68rem var(--font-mono);
+}
+
+.lexirep-file-pill-remove {
+  padding: 6px;
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.lexirep-file-pill-remove:hover {
+  color: #f87171;
+}
+
+.lexirep-validation-msg {
+  margin-top: 8px;
+}
+
+.lexirep-validation-msg.error {
+  color: #f87171;
+  font-weight: 600;
+}
+
+.lexirep-epoch-control {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lexirep-epoch-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.lexirep-epoch-title {
+  color: var(--text-muted);
+  font: .68rem var(--font-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.lexirep-epoch-number {
+  color: var(--accent);
+  font: 600 1.5rem var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.lexirep-epoch-slider {
+  width: 100%;
+  height: 4px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.lexirep-epoch-range {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font: .62rem var(--font-mono);
+}
+
+.lexirep-submit-btn {
+  width: 100%;
+  min-height: 44px;
+  padding: 12px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--bg);
+  cursor: pointer;
+  font: 700 .72rem var(--font-mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  transition: opacity var(--transition-base, 0.2s), transform var(--transition-base, 0.2s);
+}
+
+.lexirep-submit-btn:hover:not(:disabled) {
+  opacity: .88;
+}
+
+.lexirep-submit-btn:disabled {
+  opacity: .28;
+  cursor: not-allowed;
+}
+
+.lexirep-separator {
+  width: 100%;
+  height: 1px;
+  background: var(--text-faded, rgba(255, 255, 255, 0.08));
+}
+
+/* ── Live Training Dashboard (Connecting Orb) ─────────────────── */
+.lexirep-training-dashboard {
+  width: 100%;
+  max-width: 580px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px 24px;
+  background: var(--bg-subtle, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  text-align: center;
+}
+
+.lexirep-orb-wrapper {
+  margin-bottom: 8px;
+}
+
+.lexirep-training-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lexirep-status-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+  animation: pulseOrb 1.5s infinite ease-in-out;
+}
+
+@keyframes pulseOrb {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.5; }
+}
+
+.lexirep-loop-counter {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  color: var(--text-muted);
+}
+
+.lexirep-loop-counter .highlight {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.lexirep-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.lexirep-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #e0a96d);
+  border-radius: 9999px;
+}
+
+.lexirep-live-metrics {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.lexirep-live-pill {
+  flex: 1;
+  min-width: 140px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lexirep-live-pill.btq {
+  border-color: rgba(196, 149, 106, 0.4);
+  background: rgba(196, 149, 106, 0.06);
+}
+
+.lexirep-live-pill .pill-title {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.lexirep-live-pill .pill-val {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.lexirep-live-pill.btq .pill-val {
+  color: var(--accent);
+}
+
+.lexirep-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 0;
+  text-align: center;
+}
+
+.lexirep-status-label {
+  color: var(--text-primary);
+  font: 600 .72rem var(--font-mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.lexirep-status-sub {
+  color: var(--text-muted);
+  font: .7rem var(--font-mono);
+}
+
+/* ── COMPLETE: Creative Model Showcase ───────────────────────── */
+.lexirep-complete-container {
+  width: 100%;
+  max-width: 780px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.lexirep-complete-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  color: #4ade80;
+  font: 700 0.65rem var(--font-mono);
+  letter-spacing: 0.1em;
+}
+
+.lexirep-complete-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  text-align: center;
+}
+
+.lexirep-complete-desc {
+  margin: 0;
+  max-width: 32rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* Tabs */
+.lexirep-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  background: var(--bg-subtle, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.lexirep-tab-btn {
+  padding: 8px 16px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font: 600 0.72rem var(--font-mono);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lexirep-tab-btn.active {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* Blueprint Flow View */
+.lexirep-blueprint-view {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.blueprint-nodes-flow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 24px 16px;
+  background: var(--bg-subtle, rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.blueprint-node {
+  flex: 1;
+  min-width: 85px;
+  padding: 12px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.blueprint-node:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.blueprint-node.input {
+  border-color: rgba(96, 165, 250, 0.4);
+  background: rgba(96, 165, 250, 0.05);
+}
+
+.blueprint-node.bottleneck {
+  border-color: rgba(196, 149, 106, 0.5);
+  background: rgba(196, 149, 106, 0.08);
+}
+
+.node-type {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.node-dim {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.blueprint-node.bottleneck .node-dim {
+  color: var(--accent);
+}
+
+.node-sub {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+.blueprint-arrow {
+  color: var(--text-faded);
+  font-size: 0.9rem;
+  user-select: none;
+}
+
+/* Prototypes Latent Space Box */
+.lexirep-prototypes-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  flex-wrap: wrap;
+}
+
+.prototype-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.proto-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.proto-dot.stressed {
+  background: #f87171;
+  box-shadow: 0 0 8px #f87171;
+}
+
+.proto-dot.unstressed {
+  background: #60a5fa;
+  box-shadow: 0 0 8px #60a5fa;
+}
+
+.proto-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.proto-vector {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+
+.proto-divider {
+  width: 1px;
+  height: 36px;
+  background: var(--text-faded);
+}
+
+.proto-cosine-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.proto-cosine-badge strong {
+  font-size: 1.1rem;
+  color: var(--accent);
+}
+
+/* Weight Statistics Table */
+.lexirep-weights-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  background: var(--bg-subtle, rgba(255, 255, 255, 0.015));
+}
+
+.lexirep-weights-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.lexirep-weights-table th {
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+}
+
+.lexirep-weights-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+.lexirep-weights-table tr:last-child td {
+  border-bottom: none;
+}
+
+.lexirep-weights-table code {
+  color: var(--accent);
+}
+
+.norm-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 600;
+}
+
+/* Scorecard Grid */
+.lexirep-scorecard-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.scorecard-card {
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: var(--bg-subtle, rgba(255, 255, 255, 0.02));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scorecard-card.highlight {
+  border-color: var(--accent);
+  background: rgba(196, 149, 106, 0.08);
+}
+
+.sc-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sc-val {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.scorecard-card.highlight .sc-val {
+  color: var(--accent);
+}
+
+.sc-target {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+/* Download Actions Section */
+.lexirep-download-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.lexirep-download-grid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.lexirep-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition-base, 0.2s ease);
+}
+
+.lexirep-action-btn.primary {
+  background: var(--accent);
+  color: var(--bg);
+  border: 1px solid var(--accent);
+}
+
+.lexirep-action-btn.primary:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.lexirep-action-btn.secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong, rgba(255, 255, 255, 0.2));
+}
+
+.lexirep-action-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.lexirep-action-btn.cache {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-strong, rgba(255, 255, 255, 0.2));
+}
+
+.lexirep-action-btn.cache:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(196, 149, 106, 0.04);
+}
+
+.lexirep-reset-btn {
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  font: 500 0.7rem var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 6px 12px;
+  transition: color 0.15s ease;
+}
+
+.lexirep-reset-btn:hover {
+  color: var(--text-primary);
+}
+
+/* Result Error State */
+.lexirep-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 0;
+  text-align: center;
+}
+
+.lexirep-result-icon.error {
+  color: #f87171;
+}
+
+.lexirep-result-title.error {
+  color: #f87171;
+  font: 700 1rem var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.lexirep-result-detail {
+  max-width: 28rem;
+  color: var(--text-muted);
+  font: 0.78rem var(--font-mono);
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .lexirep-container {
+    padding: 88px 20px 48px;
+  }
+  .lexirep-container::before {
+    top: 20px;
+    left: 20px;
+  }
+  .lexirep-back {
+    top: 16px;
+    right: 20px;
+  }
+  .blueprint-nodes-flow {
+    justify-content: flex-start;
+  }
+  .lexirep-download-grid {
+    flex-direction: column;
+  }
+  .lexirep-action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
