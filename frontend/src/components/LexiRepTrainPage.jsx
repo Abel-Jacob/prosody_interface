@@ -167,6 +167,7 @@ export default function LexiRepTrainPage({ onBack }) {
   const [currentMetrics, setCurrentMetrics] = useState(null)
   const [history, setHistory] = useState([])
   const [modelSummary, setModelSummary] = useState(null)
+  const [serverLogs, setServerLogs] = useState([])
   const [activeTab, setActiveTab] = useState('blueprint') // 'blueprint' | 'weights' | 'scorecard'
 
   const fileInputRef = useRef(null)
@@ -322,6 +323,9 @@ export default function LexiRepTrainPage({ onBack }) {
           if (statusData.history) {
             setHistory(statusData.history)
           }
+          if (statusData.logs && Array.isArray(statusData.logs)) {
+            setServerLogs(statusData.logs)
+          }
 
           if (statusData.status === 'complete') {
             if (pollRef.current) {
@@ -367,6 +371,7 @@ export default function LexiRepTrainPage({ onBack }) {
     setCurrentMetrics(null)
     setHistory([])
     setModelSummary(null)
+    setServerLogs([])
     if (fileInputRef.current) fileInputRef.current.value = ''
   }, [])
 
@@ -596,6 +601,27 @@ export default function LexiRepTrainPage({ onBack }) {
               </div>
             </div>
           )}
+
+          {/* Live Server Telemetry Logs Box */}
+          <div className="lexirep-live-log-box">
+            <div className="lexirep-live-log-header">
+              <span className="lexirep-log-pulse" />
+              <span>LIVE BACKEND TRAINING TELEMETRY</span>
+            </div>
+            <div className="lexirep-live-log-list">
+              {serverLogs && serverLogs.length > 0 ? (
+                serverLogs.map((log, idx) => (
+                  <div key={idx} className="lexirep-log-line">
+                    <span className="lexirep-log-prompt">&gt;</span> {log}
+                  </div>
+                ))
+              ) : (
+                <div className="lexirep-log-line muted">
+                  <span className="lexirep-log-prompt">&gt;</span> Connected to backend. Initializing PyTorch pipeline...
+                </div>
+              )}
+            </div>
+          </div>
 
           <span className="lexirep-status-sub">
             Optimizing 5-layer encoder and Student-t clustering representations

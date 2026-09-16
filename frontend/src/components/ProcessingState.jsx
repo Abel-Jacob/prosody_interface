@@ -22,7 +22,7 @@ export default function ProcessingState({ jobId, onComplete }) {
         <h1 style={{ color: 'var(--error)' }}>Error: {error}</h1>
       ) : (
         <>
-          <ThinkingOrb state="solving" size={64} />
+          <ThinkingOrb state="connecting" size={64} />
           <h1 style={{
             fontFamily: 'var(--font-primary)',
             fontSize: '0.9rem',

@@ -182,6 +182,12 @@ class TrainJobStatus(str, Enum):
     FAILED = "failed"
 
 
+def log_lexirep(msg: str):
+    """Print to both standard logger and stdout with flush=True so logs appear in Colab/terminals."""
+    logger.info(msg)
+    print(msg, flush=True)
+
+
 @dataclass
 class TrainJob:
     job_id: str
@@ -199,13 +205,68 @@ class TrainJob:
     model_summary: dict = field(default_factory=dict)
     logs: list = field(default_factory=list)
 
+    def to_dict(self) -> dict:
+        return {
+            "job_id": self.job_id,
+            "status": self.status.value,
+            "dataset_path": str(self.dataset_path),
+            "output_dir": str(self.output_dir),
+            "epochs": self.epochs,
+            "error": self.error,
+            "output_files": self.output_files,
+            "current_loop": self.current_loop,
+            "total_loops": self.total_loops,
+            "progress": self.progress,
+            "current_metrics": self.current_metrics,
+            "history": self.history,
+            "model_summary": self.model_summary,
+            "logs": self.logs,
+        }
+
+    def save_to_disk(self):
+        try:
+            job_file = self.output_dir.parent / "job_info.json"
+            with open(job_file, "w") as f:
+                json.dump(self.to_dict(), f, indent=2)
+        except Exception as e:
+            logger.warning(f"Failed to save job_info.json: {e}")
+
 
 # ── In-memory job store (isolated per job_id) ──────────────────
 _jobs: dict[str, TrainJob] = {}
 
 
 def get_train_job(job_id: str) -> Optional[TrainJob]:
-    return _jobs.get(job_id)
+    if job_id in _jobs:
+        return _jobs[job_id]
+    # Fallback: read persisted status from disk
+    from config import BASE_DIR
+    job_file = BASE_DIR / "lexirep_jobs" / job_id / "job_info.json"
+    if job_file.exists():
+        try:
+            with open(job_file, "r") as f:
+                d = json.load(f)
+            job = TrainJob(
+                job_id=d["job_id"],
+                status=TrainJobStatus(d["status"]),
+                dataset_path=Path(d.get("dataset_path", "")),
+                output_dir=Path(d.get("output_dir", "")),
+                epochs=d.get("epochs", DEFAULT_LOOPS),
+                error=d.get("error"),
+                output_files=d.get("output_files", []),
+                current_loop=d.get("current_loop", 0),
+                total_loops=d.get("total_loops", DEFAULT_LOOPS),
+                progress=d.get("progress", 0),
+                current_metrics=d.get("current_metrics", {}),
+                history=d.get("history", []),
+                model_summary=d.get("model_summary", {}),
+                logs=d.get("logs", []),
+            )
+            _jobs[job_id] = job
+            return job
+        except Exception as e:
+            logger.warning(f"Failed to load job_info.json from disk: {e}")
+    return None
 
 
 def create_train_job(dataset_path: Path, output_dir: Path, epochs: int = DEFAULT_LOOPS, job_id: Optional[str] = None) -> TrainJob:
@@ -219,6 +280,7 @@ def create_train_job(dataset_path: Path, output_dir: Path, epochs: int = DEFAULT
         epochs=epochs,
         total_loops=epochs,
     )
+    job.save_to_disk()
     _jobs[job_id] = job
     return job
 
@@ -437,13 +499,23 @@ def run_lexirep_training(
     torch.manual_seed(SEED)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    logger.info(f"[LexiRep] Training on device: {device}")
+    log_lexirep(f"[LexiRep Training] Training on device: {device}")
 
     # 2. Load and validate data
-    logger.info(f"[LexiRep] Loading dataset from: {dataset_path}")
+    log_lexirep(f"[LexiRep Training] Loading dataset from: {dataset_path}")
+    if on_progress:
+        on_progress({"progress": 4, "log": f"Ingesting dataset from {dataset_path.name}..."})
+
     X_train, Y_train, W_train, X_test, Y_test, W_test = load_dataset_file(
         dataset_path, cache_npz_path=cache_npz_path
     )
+
+    log_lexirep(f"[LexiRep Training] Loaded {len(X_train)} train samples, {len(X_test)} test samples (768-D).")
+    if on_progress:
+        on_progress({
+            "progress": 8,
+            "log": f"Dataset ingested: {len(X_train)} train, {len(X_test)} test syllables (768-D features)."
+        })
 
     wmap_tr = defaultdict(list)
     for i, w in enumerate(W_train):
@@ -461,6 +533,12 @@ def run_lexirep_training(
     rs_idx, ru_idx, anc_word = find_canonical_anchor(W_train, Y_train)
     rs_vec = X_train[rs_idx:rs_idx + 1]
     ru_vec = X_train[ru_idx:ru_idx + 1]
+    log_lexirep(f"[LexiRep Training] Canonical polar anchor selected from word #{anc_word} (rs={rs_idx}, ru={ru_idx}).")
+    if on_progress:
+        on_progress({
+            "progress": 10,
+            "log": f"Polar anchors located: 1 stressed, 1 unstressed from reference word #{anc_word}."
+        })
 
     # 4. Initialize Models & Optimizers
     cl_encoder = LexiRepEncoder().to(device)
@@ -475,6 +553,14 @@ def run_lexirep_training(
     labels_tr = np.zeros(len(Y_train), dtype=int)
     for w, idxs in wmap_tr.items():
         labels_tr[idxs[np.argmax(diff_tr0[idxs])]] = 1
+
+    log_lexirep(f"[LexiRep Training] Loop 0: Initializing cold-start representation warmup...")
+    if on_progress:
+        on_progress({
+            "current_loop": 0,
+            "progress": 12,
+            "log": "Cold-start pseudo-labeling initialized. Warming up contrastive encoder..."
+        })
 
     # Warmup contrastive encoder on cold-start pseudo-labels
     cl_encoder.train()
@@ -530,9 +616,10 @@ def run_lexirep_training(
         on_progress({
             "current_loop": 0,
             "total_loops": epochs,
-            "progress": 5,
+            "progress": 14,
             "current_metrics": history_scorecard[-1],
             "history": history_scorecard,
+            "log": f"Cold-start ready: Base BTQ {init_btq:.1f}%. Starting iterative self-training..."
         })
 
     # 6. Iterative Self-Training Loops
@@ -542,6 +629,13 @@ def run_lexirep_training(
     z_u_h_best = None
 
     for loop in range(1, epochs + 1):
+        log_lexirep(f"[LexiRep Training] Starting Loop {loop}/{epochs}...")
+        if on_progress:
+            on_progress({
+                "current_loop": loop,
+                "log": f"Loop {loop}/{epochs}: Running SupCon contrastive learning & IDEC joint clustering..."
+            })
+
         # 6a. Contrastive Learning on refined pseudo-labels
         cl_encoder.train()
         batches = make_word_batches(X_train, labels_tr, wmap_tr, batch_words=BATCH_WORDS)
@@ -641,7 +735,9 @@ def run_lexirep_training(
             z_s_h_best = z_s_h
             z_u_h_best = z_u_h
 
-        prog_pct = int(5 + (loop / epochs) * 95)
+        prog_pct = int(14 + (loop / epochs) * 82)
+        log_lexirep(f"[LexiRep Training] Loop {loop}/{epochs} Complete -> Train: {train_acc:.1f}%, Test BTQ: {btq_acc:.1f}%, IDEC Loss: {last_idec_loss:.4f}")
+
         if on_progress:
             on_progress({
                 "current_loop": loop,
@@ -649,11 +745,11 @@ def run_lexirep_training(
                 "progress": prog_pct,
                 "current_metrics": loop_record,
                 "history": history_scorecard,
+                "log": f"Loop {loop}/{epochs}: Train {train_acc:.1f}%, Test BTQ {btq_acc:.1f}%, Loss {last_idec_loss:.4f}"
             })
 
-        logger.info(f"[LexiRep] Loop {loop}/{epochs} — Train: {train_acc:.1f}%, Test BTQ: {btq_acc:.1f}%")
-
     # 7. Compute Layer Weight Statistics & Parameter Counts
+    log_lexirep("[LexiRep Training] Computing layer parameter statistics & Frobenius norms...")
     layer_stats = []
     total_params = 0
     cl_state = cl_encoder.state_dict()
@@ -674,7 +770,6 @@ def run_lexirep_training(
             })
 
     final_metrics = history_scorecard[-1]
-
     proto_dist = float(cosine_similarity(z_s_h_best, z_u_h_best)[0][0]) if z_s_h_best is not None else 0.0
 
     model_summary = {
@@ -702,7 +797,6 @@ def run_lexirep_training(
     }
 
     # 8. Save Model Artifacts
-    # Save standard checkpoint compatible with prosody_lexirep.py
     model_pt_path = output_dir / "final_lexirep_model.pt"
     torch.save({
         "cl_encoder": cl_encoder.state_dict(),
@@ -716,11 +810,9 @@ def run_lexirep_training(
         "seed": SEED,
     }, model_pt_path)
 
-    # Save standalone weights
     weights_pt_path = output_dir / "model_weights.pt"
     torch.save(cl_encoder.state_dict(), weights_pt_path)
 
-    # Save JSON summary & history
     summary_path = output_dir / "model_summary.json"
     with open(summary_path, "w") as f:
         json.dump(model_summary, f, indent=2)
@@ -729,29 +821,36 @@ def run_lexirep_training(
     with open(history_path, "w") as f:
         json.dump(history_scorecard, f, indent=2)
 
-    logger.info(f"[LexiRep] Training successfully completed! Checkpoint saved to {model_pt_path}")
+    log_lexirep(f"[LexiRep Training] SUCCESS: Checkpoint saved to {model_pt_path.name} ({total_params:,} parameters).")
     return model_summary
 
 
-# ── Async wrapper that manages job state ───────────────────────
+# ── Daemon thread worker that executes training safely ─────────
+import threading
 
-async def execute_training_job(job: TrainJob) -> None:
-    """
-    Run training in a background thread, streaming live progress updates.
-    """
+
+def _run_job_worker(job: TrainJob):
+    """Worker function executed in a dedicated OS thread."""
     def progress_callback(update: dict):
         job.current_loop = update.get("current_loop", job.current_loop)
         job.total_loops = update.get("total_loops", job.total_loops)
         job.progress = update.get("progress", job.progress)
-        job.current_metrics = update.get("current_metrics", job.current_metrics)
-        job.history = update.get("history", job.history)
+        if update.get("current_metrics"):
+            job.current_metrics = update["current_metrics"]
+        if update.get("history"):
+            job.history = update["history"]
+        if "log" in update:
+            job.logs.append(update["log"])
+        job.save_to_disk()
 
     try:
-        logger.info(f"[LexiRep] Starting training job {job.job_id}")
+        log_lexirep(f"[LexiRep API] Starting worker thread for job {job.job_id} ({job.epochs} loops)")
+        job.status = TrainJobStatus.RUNNING
         job.progress = 2
+        job.logs.append("Dataset received. Initializing PyTorch LexiRep training pipeline...")
+        job.save_to_disk()
 
-        model_summary = await asyncio.to_thread(
-            run_lexirep_training,
+        model_summary = run_lexirep_training(
             job.dataset_path,
             job.output_dir,
             job.epochs,
@@ -768,9 +867,25 @@ async def execute_training_job(job: TrainJob) -> None:
             ]
 
         job.status = TrainJobStatus.COMPLETE
-        logger.info(f"[LexiRep] Job {job.job_id} complete. Files: {job.output_files}")
+        job.logs.append("Training converged! Models, weights, and blueprints ready.")
+        job.save_to_disk()
+        log_lexirep(f"[LexiRep API] Job {job.job_id} COMPLETE! Output files: {job.output_files}")
 
     except Exception as e:
         job.status = TrainJobStatus.FAILED
         job.error = f"{type(e).__name__}: {e}"
-        logger.error(f"[LexiRep] Job {job.job_id} failed: {e}\n{traceback.format_exc()}")
+        job.logs.append(f"Training failed: {job.error}")
+        job.save_to_disk()
+        log_lexirep(f"[LexiRep API] Job {job.job_id} FAILED: {e}\n{traceback.format_exc()}")
+
+
+def launch_training_job(job: TrainJob) -> threading.Thread:
+    """Launch training in a dedicated daemon thread so it runs completely independent of asyncio GC."""
+    thread = threading.Thread(target=_run_job_worker, args=(job,), daemon=True, name=f"lexirep-{job.job_id[:8]}")
+    thread.start()
+    return thread
+
+
+async def execute_training_job(job: TrainJob) -> None:
+    """Async compatibility wrapper."""
+    launch_training_job(job)

@@ -27,6 +27,7 @@ from api.lexirep_training import (
     create_train_job,
     get_train_job,
     execute_training_job,
+    launch_training_job,
     parse_and_convert_csv,
     TrainJobStatus,
 )
@@ -157,10 +158,10 @@ async def train_custom(
     # Clamp epochs to sane range [1, 50]
     epochs = max(1, min(epochs, 50))
 
-    # Create job and launch async training
+    # Create job and launch background worker thread
     job = create_train_job(dataset_path, output_dir, epochs=epochs, job_id=job_id)
-
-    asyncio.create_task(execute_training_job(job))
+    launch_training_job(job)
+    print(f"[LexiRep API] Training job {job_id} launched with {epochs} loops on dataset {dataset_path.name}", flush=True)
 
     return JSONResponse(
         content={
@@ -234,6 +235,7 @@ async def train_status(job_id: str):
         "progress": job.progress,
         "current_metrics": job.current_metrics,
         "history": job.history,
+        "logs": job.logs[-20:],
     }
 
     if job.status == TrainJobStatus.FAILED:
