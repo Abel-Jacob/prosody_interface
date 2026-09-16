@@ -14,7 +14,7 @@
   --overlay-bg: #11100F;
   --overlay-border: #242321;
   --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-secondary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-secondary: var(--font-primary);
   --font-mono: 'DM Mono', 'SFMono-Regular', Consolas, monospace;
   --transition-base: 0.22s cubic-bezier(0.22, 1, 0.36, 1);
   --pitch-deform-duration: 0.6s;
@@ -102,8 +102,37 @@ a { color: inherit; }
 /* The one dark technical surface used by report internals. */
 .dark-surface { background: #111111; color: var(--bg); }
 
+/* Shared page navigation language. */
+.page-path {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  color: var(--text-primary);
+  font: 600 .68rem/1 var(--font-mono);
+  letter-spacing: .12em;
+}
+.page-back {
+  position: absolute;
+  top: 22px;
+  right: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: .65rem var(--font-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.page-back:hover { color: var(--text-primary); }
+.page-back svg { width: 14px; height: 14px; }
+
 /* Shared action language for existing controls. */
 .lexirep-submit-btn, .primary-button { min-height: 42px; }
+.lexirep-back { display: none !important; }
 
 @media (max-width: 640px) { .lexirep-container { padding-inline: 20px; } }
 

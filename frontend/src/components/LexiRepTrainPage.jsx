@@ -296,9 +296,12 @@ export default function LexiRepTrainPage({ onBack }) {
 
   return (
     <div className="lexirep-container">
+      <div className="page-path" aria-label="Current page">PROSODY / LEXIREP</div>
+
       {/* Back button */}
       <motion.button
-        className="lexirep-back"
+        type="button"
+        className="page-back"
         onClick={onBack}
         whileTap={{ scale: 0.95 }}
         transition={tapSpring}

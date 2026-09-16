@@ -8,16 +8,6 @@
   background: var(--bg);
 }
 
-.lexirep-container::before {
-  content: 'PROSODY / LEXIREP';
-  position: absolute;
-  top: 28px;
-  left: 28px;
-  color: var(--text-primary);
-  font: 600 .7rem/1 var(--font-mono);
-  letter-spacing: .12em;
-}
-
 .lexirep-back {
   position: absolute;
   top: 24px;
@@ -46,7 +36,7 @@
 .lexirep-header {
   width: 100%;
   max-width: 56rem;
-  margin: 0 0 28px;
+  margin: 0 0 22px;
   text-align: left;
 }
 

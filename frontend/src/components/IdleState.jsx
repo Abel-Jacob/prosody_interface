@@ -192,10 +192,12 @@ export default function IdleState({ onStart, onUpload, onBack }) {
         style={{ display: 'none' }}
       />
 
+      <div className="page-path" aria-label="Current page">PROSODY / INTERFACE</div>
+
       {onBack && (
         <motion.button
           type="button"
-          className="lexirep-back"
+          className="page-back"
           onClick={onBack}
           aria-label="Back to interface selection"
           whileTap={{ scale: 0.95 }}

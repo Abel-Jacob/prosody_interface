@@ -258,3 +258,24 @@
   .landing-tunnel-input-row { flex-direction: column; }
   .landing-tunnel-test-btn { width: 100%; }
 }
+
+/* Quiet utility treatment for the shared backend connection. */
+.landing-tunnel-bar {
+  margin-top: 24px;
+  padding: 13px 0 0;
+  gap: 9px;
+  border: 0;
+  border-top: 1px solid var(--text-faded);
+  border-radius: 0;
+  background: transparent;
+}
+.landing-tunnel-title { font-size: .62rem; letter-spacing: .1em; }
+.landing-tunnel-title svg { width: 13px; height: 13px; color: var(--text-muted); }
+.landing-tunnel-status { padding: 0; border: 0 !important; background: transparent !important; font-size: .58rem; }
+.landing-tunnel-input-wrapper input { padding-block: 7px; border-radius: 2px; background: transparent; }
+.landing-tunnel-test-btn { padding: 7px 13px; border-radius: 2px; background: transparent; }
+.landing-tunnel-hint { font-size: .61rem; opacity: .7; }
+.landing-tunnel-clear { border-radius: 0 !important; }
+@media (max-width: 640px) {
+  .landing-tunnel-bar { padding-top: 12px; }
+}

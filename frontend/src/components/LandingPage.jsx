@@ -183,7 +183,7 @@ export default function LandingPage({ onNavigate }) {
               <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
               <line x1="12" y1="20" x2="12.01" y2="20" />
             </svg>
-            <span>Cloudflare Tunnel Backend</span>
+            <span>backend connection</span>
           </div>
 
           <div className={`landing-tunnel-status ${status}`}>
@@ -233,7 +233,7 @@ export default function LandingPage({ onNavigate }) {
         </div>
 
         <div className="landing-tunnel-hint">
-          Connected globally — both <strong>Prosody Interface</strong> and <strong>LexiRep Training</strong> will communicate through this backend.
+          Used by both interfaces.
         </div>
       </div>
     </div>
