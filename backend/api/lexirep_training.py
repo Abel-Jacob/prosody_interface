@@ -485,12 +485,28 @@ def find_best_anchor(
             if len(idxs) >= 2 and any(Y_train[i] == 1 for i in idxs) and any(Y_train[i] == 0 for i in idxs)
         ]
 
-    # Graceful fallback if no labeled words exist
+    # Graceful fallback if no labeled words exist (e.g. pure unsupervised custom dataset)
     if not b_words:
         s_any = np.where(Y_train == 1)[0]
         u_any = np.where(Y_train == 0)[0]
         if len(s_any) > 0 and len(u_any) > 0:
             return int(s_any[0]), int(u_any[0]), W_train[s_any[0]], 50.0
+
+        # Unlabeled custom dataset: select bisyllabic word with maximal intra-word acoustic separation
+        bisyl_all = [w for w, idxs in wmap_tr.items() if len(idxs) == 2]
+        if bisyl_all:
+            best_dist = -1.0
+            best_pair = (wmap_tr[bisyl_all[0]][0], wmap_tr[bisyl_all[0]][1], bisyl_all[0])
+            for w in bisyl_all[:300]:
+                i1, i2 = wmap_tr[w][0], wmap_tr[w][1]
+                v1, v2 = X_train[i1], X_train[i2]
+                norm_prod = (np.linalg.norm(v1) * np.linalg.norm(v2)) + 1e-9
+                dist = 1.0 - float(np.dot(v1, v2) / norm_prod)
+                if dist > best_dist:
+                    best_dist = dist
+                    best_pair = (i1, i2, w)
+            return int(best_pair[0]), int(best_pair[1]), best_pair[2], 50.0
+
         return 0, 1, W_train[0], 50.0
 
     # 2. Pre-normalize training representations for fast PyTorch cosine evaluation
