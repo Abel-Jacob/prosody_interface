@@ -8,6 +8,7 @@
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 python-multipart>=0.0.6
+psutil>=5.9.0
 
 # ASR - faster-whisper (CTranslate2 backend, NOT openai-whisper)
 faster-whisper>=1.0.0

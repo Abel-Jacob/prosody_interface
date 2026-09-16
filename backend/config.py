@@ -64,8 +64,8 @@ VAD_MAX_CHUNK_SEC = 29.0    # Hard max just under Whisper's 30s attention limit
 SAMPLE_RATE = 16000  # All audio normalized to 16kHz mono
 
 # ── Server ─────────────────────────────────────────────────────
-HOST = "0.0.0.0"
-PORT = 8000
+HOST = os.environ.get("HOST", "0.0.0.0")
+PORT = int(os.environ.get("PORT", "8000"))
 CORS_ORIGINS = ["*"]
 
 # ── Worker ─────────────────────────────────────────────────────
