@@ -33,171 +33,355 @@
   background: var(--bg-subtle, rgba(255, 255, 255, 0.03));
 }
 
-/* ── Seamless Idle Experience ───────────────────────────── */
-.lexirep-idle-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
+/* ── Header ─────────────────────────────────────────────── */
+.lexirep-header {
+  width: 100%;
+  max-width: 580px;
+  margin: 0 auto 24px;
+  text-align: left;
 }
 
-.lexirep-idle-title {
-  font-family: Helvetica, Arial, sans-serif;
-  font-weight: 400;
-  font-size: 1.25rem;
+.lexirep-header h1 {
+  margin: 0 0 8px;
   color: var(--text-primary);
-  letter-spacing: 0.04em;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: clamp(1.8rem, 4.5vw, 2.6rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  text-transform: lowercase;
 }
 
-.lexirep-idle-caption {
-  font-family: Helvetica, Arial, sans-serif;
-  font-weight: 400;
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  max-width: 380px;
-  line-height: 1.45;
-  text-align: center;
+.lexirep-header p {
   margin: 0;
+  color: var(--text-muted);
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.84rem;
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
 }
 
-.lexirep-drop-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 18px;
-  border: 1px dashed rgba(255, 255, 255, 0.16);
-  border-radius: 20px;
-  background: transparent;
+/* ── Content Container ──────────────────────────────────── */
+.lexirep-content {
+  width: 100%;
+  max-width: 580px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  margin: 0 auto;
+}
+
+/* ── Recommendation Note Box ────────────────────────────── */
+.lexirep-upload-note {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.015);
   color: var(--text-muted);
   font-family: Helvetica, Arial, sans-serif;
   font-size: 0.74rem;
   font-weight: 400;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
 }
 
-.lexirep-drop-trigger:hover,
-.lexirep-drop-trigger.drag-over {
+.lexirep-upload-note code {
   color: var(--text-primary);
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.72rem;
 }
 
-.lexirep-file-selected-group {
+/* ── Step Labels ────────────────────────────────────────── */
+.lexirep-step-label {
+  margin-bottom: 9px;
+  color: var(--text-muted);
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Drop Box (Seamless & Aesthetic) ────────────────────── */
+.lexirep-upload-zone {
+  padding: 34px 24px;
+  border: 1px dashed rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.012);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.lexirep-upload-zone:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.lexirep-upload-zone.drag-over {
+  border-color: var(--accent);
+  background: rgba(196, 149, 106, 0.04);
+}
+
+.lexirep-upload-zone-icon {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.lexirep-upload-zone:hover .lexirep-upload-zone-icon {
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.lexirep-upload-zone-text {
+  margin-bottom: 5px;
+  color: var(--text-primary);
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.86rem;
+  font-weight: 450;
+  letter-spacing: 0.01em;
+}
+
+.lexirep-upload-zone-hint {
+  color: var(--text-muted);
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* ── File Pill Box (Seamless & Aesthetic) ───────────────── */
+.lexirep-file-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.018);
+  transition: border-color 0.2s ease;
+}
+
+.lexirep-file-pill:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.lexirep-file-pill-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.lexirep-file-pill-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.lexirep-file-pill-info {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  gap: 2px;
 }
 
-.lexirep-file-pill-seamless {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.02);
-  font-family: Helvetica, Arial, sans-serif;
-  font-size: 0.74rem;
-  color: var(--text-primary);
-}
-
-.lexirep-file-pill-seamless .file-name {
-  max-width: 220px;
+.lexirep-file-pill-name {
   overflow: hidden;
+  color: var(--text-primary);
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 450;
+  letter-spacing: 0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.lexirep-file-pill-seamless .file-sep {
-  color: var(--text-faded);
-}
-
-.lexirep-file-pill-seamless .file-size {
+.lexirep-file-pill-meta {
   color: var(--text-muted);
+  font-family: Helvetica, Arial, sans-serif;
   font-size: 0.68rem;
+  font-weight: 400;
 }
 
-.lexirep-file-pill-seamless .file-remove-btn {
-  background: none;
-  border: none;
+.lexirep-file-pill-remove {
+  padding: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 0 3px;
-  font-size: 0.7rem;
-  line-height: 1;
-  transition: color 0.15s ease;
-}
-
-.lexirep-file-pill-seamless .file-remove-btn:hover {
-  color: #f87171;
-}
-
-.lexirep-validation-text {
-  font-family: Helvetica, Arial, sans-serif;
-  font-size: 0.68rem;
-  color: var(--text-muted);
-}
-
-.lexirep-validation-text.error {
-  color: #f87171;
-}
-
-.lexirep-seamless-loops-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 4px;
+  justify-content: center;
+  transition: all 0.15s ease;
 }
 
-.lexirep-seamless-loops-row .loops-label {
+.lexirep-file-pill-remove:hover {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.2);
+}
+
+.lexirep-validation-msg {
+  margin-top: 8px;
   font-family: Helvetica, Arial, sans-serif;
   font-size: 0.72rem;
+  color: #4ade80;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lexirep-validation-msg.error {
+  color: #f87171;
+}
+
+/* ── Epochs / Training Loops Box (Seamless & Aesthetic) ─── */
+.lexirep-epoch-control {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.015);
+  transition: border-color 0.2s ease;
+}
+
+.lexirep-epoch-control:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.lexirep-epoch-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.lexirep-epoch-title {
   color: var(--text-muted);
-  letter-spacing: 0.04em;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.lexirep-seamless-loops-row .loops-label .highlight {
+.lexirep-epoch-number {
   color: var(--accent);
+  font-family: Helvetica, Arial, sans-serif;
   font-weight: 500;
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
-.lexirep-hairline-slider {
-  width: 140px;
+.lexirep-epoch-slider {
+  width: 100%;
   height: 2px;
   accent-color: var(--accent);
   cursor: pointer;
+  appearance: none;
+  border-radius: 2px;
+  outline: none;
 }
 
-.lexirep-start-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 24px;
-  margin-top: 10px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 4px;
+.lexirep-epoch-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.lexirep-epoch-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.lexirep-epoch-range {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.65rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* ── Separator ──────────────────────────────────────────── */
+.lexirep-separator {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 4px 0;
+}
+
+/* ── Submit Button (Seamless & Aesthetic) ───────────────── */
+.lexirep-submit-btn {
+  width: 100%;
+  min-height: 42px;
+  padding: 11px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.035);
   color: var(--text-primary);
+  cursor: pointer;
   font-family: Helvetica, Arial, sans-serif;
   font-size: 0.74rem;
-  font-weight: 400;
-  letter-spacing: 0.06em;
-  text-transform: lowercase;
-  cursor: pointer;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   transition: all 0.2s ease;
 }
 
-.lexirep-start-action-btn:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.03);
+.lexirep-submit-btn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.07);
+  color: #ffffff;
 }
 
-.lexirep-start-action-btn:disabled {
-  opacity: 0.3;
+.lexirep-submit-btn:disabled {
+  opacity: 0.25;
   cursor: not-allowed;
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.015);
 }
 
 /* ── Unified Loading & Training View (Image 2 Style — Open Canvas, No Gray Box) ── */

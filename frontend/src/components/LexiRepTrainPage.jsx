@@ -424,24 +424,28 @@ export default function LexiRepTrainPage({ onBack }) {
         back
       </motion.button>
 
-      {/* ── IDLE: Seamless Floating Orb Experience ─────────── */}
+      {/* ── Header ────────────────────────────────────── */}
+      {pageState === 'idle' && (
+        <div className="lexirep-header">
+          <h1>lexirep training</h1>
+          <p>
+            Iterative one-shot linguistically constrained lexical stress representation learning.
+            Upload a 768-D dataset (.npz cache recommended, or .csv) to train custom neural representations.
+          </p>
+        </div>
+      )}
+
+      {/* ── IDLE: Functional Form Layout ──────────────── */}
       {pageState === 'idle' && (
         <motion.div
-          className="lexirep-loading-view"
+          className="lexirep-content"
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
         >
-          <div className="lexirep-orb-wrapper">
-            <SafeThinkingOrb state="connecting" size={64} />
-          </div>
-
-          <div className="lexirep-idle-meta">
-            <span className="lexirep-idle-title">lexirep training</span>
-            <span className="lexirep-idle-caption">
-              Iterative one-shot linguistically constrained 768-D representation learning
-            </span>
-          </div>
+          <p className="lexirep-upload-note">
+            Use a precomputed <code>.npz</code> cache for faster training. CSV files are converted automatically.
+          </p>
 
           <input
             type="file"
@@ -451,71 +455,110 @@ export default function LexiRepTrainPage({ onBack }) {
             style={{ display: 'none' }}
           />
 
-          {/* Seamless dataset trigger / drop pill */}
-          {!selectedFile ? (
-            <div
-              className={`lexirep-drop-trigger${dragOver ? ' drag-over' : ''}`}
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17,8 12,3 7,8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-              <span>drop .npz / .csv dataset or click to browse</span>
-            </div>
-          ) : (
-            <div className="lexirep-file-selected-group">
-              <div className="lexirep-file-pill-seamless">
-                <span className="file-name">{selectedFile.name}</span>
-                <span className="file-sep">·</span>
-                <span className="file-size">{formatSize(selectedFile.size)}</span>
-                <button
-                  type="button"
-                  className="file-remove-btn"
-                  onClick={handleRemoveFile}
-                  title="Remove file"
-                >
-                  ✕
-                </button>
-              </div>
-              {validation && (
-                <div className={`lexirep-validation-text${validation.valid ? '' : ' error'}`}>
-                  {validation.valid ? '✓ ' : '✕ '}{validation.message}
-                </div>
-              )}
-            </div>
-          )}
+          {/* ── Dataset ──────────────────────────────────── */}
+          <div>
+            <div className="lexirep-step-label">dataset file (.npz or .csv)</div>
 
-          {/* Seamless loops slider: clean single hairline row */}
-          <div className="lexirep-seamless-loops-row">
-            <span className="loops-label">
-              loops <span className="highlight">{epochs}</span>
-            </span>
-            <input
-              type="range"
-              className="lexirep-hairline-slider"
-              min="1"
-              max="30"
-              value={epochs}
-              onChange={(e) => setEpochs(parseInt(e.target.value, 10))}
-              style={{ background: sliderBg }}
-            />
+            {!selectedFile ? (
+              <div
+                className={`lexirep-upload-zone${dragOver ? ' drag-over' : ''}`}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div className="lexirep-upload-zone-icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
+                    strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17,8 12,3 7,8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                </div>
+                <div className="lexirep-upload-zone-text">
+                  Drop .npz or .csv file or click to browse
+                </div>
+                <div className="lexirep-upload-zone-hint">
+                  .npz (precomputed binary cache) or .csv (768-D features)
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="lexirep-file-pill">
+                  <div className="lexirep-file-pill-left">
+                    <div className="lexirep-file-pill-icon">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
+                        strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14,2 14,8 20,8" />
+                      </svg>
+                    </div>
+                    <div className="lexirep-file-pill-info">
+                      <span className="lexirep-file-pill-name">{selectedFile.name}</span>
+                      <span className="lexirep-file-pill-meta">{formatSize(selectedFile.size)}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="lexirep-file-pill-remove"
+                    onClick={handleRemoveFile}
+                    title="Remove file"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
+                      strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+                {validation && (
+                  <div className={`lexirep-validation-msg${validation.valid ? '' : ' error'}`}>
+                    {validation.valid ? '✓ ' : '✕ '}{validation.message}
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
-          {/* Understated Minimalist Start Button */}
+          {/* ── Training Loops / Epochs ───────────────────── */}
+          <div>
+            <div className="lexirep-step-label">iterative self-training loops</div>
+            <div className="lexirep-epoch-control">
+              <div className="lexirep-epoch-header">
+                <span className="lexirep-epoch-title">Training Loops</span>
+                <span className="lexirep-epoch-number">{epochs}</span>
+              </div>
+              <input
+                type="range"
+                className="lexirep-epoch-slider"
+                min="1"
+                max="30"
+                value={epochs}
+                onChange={(e) => setEpochs(parseInt(e.target.value, 10))}
+                style={{ background: sliderBg }}
+              />
+              <div className="lexirep-epoch-range">
+                <span>1 (Fast Test)</span>
+                <span>13 (Recommended)</span>
+                <span>30 (Deep Convergence)</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="lexirep-separator" />
+
+          {/* ── Submit ───────────────────────────────────── */}
           <motion.button
-            className="lexirep-start-action-btn"
+            className="lexirep-submit-btn"
             onClick={handleSubmit}
             disabled={!validation?.valid}
             whileTap={validation?.valid ? { scale: 0.97 } : {}}
             transition={tapSpring}
           >
-            start training
+            Start LexiRep Training
           </motion.button>
         </motion.div>
       )}
