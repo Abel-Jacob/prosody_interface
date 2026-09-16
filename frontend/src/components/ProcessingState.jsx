@@ -6,7 +6,7 @@ export default function ProcessingState({ jobId, onComplete }) {
   const { error } = useJobPolling(jobId, onComplete)
 
   return (
-    <div style={{
+    <div className="processing-state" style={{
       height: '100vh',
       display: 'flex',
       flexDirection: 'column',
@@ -24,11 +24,11 @@ export default function ProcessingState({ jobId, onComplete }) {
         <>
           <ThinkingOrb state="solving" size={64} />
           <h1 style={{
-            fontFamily: 'var(--font-secondary)',
-            fontSize: '1.15rem',
-            fontWeight: 500,
-            textTransform: 'lowercase',
-            letterSpacing: '0.1em',
+            fontFamily: 'var(--font-primary)',
+            fontSize: '0.9rem',
+            fontWeight: 400,
+            textTransform: 'none',
+            letterSpacing: '0.04em',
             color: 'var(--text-primary)',
             margin: 0
           }}>

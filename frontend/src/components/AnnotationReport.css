@@ -1,7 +1,7 @@
 .annotation-report-container {
-  --font-primary: monospace, Courier, monospace;
-  --font-secondary: monospace, Courier, monospace;
-  font-family: monospace, Courier, monospace;
+  --font-primary: Helvetica, Arial, sans-serif;
+  --font-secondary: Helvetica, Arial, sans-serif;
+  font-family: Helvetica, Arial, sans-serif;
   min-height: 100vh;
   max-height: 100vh;
   display: flex;
@@ -147,7 +147,7 @@
 }
 
 .phrase-time {
-  font-family: monospace;
+  font-family: var(--font-primary);
 }
 
 .phrase-intonation-details {
@@ -248,7 +248,7 @@
   margin-left: 2px;
   color: var(--accent);
   opacity: 0.8;
-  font-family: monospace;
+  font-family: var(--font-primary);
 }
 
 /* Hesitation Marker */
@@ -316,7 +316,7 @@
 
 .detail-value {
   font-weight: 600;
-  font-family: monospace;
+  font-family: var(--font-primary);
   color: var(--text-primary);
 }
 
@@ -487,13 +487,13 @@
 .property-details-table td.prop-key {
   color: var(--text-muted);
   width: 45%;
-  font-family: monospace;
+  font-family: var(--font-primary);
 }
 
 .property-details-table td.prop-val {
   color: var(--text-primary);
   font-weight: 500;
-  font-family: monospace;
+  font-family: var(--font-primary);
   text-align: right;
   word-break: break-all;
 }
@@ -535,4 +535,63 @@
 
 .segment-contour-svg {
   filter: none;
+}
+
+/* Keep the report in the same quiet editorial language as the main UI. */
+.annotation-report-container,
+.annotation-report-container button,
+.annotation-report-container table,
+.annotation-report-container input {
+  font-family: var(--font-primary);
+}
+
+.annotation-report-container {
+  padding: 1.5rem 2rem;
+}
+
+.report-header {
+  margin-bottom: 1rem;
+  max-width: 76rem;
+}
+
+.header-title-section h1 {
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.control-btn,
+.view-toggle-container {
+  border-radius: 3px;
+}
+
+.control-btn {
+  background: transparent;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+.phrase-card,
+.phrase-intonation-details,
+.word-detail-card-content {
+  border-radius: 3px;
+  box-shadow: none;
+}
+
+.phrase-card {
+  padding: 1rem;
+}
+
+.metric-val,
+.detail-value,
+.phrase-data-table th,
+.detail-section-title {
+  font-weight: 400;
+}
+
+.pitch-trend-arrow,
+.detail-value,
+.phrase-time {
+  font-family: var(--font-primary);
 }
