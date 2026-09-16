@@ -7,6 +7,40 @@ import './LexiRepTrainPage.css'
 const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
 
 /**
+ * SafeThinkingOrb — Guards against thinking-orbs crashes.
+ * thinking-orbs strictly only supports preset sizes: 64 and 20.
+ * Any other size (like 72 or 80) throws an unhandled TypeError: Cannot read properties of undefined (reading 'count').
+ * This component enforces size=64 and catches any unexpected canvas runtime error so React NEVER blanks out.
+ */
+class SafeThinkingOrb extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+  componentDidCatch(err) {
+    console.warn('[SafeThinkingOrb] Render issue caught:', err)
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="lexirep-fallback-orb">
+          <span className="lexirep-fallback-ring" />
+        </div>
+      )
+    }
+    const safeSize = this.props.size === 20 ? 20 : 64
+    return (
+      <div className="lexirep-orb-scale" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        <ThinkingOrb state={this.props.state || 'connecting'} size={safeSize} />
+      </div>
+    )
+  }
+}
+
+/**
  * Format file size in KB / MB
  */
 function formatSize(bytes) {
@@ -145,27 +179,37 @@ export default function LexiRepTrainPage({ onBack }) {
   }, [])
 
   const validateFile = useCallback(async (file) => {
-    const ext = file.name.split('.').pop().toLowerCase()
-    if (ext === 'npz') {
-      const buffer = await file.arrayBuffer()
-      return validateNpzBuffer(buffer)
-    } else if (ext === 'csv') {
-      const text = await file.text()
-      return validateCsvText(text)
-    } else if (ext === 'npy') {
-      const buffer = await file.arrayBuffer()
-      return validateNpyBuffer(buffer)
-    } else {
-      return { valid: false, message: `Unsupported file type .${ext}. Please use .npz or .csv` }
+    try {
+      const ext = file.name.split('.').pop().toLowerCase()
+      if (ext === 'npz') {
+        const buffer = await file.arrayBuffer()
+        return validateNpzBuffer(buffer)
+      } else if (ext === 'csv') {
+        const text = await file.text()
+        return validateCsvText(text)
+      } else if (ext === 'npy') {
+        const buffer = await file.arrayBuffer()
+        return validateNpyBuffer(buffer)
+      } else {
+        return { valid: false, message: `Unsupported file type .${ext}. Please use .npz or .csv` }
+      }
+    } catch (e) {
+      return { valid: false, message: `Failed to inspect file: ${e.message}` }
     }
   }, [])
 
   const handleFileSelect = useCallback(async (file) => {
+    if (!file) return
     setSelectedFile(file)
     setValidation(null)
     setError(null)
-    const result = await validateFile(file)
-    setValidation(result)
+    try {
+      const result = await validateFile(file)
+      setValidation(result)
+    } catch (e) {
+      console.warn('File validation error:', e)
+      setValidation({ valid: false, message: `Could not validate file: ${e.message}` })
+    }
   }, [validateFile])
 
   const handleDragOver = useCallback((e) => {
@@ -210,22 +254,49 @@ export default function LexiRepTrainPage({ onBack }) {
     setHistory([])
     setModelSummary(null)
 
+    if (pollRef.current) {
+      clearInterval(pollRef.current)
+      pollRef.current = null
+    }
+
     try {
       const formData = new FormData()
       formData.append('dataset', selectedFile)
       formData.append('epochs', epochs.toString())
 
-      const response = await fetch(getHttpUrl('/lexirep/train-custom'), {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}))
-        throw new Error(data.detail || `Upload failed (${response.status})`)
+      const url = getHttpUrl('/lexirep/train-custom')
+      let response
+      try {
+        response = await fetch(url, {
+          method: 'POST',
+          body: formData,
+        })
+      } catch (netErr) {
+        throw new Error(
+          `Unable to connect to backend server at ${url}. Please verify that the Cloudflare tunnel or backend server is running.`
+        )
       }
 
-      const data = await response.json()
+      let data = {}
+      try {
+        data = await response.json()
+      } catch {
+        // Non-JSON response (e.g. proxy HTML error page)
+      }
+
+      if (!response.ok) {
+        const errorMsg =
+          data?.detail ||
+          (response.status === 413
+            ? 'File is too large for the tunnel connection. Please upload an optimized .npz cache file instead.'
+            : `Upload failed (HTTP ${response.status})`)
+        throw new Error(errorMsg)
+      }
+
+      if (!data?.job_id) {
+        throw new Error('Server response did not include a valid training job ID.')
+      }
+
       setJobId(data.job_id)
       setTotalLoops(data.epochs || epochs)
       setPageState('training')
@@ -253,28 +324,38 @@ export default function LexiRepTrainPage({ onBack }) {
           }
 
           if (statusData.status === 'complete') {
-            clearInterval(pollRef.current)
-            pollRef.current = null
+            if (pollRef.current) {
+              clearInterval(pollRef.current)
+              pollRef.current = null
+            }
             setOutputFiles(statusData.output_files || [])
             setModelSummary(statusData.model_summary || null)
             setPageState('complete')
           } else if (statusData.status === 'failed') {
-            clearInterval(pollRef.current)
-            pollRef.current = null
-            setError(statusData.error || 'Training failed')
+            if (pollRef.current) {
+              clearInterval(pollRef.current)
+              pollRef.current = null
+            }
+            setError(statusData.error || 'Training failed on server.')
             setPageState('failed')
           }
-        } catch {
-          // Polling error — keep trying
+        } catch (pollErr) {
+          // Network hiccup during polling — keep retrying
+          console.warn('[LexiRep] Polling status ping failed, retrying...', pollErr)
         }
       }, 1000)
     } catch (err) {
-      setError(err.message)
+      console.error('[LexiRep] Training initiation failed:', err)
+      setError(err.message || 'An unexpected error occurred during dataset upload.')
       setPageState('failed')
     }
   }, [selectedFile, validation, epochs])
 
   const handleReset = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current)
+      pollRef.current = null
+    }
     setPageState('idle')
     setSelectedFile(null)
     setValidation(null)
@@ -458,7 +539,9 @@ export default function LexiRepTrainPage({ onBack }) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
         >
-          <ThinkingOrb state="connecting" size={72} dark={false} />
+          <div className="lexirep-orb-wrapper">
+            <SafeThinkingOrb state="connecting" size={64} />
+          </div>
           <span className="lexirep-status-label">Preparing &amp; uploading dataset…</span>
           <span className="lexirep-status-sub">Validating 768-D representation tensors</span>
         </motion.div>
@@ -472,9 +555,9 @@ export default function LexiRepTrainPage({ onBack }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
-          {/* Explicitly using state="connecting" as requested */}
+          {/* Explicitly using state="connecting" with safe size 64 */}
           <div className="lexirep-orb-wrapper">
-            <ThinkingOrb state="connecting" size={80} />
+            <SafeThinkingOrb state="connecting" size={64} />
           </div>
 
           <div className="lexirep-training-header">
@@ -501,15 +584,15 @@ export default function LexiRepTrainPage({ onBack }) {
             <div className="lexirep-live-metrics">
               <div className="lexirep-live-pill btq">
                 <span className="pill-title">Test BTQ Accuracy</span>
-                <span className="pill-val">{currentMetrics.BTQ}%</span>
+                <span className="pill-val">{currentMetrics.BTQ ?? '—'}%</span>
               </div>
               <div className="lexirep-live-pill">
                 <span className="pill-title">Pseudo Train Acc</span>
-                <span className="pill-val">{currentMetrics.train}%</span>
+                <span className="pill-val">{currentMetrics.train ?? '—'}%</span>
               </div>
               <div className="lexirep-live-pill">
                 <span className="pill-title">IDEC Loss</span>
-                <span className="pill-val">{currentMetrics.loss}</span>
+                <span className="pill-val">{currentMetrics.loss ?? '—'}</span>
               </div>
             </div>
           )}
@@ -618,7 +701,9 @@ export default function LexiRepTrainPage({ onBack }) {
                     <div>
                       <div className="proto-label">Stressed Prototype (z_s^h)</div>
                       <div className="proto-vector">
-                        [{modelSummary.prototypes.stressed_vector.slice(0, 5).join(', ')} …]
+                        [{Array.isArray(modelSummary.prototypes.stressed_vector)
+                          ? modelSummary.prototypes.stressed_vector.slice(0, 5).join(', ')
+                          : '—'} …]
                       </div>
                     </div>
                   </div>
@@ -628,13 +713,15 @@ export default function LexiRepTrainPage({ onBack }) {
                     <div>
                       <div className="proto-label">Unstressed Prototype (z_u^h)</div>
                       <div className="proto-vector">
-                        [{modelSummary.prototypes.unstressed_vector.slice(0, 5).join(', ')} …]
+                        [{Array.isArray(modelSummary.prototypes.unstressed_vector)
+                          ? modelSummary.prototypes.unstressed_vector.slice(0, 5).join(', ')
+                          : '—'} …]
                       </div>
                     </div>
                   </div>
                   <div className="proto-cosine-badge">
                     <span>Cosine Distance:</span>
-                    <strong>{modelSummary.prototypes.cosine_similarity}</strong>
+                    <strong>{modelSummary.prototypes.cosine_similarity ?? '—'}</strong>
                   </div>
                 </div>
               )}
@@ -659,11 +746,11 @@ export default function LexiRepTrainPage({ onBack }) {
                   {modelSummary?.weight_stats?.map((w, idx) => (
                     <tr key={idx}>
                       <td><code>{w.name}</code></td>
-                      <td>{w.shape.join(' × ')}</td>
-                      <td>{w.params.toLocaleString()}</td>
-                      <td>{w.mean}</td>
-                      <td>{w.std}</td>
-                      <td><span className="norm-tag">{w.l2_norm}</span></td>
+                      <td>{Array.isArray(w.shape) ? w.shape.join(' × ') : String(w.shape || '—')}</td>
+                      <td>{w.params?.toLocaleString?.() ?? w.params ?? '—'}</td>
+                      <td>{w.mean ?? '—'}</td>
+                      <td>{w.std ?? '—'}</td>
+                      <td><span className="norm-tag">{w.l2_norm ?? '—'}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -703,7 +790,7 @@ export default function LexiRepTrainPage({ onBack }) {
               {/* Primary Model Download Button */}
               <a
                 className="lexirep-action-btn primary"
-                href={getHttpUrl(`/lexirep/train-result/${jobId}?file=final_lexirep_model.pt`)}
+                href={jobId ? getHttpUrl(`/lexirep/train-result/${jobId}?file=final_lexirep_model.pt`) : '#'}
                 download="final_lexirep_model.pt"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -718,8 +805,8 @@ export default function LexiRepTrainPage({ onBack }) {
               {/* Complete Zip Package Download */}
               <a
                 className="lexirep-action-btn secondary"
-                href={getHttpUrl(`/lexirep/train-result/${jobId}`)}
-                download={`lexirep_bundle_${jobId?.slice(0, 8)}.zip`}
+                href={jobId ? getHttpUrl(`/lexirep/train-result/${jobId}`) : '#'}
+                download={`lexirep_bundle_${jobId ? jobId.slice(0, 8) : 'export'}.zip`}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -734,7 +821,7 @@ export default function LexiRepTrainPage({ onBack }) {
               {hasCacheFile && (
                 <a
                   className="lexirep-action-btn cache"
-                  href={getHttpUrl(`/lexirep/train-result/${jobId}?file=dataset_cache.npz`)}
+                  href={jobId ? getHttpUrl(`/lexirep/train-result/${jobId}?file=dataset_cache.npz`) : '#'}
                   download="dataset_cache.npz"
                   title="Download the precomputed binary NPZ cache for future instant training"
                 >

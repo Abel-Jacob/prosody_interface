@@ -254,25 +254,62 @@ def parse_and_convert_csv(csv_path: Path, output_npz_path: Optional[Path] = None
     """
     df = pd.read_csv(csv_path, header=None)
 
-    # Check if transposed (rows ~ 770)
-    if df.shape[0] in (769, 770, 771) and df.shape[1] >= 2:
-        # Transposed format
-        X = df.iloc[:-2, :].values.T.astype(np.float32)
-        Y = df.iloc[-2, :].values.astype(int)
-        W = df.iloc[-1, :].values.astype(int)
-    elif df.shape[1] >= 770:
-        # Standard row-based format with header or no header
+    # Check if transposed (768 to 780 rows)
+    if 768 <= df.shape[0] <= 780:
+        # Transposed format (features are rows 0..767, label and word at bottom)
+        feat_rows = 768
+        X = df.iloc[:feat_rows, :].values.T.astype(np.float32)
+        if df.shape[0] >= 770:
+            try:
+                Y = df.iloc[-2, :].values.astype(int)
+                W = df.iloc[-1, :].values.astype(int)
+            except Exception:
+                n = len(X)
+                W = np.repeat(np.arange(n // 2 + 1), 2)[:n]
+                Y = np.zeros(n, dtype=int)
+                Y[0::2] = 1
+        else:
+            n = len(X)
+            W = np.repeat(np.arange(n // 2 + 1), 2)[:n]
+            Y = np.zeros(n, dtype=int)
+            Y[0::2] = 1
+    elif df.shape[1] >= 768:
+        # Standard row-based format (rows = samples, cols >= 768)
+        # Check if first row is a header containing non-numeric strings
+        first_row = df.iloc[0, :min(10, df.shape[1])].values
+        has_str_header = any(
+            isinstance(v, str) and not v.replace('.', '', 1).replace('-', '', 1).replace('e', '', 1).replace('E', '', 1).isdigit()
+            for v in first_row
+        )
+        if has_str_header:
+            df = df.iloc[1:, :].reset_index(drop=True)
+
         feat_cols = list(range(0, 768))
         X = df.iloc[:, feat_cols].values.astype(np.float32)
-        Y = df.iloc[:, 768].values.astype(int)
-        W = df.iloc[:, 769].values.astype(int)
-    elif df.shape[1] == 768:
-        # Only features provided: fabricate dummy labels and word groups of 2
-        X = df.values.astype(np.float32)
-        n = len(X)
-        W = np.repeat(np.arange(n // 2 + 1), 2)[:n]
-        Y = np.zeros(n, dtype=int)
-        Y[0::2] = 1
+        if df.shape[1] >= 770:
+            try:
+                Y = df.iloc[:, 768].values.astype(int)
+                W = df.iloc[:, 769].values.astype(int)
+            except Exception:
+                n = len(X)
+                W = np.repeat(np.arange(n // 2 + 1), 2)[:n]
+                Y = np.zeros(n, dtype=int)
+                Y[0::2] = 1
+        elif df.shape[1] >= 769:
+            try:
+                Y = df.iloc[:, 768].values.astype(int)
+                n = len(X)
+                W = np.repeat(np.arange(n // 2 + 1), 2)[:n]
+            except Exception:
+                n = len(X)
+                W = np.repeat(np.arange(n // 2 + 1), 2)[:n]
+                Y = np.zeros(n, dtype=int)
+                Y[0::2] = 1
+        else:
+            n = len(X)
+            W = np.repeat(np.arange(n // 2 + 1), 2)[:n]
+            Y = np.zeros(n, dtype=int)
+            Y[0::2] = 1
     else:
         raise ValueError(f"Unrecognized CSV shape: {df.shape}. Expected 768-D features.")
 

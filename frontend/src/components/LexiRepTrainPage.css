@@ -369,6 +369,40 @@
   color: var(--accent);
 }
 
+.lexirep-orb-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.lexirep-orb-scale {
+  transform: scale(1.15);
+  transform-origin: center;
+}
+
+.lexirep-fallback-orb {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lexirep-fallback-ring {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--accent);
+  animation: orb-spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+@keyframes orb-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .lexirep-status {
   display: flex;
   flex-direction: column;

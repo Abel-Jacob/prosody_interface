@@ -12,6 +12,7 @@ Endpoints:
 
 import asyncio
 import io
+import uuid
 import zipfile
 import logging
 from typing import Optional
@@ -78,10 +79,10 @@ def _validate_csv(filepath: Path) -> tuple[bool, str]:
                 total_lines = sum(1 for _ in f)
             return True, f"CSV format: ~{total_lines} rows × {df_head.shape[1]} columns (auto-converts to .npz)"
 
-        # Check transposed format (768 to 775 rows)
+        # Check transposed format (768 to 780 rows)
         # Read first 10 columns only
         df_transposed = pd.read_csv(filepath, usecols=list(range(min(10, df_head.shape[1]))), header=None)
-        if df_transposed.shape[0] in (768, 769, 770, 771, 772):
+        if 768 <= df_transposed.shape[0] <= 780:
             return True, f"Transposed ISLE CSV format: {df_transposed.shape[0]} feature rows (auto-converts to .npz)"
 
         return False, f"CSV format unrecognized. Expected at least 768 columns or ~770 rows (transposed), got {df_head.shape[1]} cols × {df_transposed.shape[0]} rows"

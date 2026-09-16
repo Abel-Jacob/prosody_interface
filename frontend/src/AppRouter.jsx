@@ -1,9 +1,70 @@
-import { useState } from 'react'
+import React, { useState, Component } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import CanvasBackground from './components/CanvasBackground'
 import LandingPage from './components/LandingPage'
 import LexiRepTrainPage from './components/LexiRepTrainPage'
 import App from './App'
+
+class PageErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Page-level crash caught by PageErrorBoundary:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2rem',
+          textAlign: 'center',
+          background: 'var(--bg, #0a0a0f)',
+          color: 'var(--text-primary, #ffffff)'
+        }}>
+          <h2 style={{ color: '#f87171', fontFamily: 'var(--font-mono, monospace)', fontSize: '1.2rem', marginBottom: '1rem' }}>
+            Application Render Error
+          </h2>
+          <p style={{ maxWidth: '30rem', color: 'var(--text-muted, #888)', fontSize: '0.85rem', lineHeight: '1.6', marginBottom: '1.5rem' }}>
+            {this.state.error?.message || 'An unexpected rendering error occurred.'}
+          </p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false, error: null })
+              if (this.props.onReset) this.props.onReset()
+            }}
+            style={{
+              padding: '10px 20px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-strong, #444)',
+              background: 'var(--accent, #c4956a)',
+              color: 'var(--bg, #000)',
+              fontFamily: 'var(--font-mono, monospace)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textTransform: 'uppercase'
+            }}
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 /**
  * AppRouter — Page-level routing layer.
@@ -50,7 +111,9 @@ export default function AppRouter() {
             exit={{ opacity: 0 }}
             transition={pageTransition}
           >
-            <App onBack={() => setPage('landing')} />
+            <PageErrorBoundary onReset={() => setPage('landing')}>
+              <App onBack={() => setPage('landing')} />
+            </PageErrorBoundary>
           </motion.div>
         )}
 
@@ -62,7 +125,9 @@ export default function AppRouter() {
             exit={{ opacity: 0 }}
             transition={pageTransition}
           >
-            <LexiRepTrainPage onBack={() => setPage('landing')} />
+            <PageErrorBoundary onReset={() => setPage('landing')}>
+              <LexiRepTrainPage onBack={() => setPage('landing')} />
+            </PageErrorBoundary>
           </motion.div>
         )}
       </AnimatePresence>
