@@ -30,7 +30,7 @@ export default function ProcessingState({ jobId, onComplete }) {
             transformOrigin: 'center',
             marginBottom: '0.6rem'
           }}>
-            <ThinkingOrb state="solving" size={64} />
+            <ThinkingOrb state="connecting" size={64} />
           </div>
           <h1 style={{
             fontFamily: 'var(--font-secondary)',

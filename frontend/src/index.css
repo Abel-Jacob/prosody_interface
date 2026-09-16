@@ -86,7 +86,7 @@ a { color: inherit; }
 /* Editorial report overrides */
 .annotation-report, .report-container { color: var(--text-primary); font-family: var(--font-primary) !important; }
 .processing-state { font-family: var(--font-primary); }
-.processing-state .thinking-orb, .processing-state canvas { filter: sepia(1) saturate(5) hue-rotate(335deg) brightness(1.05); }
+.processing-state .thinking-orb, .processing-state canvas { filter: none; }
 .annotation-report h1, .annotation-report h2, .report-container h1, .report-container h2 { letter-spacing: -.03em; }
 .annotation-report table, .report-container table { font-family: var(--font-mono); }
 .annotation-report button, .report-container button { border-radius: 3px; }
