@@ -114,7 +114,7 @@ export default function AudioPlayer({ src, style }) {
         justifyContent: 'space-between',
         fontSize: '0.7rem',
         color: 'var(--text-muted)',
-        fontFamily: 'monospace'
+        fontFamily: 'var(--font-primary)'
       }}>
         <span>{formatTime(currentTime)}</span>
         <span>{formatTime(duration)}</span>

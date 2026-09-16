@@ -341,13 +341,13 @@ export default function AnnotationReport({ data, onBack }) {
             <line x1={paddingX} y1={yGrid2} x2={width - paddingX} y2={yGrid2} stroke="rgba(255,255,255,0.06)" strokeDasharray="3,3" />
             <line x1={paddingX} y1={yGrid3} x2={width - paddingX} y2={yGrid3} stroke="rgba(255,255,255,0.06)" strokeDasharray="3,3" />
 
-            <text x={paddingX - 10} y={yGrid1 + 4} textAnchor="end" fill="var(--text-muted)" fontSize="9" fontFamily="monospace">{valGrid1} Hz</text>
-            <text x={paddingX - 10} y={yGrid2 + 4} textAnchor="end" fill="var(--text-muted)" fontSize="9" fontFamily="monospace">{valGrid2} Hz</text>
-            <text x={paddingX - 10} y={yGrid3 + 4} textAnchor="end" fill="var(--text-muted)" fontSize="9" fontFamily="monospace">{valGrid3} Hz</text>
+            <text x={paddingX - 10} y={yGrid1 + 4} textAnchor="end" fill="var(--text-muted)" fontSize="9" fontFamily="var(--font-primary)">{valGrid1} Hz</text>
+            <text x={paddingX - 10} y={yGrid2 + 4} textAnchor="end" fill="var(--text-muted)" fontSize="9" fontFamily="var(--font-primary)">{valGrid2} Hz</text>
+            <text x={paddingX - 10} y={yGrid3 + 4} textAnchor="end" fill="var(--text-muted)" fontSize="9" fontFamily="var(--font-primary)">{valGrid3} Hz</text>
 
-            <text x={paddingX} y={height - 6} textAnchor="middle" fill="var(--text-muted)" fontSize="9" fontFamily="monospace">{seg.start_time.toFixed(2)}s</text>
-            <text x={width / 2} y={height - 6} textAnchor="middle" fill="var(--text-muted)" fontSize="9" fontFamily="monospace">{((seg.start_time + seg.end_time) / 2).toFixed(2)}s</text>
-            <text x={width - paddingX} y={height - 6} textAnchor="middle" fill="var(--text-muted)" fontSize="9" fontFamily="monospace">{seg.end_time.toFixed(2)}s</text>
+            <text x={paddingX} y={height - 6} textAnchor="middle" fill="var(--text-muted)" fontSize="9" fontFamily="var(--font-primary)">{seg.start_time.toFixed(2)}s</text>
+            <text x={width / 2} y={height - 6} textAnchor="middle" fill="var(--text-muted)" fontSize="9" fontFamily="var(--font-primary)">{((seg.start_time + seg.end_time) / 2).toFixed(2)}s</text>
+            <text x={width - paddingX} y={height - 6} textAnchor="middle" fill="var(--text-muted)" fontSize="9" fontFamily="var(--font-primary)">{seg.end_time.toFixed(2)}s</text>
 
             <polygon points={areaPoints} fill={`url(#grad-${seg.segment_index})`} />
 
@@ -693,7 +693,7 @@ export default function AnnotationReport({ data, onBack }) {
                                   <td style={{ textAlign: 'left', ...(w.stressed ? { color: 'var(--accent)', fontWeight: 600, textTransform: 'uppercase' } : {}) }}>
                                     {w.word}
                                   </td>
-                                  <td style={{ textAlign: 'left', fontFamily: 'monospace' }}>
+                                  <td style={{ textAlign: 'left', fontFamily: 'var(--font-primary)' }}>
                                     {w.start_time.toFixed(3)}s – {w.end_time.toFixed(3)}s
                                   </td>
                                   <td style={{ textAlign: 'left' }}>{Math.round((w.asr_confidence || 0) * 100)}%</td>
@@ -767,9 +767,9 @@ export default function AnnotationReport({ data, onBack }) {
                           }}
                         >
                           <td style={{ padding: '0.8rem', fontWeight: 500 }}>Voiced Segment {seg.segment_index}</td>
-                          <td style={{ padding: '0.8rem', fontFamily: 'monospace', color: 'var(--text-muted)' }}>{seg.start_time.toFixed(2)}s – {seg.end_time.toFixed(2)}s</td>
+                          <td style={{ padding: '0.8rem', fontFamily: 'var(--font-primary)', color: 'var(--text-muted)' }}>{seg.start_time.toFixed(2)}s – {seg.end_time.toFixed(2)}s</td>
                           <td style={{ padding: '0.8rem', color: 'var(--text-muted)' }}>{seg.frame_count} frames</td>
-                          <td style={{ padding: '0.8rem', fontFamily: 'monospace' }}>K = {seg.k_value}</td>
+                          <td style={{ padding: '0.8rem', fontFamily: 'var(--font-primary)' }}>K = {seg.k_value}</td>
                           <td style={{ padding: '0.8rem', textAlign: 'right', color: 'var(--accent)', fontWeight: 600 }}>
                             {isExpanded ? 'CLOSE GRAPH' : 'VIEW GRAPH'}
                           </td>

@@ -59,4 +59,4 @@
   gap: 8px;
 }
 .tooltip-label { color: rgba(255, 255, 255, 0.6); font-weight: 500; }
-.tooltip-value { font-weight: 600; font-family: monospace; }
+.tooltip-value { font-weight: 600; font-family: var(--font-primary); }

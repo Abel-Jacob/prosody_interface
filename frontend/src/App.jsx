@@ -189,7 +189,7 @@ function App({ onBack }) {
             padding: '4px 8px',
             borderRadius: '6px',
             fontSize: '0.6875rem',
-            fontFamily: 'monospace',
+            fontFamily: 'var(--font-primary)',
             width: '240px',
             outline: 'none'
           }}

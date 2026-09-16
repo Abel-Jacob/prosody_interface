@@ -1,7 +1,7 @@
 .annotation-report-container {
-  --font-primary: monospace, Courier, monospace;
-  --font-secondary: monospace, Courier, monospace;
-  font-family: monospace, Courier, monospace;
+  --font-primary: var(--font-primary);
+  --font-secondary: var(--font-primary);
+  font-family: var(--font-primary);
   min-height: 100vh;
   max-height: 100vh;
   display: flex;
@@ -147,7 +147,7 @@
 }
 
 .phrase-time {
-  font-family: monospace;
+  font-family: var(--font-primary);
 }
 
 .phrase-intonation-details {
@@ -248,7 +248,7 @@
   margin-left: 2px;
   color: var(--accent);
   opacity: 0.8;
-  font-family: monospace;
+  font-family: var(--font-primary);
 }
 
 /* Hesitation Marker */
@@ -316,7 +316,7 @@
 
 .detail-value {
   font-weight: 600;
-  font-family: monospace;
+  font-family: var(--font-primary);
   color: var(--text-primary);
 }
 
@@ -487,13 +487,13 @@
 .property-details-table td.prop-key {
   color: var(--text-muted);
   width: 45%;
-  font-family: monospace;
+  font-family: var(--font-primary);
 }
 
 .property-details-table td.prop-val {
   color: var(--text-primary);
   font-weight: 500;
-  font-family: monospace;
+  font-family: var(--font-primary);
   text-align: right;
   word-break: break-all;
 }
