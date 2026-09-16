@@ -33,231 +33,171 @@
   background: var(--bg-subtle, rgba(255, 255, 255, 0.03));
 }
 
-.lexirep-header {
-  width: 100%;
-  max-width: 56rem;
-  margin: 0 0 22px;
-  text-align: left;
+/* ── Seamless Idle Experience ───────────────────────────── */
+.lexirep-idle-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
-.lexirep-header h1 {
-  margin: 0 0 10px;
-  color: var(--text-primary);
-  font-size: clamp(2rem, 5vw, 3.2rem);
-  font-weight: 600;
-  letter-spacing: -.05em;
-  line-height: 1;
-  text-transform: none;
-}
-
-.lexirep-header p {
-  max-width: 38rem;
-  color: var(--text-muted);
-  font-size: .88rem;
-  line-height: 1.6;
-}
-
-/* ── Recommendation Tip ───────────────────────────────────────── */
-.lexirep-upload-note {
-  margin: 0 0 2px;
-  padding: 12px 14px;
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  border-radius: 5px;
-  background: var(--bg-subtle, rgba(255, 255, 255, 0.02));
-  color: var(--text-muted);
-  font-size: 0.76rem;
-  line-height: 1.45;
-}
-
-.lexirep-upload-note code {
-  color: var(--text-primary);
+.lexirep-idle-title {
   font-family: Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
 }
 
-.lexirep-content {
-  width: 100%;
-  max-width: 600px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.lexirep-step-label {
-  margin-bottom: 12px;
+.lexirep-idle-caption {
+  font-family: Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  font-size: 0.78rem;
   color: var(--text-muted);
-  font: 500 .65rem Helvetica, Arial, sans-serif;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
-
-.lexirep-upload-zone {
-  padding: 34px 24px;
-  border: 1px dashed var(--border-strong, rgba(255, 255, 255, 0.15));
-  border-radius: 4px;
-  background: var(--bg-subtle, rgba(255, 255, 255, 0.015));
+  max-width: 380px;
+  line-height: 1.45;
   text-align: center;
-  cursor: pointer;
-  transition: all var(--transition-base, 0.2s ease);
+  margin: 0;
 }
 
-.lexirep-upload-zone:hover,
-.lexirep-upload-zone.drag-over {
-  border-color: var(--accent);
-  background: rgba(196, 149, 106, 0.04);
-  transform: translateY(-2px);
-}
-
-.lexirep-upload-zone-icon {
-  margin-bottom: 14px;
-  color: var(--accent);
-}
-
-.lexirep-upload-zone-text {
-  margin-bottom: 6px;
-  color: var(--text-primary);
-  font-size: .9rem;
-  font-weight: 600;
-}
-
-.lexirep-upload-zone-hint {
+.lexirep-drop-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border-radius: 20px;
+  background: transparent;
   color: var(--text-muted);
-  font: .72rem Helvetica, Arial, sans-serif;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.74rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.lexirep-file-pill {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 16px;
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
-  border-radius: 6px;
-  background: var(--bg-subtle, rgba(255, 255, 255, 0.03));
+.lexirep-drop-trigger:hover,
+.lexirep-drop-trigger.drag-over {
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.02);
 }
 
-.lexirep-file-pill-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.lexirep-file-pill-icon {
-  flex: 0 0 24px;
-  color: var(--accent);
-}
-
-.lexirep-file-pill-info {
-  min-width: 0;
+.lexirep-file-selected-group {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  gap: 6px;
 }
 
-.lexirep-file-pill-name {
-  overflow: hidden;
+.lexirep-file-pill-seamless {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.74rem;
   color: var(--text-primary);
-  font: .82rem Helvetica, Arial, sans-serif;
-  font-weight: 500;
+}
+
+.lexirep-file-pill-seamless .file-name {
+  max-width: 220px;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.lexirep-file-pill-meta,
-.lexirep-validation-msg {
-  color: var(--text-muted);
-  font: .68rem Helvetica, Arial, sans-serif;
+.lexirep-file-pill-seamless .file-sep {
+  color: var(--text-faded);
 }
 
-.lexirep-file-pill-remove {
-  padding: 6px;
+.lexirep-file-pill-seamless .file-size {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+
+.lexirep-file-pill-seamless .file-remove-btn {
   background: none;
-  border: 0;
+  border: none;
   color: var(--text-muted);
   cursor: pointer;
+  padding: 0 3px;
+  font-size: 0.7rem;
+  line-height: 1;
   transition: color 0.15s ease;
 }
 
-.lexirep-file-pill-remove:hover {
+.lexirep-file-pill-seamless .file-remove-btn:hover {
   color: #f87171;
 }
 
-.lexirep-validation-msg {
-  margin-top: 8px;
-}
-
-.lexirep-validation-msg.error {
-  color: #f87171;
-  font-weight: 600;
-}
-
-.lexirep-epoch-control {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.lexirep-epoch-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.lexirep-epoch-title {
+.lexirep-validation-text {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.68rem;
   color: var(--text-muted);
-  font: .68rem Helvetica, Arial, sans-serif;
-  letter-spacing: .08em;
-  text-transform: uppercase;
 }
 
-.lexirep-epoch-number {
+.lexirep-validation-text.error {
+  color: #f87171;
+}
+
+.lexirep-seamless-loops-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.lexirep-seamless-loops-row .loops-label {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+
+.lexirep-seamless-loops-row .loops-label .highlight {
   color: var(--accent);
-  font: 600 1.5rem Helvetica, Arial, sans-serif;
-  font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
-.lexirep-epoch-slider {
-  width: 100%;
-  height: 4px;
+.lexirep-hairline-slider {
+  width: 140px;
+  height: 2px;
   accent-color: var(--accent);
   cursor: pointer;
 }
 
-.lexirep-epoch-range {
-  display: flex;
-  justify-content: space-between;
-  color: var(--text-muted);
-  font: .62rem Helvetica, Arial, sans-serif;
-}
-
-.lexirep-submit-btn {
-  width: 100%;
-  min-height: 44px;
-  padding: 12px;
-  border: 1px solid var(--accent);
+.lexirep-start-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 24px;
+  margin-top: 10px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 4px;
-  background: var(--accent);
-  color: var(--bg);
+  color: var(--text-primary);
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.74rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
   cursor: pointer;
-  font: 700 .72rem Helvetica, Arial, sans-serif;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  transition: opacity var(--transition-base, 0.2s), transform var(--transition-base, 0.2s);
+  transition: all 0.2s ease;
 }
 
-.lexirep-submit-btn:hover:not(:disabled) {
-  opacity: .88;
+.lexirep-start-action-btn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.03);
 }
 
-.lexirep-submit-btn:disabled {
-  opacity: .28;
+.lexirep-start-action-btn:disabled {
+  opacity: 0.3;
   cursor: not-allowed;
-}
-
-.lexirep-separator {
-  width: 100%;
-  height: 1px;
-  background: var(--text-faded, rgba(255, 255, 255, 0.08));
 }
 
 /* ── Unified Loading & Training View (Image 2 Style — Open Canvas, No Gray Box) ── */
@@ -317,31 +257,47 @@
   line-height: 1.4;
 }
 
-/* Loop Counter: sleek, minimalist font Helvetica */
-.lexirep-loop-counter {
+/* Minimalist Progress Container: loop counter & percentage alongside 2px track */
+.lexirep-progress-container {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.lexirep-progress-meta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-family: Helvetica, Arial, sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   font-weight: 400;
   color: var(--text-muted);
   letter-spacing: 0.04em;
-  margin-top: 4px;
 }
 
-.lexirep-loop-counter .highlight {
+.lexirep-progress-meta .highlight {
   color: var(--accent);
   font-weight: 500;
 }
 
-/* Minimalist Progress Track: 2px line right under loop counter */
+.lexirep-progress-percent {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
 .lexirep-progress-track {
   width: 100%;
-  max-width: 400px;
   height: 2px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
   position: relative;
-  margin-top: 8px;
 }
 
 .lexirep-progress-fill {

@@ -172,69 +172,42 @@ export default function LandingPage({ onNavigate }) {
         </motion.div>
       </div>
 
-      {/* ── Centralized Cloudflare Tunnel Connection Bar ─── */}
-      <div className="landing-tunnel-bar">
-        <div className="landing-tunnel-header">
-          <div className="landing-tunnel-title">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12.55a11 11 0 0 1 14.08 0" />
-              <path d="M1.42 9a16 16 0 0 1 21.16 0" />
-              <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-              <line x1="12" y1="20" x2="12.01" y2="20" />
-            </svg>
-            <span>backend connection</span>
-          </div>
-
-          <div className={`landing-tunnel-status ${status}`}>
-            <span className="status-dot" />
-            <span className="status-text">
-              {status === 'connected' && 'Online'}
-              {status === 'checking' && 'Testing…'}
-              {status === 'offline' && 'Unreachable'}
-              {status === 'local' && 'Local Backend'}
-              {status === 'idle' && 'No Tunnel Set'}
-            </span>
-          </div>
-        </div>
-
-        <div className="landing-tunnel-input-row">
-          <div className="landing-tunnel-input-wrapper">
-            <input
-              id="landing-tunnel-input"
-              type="text"
-              value={tunnelUrl}
-              onChange={handleChange}
-              placeholder="e.g. your-subdomain.trycloudflare.com"
-              spellCheck="false"
-              autoComplete="off"
-            />
-            {tunnelUrl && (
-              <button
-                type="button"
-                className="landing-tunnel-clear"
-                onClick={handleClear}
-                title="Clear URL"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
+      {/* ── Seamless Minimalist Backend Connection Bar ─── */}
+      <div className="landing-backend-bar">
+        <span className={`landing-backend-dot ${status}`} title={`Backend status: ${status}`} />
+        <input
+          id="landing-tunnel-input"
+          className="landing-backend-input"
+          type="text"
+          value={tunnelUrl}
+          onChange={handleChange}
+          placeholder="backend url (e.g. your-subdomain.trycloudflare.com)"
+          spellCheck="false"
+          autoComplete="off"
+        />
+        {tunnelUrl && (
           <button
             type="button"
-            className="landing-tunnel-test-btn"
-            onClick={handleManualTest}
-            disabled={isPinging}
-            title="Test connection to backend"
+            className="landing-backend-clear"
+            onClick={handleClear}
+            title="Clear URL"
           >
-            {isPinging ? 'Testing…' : 'Test'}
+            ✕
           </button>
-        </div>
-
-        <div className="landing-tunnel-hint">
-          Used by both interfaces.
-        </div>
+        )}
+        <button
+          type="button"
+          className="landing-backend-status-btn"
+          onClick={handleManualTest}
+          disabled={isPinging}
+          title="Click to test backend connection"
+        >
+          {status === 'connected' && 'online'}
+          {status === 'checking' && 'testing…'}
+          {status === 'offline' && 'offline'}
+          {status === 'local' && 'local'}
+          {status === 'idle' && (isPinging ? 'testing…' : 'connect')}
+        </button>
       </div>
     </div>
   )

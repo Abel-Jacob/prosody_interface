@@ -774,7 +774,7 @@ def run_lexirep_training(
                 "current_loop": loop,
                 "total_loops": epochs,
                 "progress": loop_start_prog,
-                "log": f"Loop {loop}/{epochs}: {phase_desc}"
+                "log": phase_desc
             })
 
         # 6a. Contrastive Learning on refined pseudo-labels
@@ -808,7 +808,7 @@ def run_lexirep_training(
                 "current_loop": loop,
                 "total_loops": epochs,
                 "progress": loop_mid_prog,
-                "log": f"Loop {loop}/{epochs}: Joint IDEC clustering & Student-t distribution..."
+                "log": "Joint IDEC clustering & Student-t distribution..."
             })
 
         # 6c. IDEC Joint Clustering
@@ -898,7 +898,7 @@ def run_lexirep_training(
                 "progress": prog_pct,
                 "current_metrics": loop_record,
                 "history": history_scorecard,
-                "log": eval_log
+                "log": f"Evaluating linguistic constraints · BTQ {btq_acc:.1f}%{delta_str}"
             })
 
     # 7. Compute Layer Weight Statistics & Parameter Counts
