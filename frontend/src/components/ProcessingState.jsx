@@ -32,17 +32,18 @@ export default function ProcessingState({ jobId, onComplete }) {
           }}>
             <ThinkingOrb state="connecting" size={64} />
           </div>
-          <h1 style={{
-            fontFamily: 'var(--font-secondary)',
-            fontSize: '1.15rem',
-            fontWeight: 500,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'var(--text-muted)',
+          <div style={{
+            fontFamily: 'Helvetica, Arial, sans-serif',
+            fontSize: '1.05rem',
+            fontWeight: 400,
+            letterSpacing: '0.02em',
+            color: 'var(--text-primary)',
+            textAlign: 'center',
+            lineHeight: 1.4,
             margin: 0
           }}>
-            transcription in progress...
-          </h1>
+            transcription in progress…
+          </div>
         </>
       )}
     </div>
