@@ -266,7 +266,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 16px;
   padding: 48px 24px;
   text-align: center;
 }
@@ -274,15 +274,15 @@
 .lexirep-status-label {
   font-family: Helvetica, Arial, sans-serif;
   font-weight: 400; /* strictly not bold */
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   color: var(--text-primary);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
 }
 
 .lexirep-status-sub {
   font-family: Helvetica, Arial, sans-serif;
   font-weight: 400;
-  font-size: 0.74rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
 }
 
@@ -292,7 +292,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: 20px;
   padding: 36px 20px;
   background: var(--bg-subtle, rgba(255, 255, 255, 0.02));
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
@@ -304,11 +304,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 4px;
+  transform: scale(1.28);
+  transform-origin: center;
+  margin: 10px 0 16px;
 }
 
 .lexirep-training-status-wrapper {
-  min-height: 24px;
+  min-height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -317,9 +319,9 @@
 .lexirep-status-fader-text {
   font-family: Helvetica, Arial, sans-serif;
   font-weight: 400; /* strictly not bold */
-  font-size: 0.85rem;
+  font-size: 1.05rem;
   color: var(--text-primary);
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
   text-align: center;
 }
 

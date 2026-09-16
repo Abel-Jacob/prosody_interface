@@ -22,14 +22,23 @@ export default function ProcessingState({ jobId, onComplete }) {
         <h1 style={{ color: 'var(--error)' }}>Error: {error}</h1>
       ) : (
         <>
-          <ThinkingOrb state="connecting" size={64} />
+          <div className="processing-orb-wrapper" style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transform: 'scale(1.28)',
+            transformOrigin: 'center',
+            marginBottom: '0.6rem'
+          }}>
+            <ThinkingOrb state="solving" size={64} />
+          </div>
           <h1 style={{
-            fontFamily: 'var(--font-primary)',
-            fontSize: '0.9rem',
-            fontWeight: 400,
-            textTransform: 'none',
-            letterSpacing: '0.04em',
-            color: 'var(--text-primary)',
+            fontFamily: 'var(--font-secondary)',
+            fontSize: '1.15rem',
+            fontWeight: 500,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'var(--text-muted)',
             margin: 0
           }}>
             transcription in progress...
