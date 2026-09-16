@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap');
-
 :root {
   --bg: #090909;
   --bg-subtle: #11100F;
@@ -13,9 +11,9 @@
   --error: #F97316;
   --overlay-bg: #11100F;
   --overlay-border: #242321;
-  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-secondary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'DM Mono', 'SFMono-Regular', Consolas, monospace;
+  --font-primary: Helvetica, Arial, sans-serif;
+  --font-secondary: var(--font-primary);
+  --font-mono: var(--font-primary);
   --transition-base: 0.22s cubic-bezier(0.22, 1, 0.36, 1);
   --pitch-deform-duration: 0.6s;
 }
@@ -64,8 +62,8 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 .app-wordmark { position: fixed; top: 24px; left: 28px; z-index: 5; color: var(--text-primary); font: 600 0.7rem/1 var(--font-mono); letter-spacing: .16em; }
 
 .app-backend-config { position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--text-faded); background: rgba(17,16,15,.94); border-radius: 3px; }
-.app-backend-config label { color: var(--text-muted); font: 0.625rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
-.app-backend-config input { width: 240px; padding: 4px 8px; border: 1px solid var(--text-faded); border-radius: 2px; background: transparent; color: var(--text-primary); font: .6875rem var(--font-mono); outline: none; }
+.app-backend-config label { color: var(--text-muted); font: 400 0.625rem var(--font-primary); letter-spacing: .08em; text-transform: uppercase; }
+.app-backend-config input { width: 240px; padding: 4px 8px; border: 1px solid var(--text-faded); border-radius: 2px; background: transparent; color: var(--text-primary); font: 400 .6875rem var(--font-primary); outline: none; }
 @media (max-width: 640px) { .app-backend-config { right: 12px; bottom: 12px; left: 12px; } .app-backend-config input { min-width: 0; width: 100%; } }
 
 .landing-container, .idle-container { background: transparent; }
@@ -86,7 +84,9 @@ a { color: inherit; }
 @media (prefers-reduced-transparency: reduce) { .app-backend-config { background: var(--bg-subtle); } }
 
 /* Editorial report overrides */
-.annotation-report, .report-container { color: var(--text-primary); }
+.annotation-report, .report-container { color: var(--text-primary); font-family: var(--font-primary) !important; }
+.processing-state { font-family: var(--font-primary); }
+.processing-state .thinking-orb, .processing-state canvas { filter: sepia(1) saturate(5) hue-rotate(335deg) brightness(1.05); }
 .annotation-report h1, .annotation-report h2, .report-container h1, .report-container h2 { letter-spacing: -.03em; }
 .annotation-report table, .report-container table { font-family: var(--font-mono); }
 .annotation-report button, .report-container button { border-radius: 3px; }
@@ -102,8 +102,37 @@ a { color: inherit; }
 /* The one dark technical surface used by report internals. */
 .dark-surface { background: #111111; color: var(--bg); }
 
+/* Shared page navigation language. */
+.page-path {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  color: var(--text-primary);
+  font: 600 .68rem/1 var(--font-mono);
+  letter-spacing: .12em;
+}
+.page-back {
+  position: absolute;
+  top: 22px;
+  right: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: .65rem var(--font-mono);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.page-back:hover { color: var(--text-primary); }
+.page-back svg { width: 14px; height: 14px; }
+
 /* Shared action language for existing controls. */
 .lexirep-submit-btn, .primary-button { min-height: 42px; }
+.lexirep-back { display: none !important; }
 
 @media (max-width: 640px) { .lexirep-container { padding-inline: 20px; } }
 
