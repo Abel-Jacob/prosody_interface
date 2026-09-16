@@ -516,7 +516,7 @@ export default function LexiRepTrainPage({ onBack }) {
             <div className="lexirep-step-label">iterative self-training loops</div>
             <div className="lexirep-epoch-control">
               <div className="lexirep-epoch-header">
-                <span className="lexirep-epoch-title">Loops (Paper Standard: 13)</span>
+                <span className="lexirep-epoch-title">Training Loops</span>
                 <span className="lexirep-epoch-number">{epochs}</span>
               </div>
               <input
@@ -530,7 +530,7 @@ export default function LexiRepTrainPage({ onBack }) {
               />
               <div className="lexirep-epoch-range">
                 <span>1 (Fast Test)</span>
-                <span>13 (Paper Standard)</span>
+                <span>13 (Recommended)</span>
                 <span>30 (Deep Convergence)</span>
               </div>
             </div>
@@ -809,23 +809,23 @@ export default function LexiRepTrainPage({ onBack }) {
             </div>
           )}
 
-          {/* ── TAB 3: BTQ Benchmark Scorecard ─────────────── */}
+          {/* ── TAB 3: BTQ Scorecard ─────────────────────── */}
           {activeTab === 'scorecard' && (
             <div className="lexirep-scorecard-grid">
               <div className="scorecard-card">
                 <span className="sc-label">Bi-syllabic (B)</span>
                 <strong className="sc-val">{modelSummary?.final_metrics?.B ?? 0}%</strong>
-                <span className="sc-target">Target: ~83.4%</span>
+                <span className="sc-target">2 syllables</span>
               </div>
               <div className="scorecard-card">
                 <span className="sc-label">Bi + Tri (BT)</span>
                 <strong className="sc-val">{modelSummary?.final_metrics?.BT ?? 0}%</strong>
-                <span className="sc-target">Target: ~83.0%</span>
+                <span className="sc-target">2–3 syllables</span>
               </div>
               <div className="scorecard-card highlight">
                 <span className="sc-label">Bi + Tri + Quad (BTQ)</span>
                 <strong className="sc-val">{modelSummary?.final_metrics?.BTQ ?? 0}%</strong>
-                <span className="sc-target">Paper Benchmark Target: 82.73%</span>
+                <span className="sc-target">Polysyllabic constraint</span>
               </div>
               <div className="scorecard-card">
                 <span className="sc-label">Training Duration</span>

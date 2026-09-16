@@ -880,7 +880,6 @@ def run_lexirep_training(
         "epochs_trained": epochs,
         "duration_seconds": round(time.time() - t0_start, 2),
         "final_metrics": final_metrics,
-        "paper_targets": {"B": 83.41, "BT": 83.07, "BTQ": 82.73},
         "layer_breakdown": [
             {"layer": 1, "type": "Linear", "in": 768, "out": 128, "activation": "ReLU", "params": 768 * 128 + 128},
             {"layer": 2, "type": "Linear", "in": 128, "out": 64, "activation": "ReLU", "params": 128 * 64 + 64},
