@@ -7,7 +7,7 @@ import ProcessingState from './components/ProcessingState'
 import SummaryState from './components/SummaryState'
 import AnnotationReport from './components/AnnotationReport'
 import './index.css'
-import { BACKEND_DOMAIN, setBackendDomain, getHttpUrl } from './apiConfig'
+import { getHttpUrl } from './apiConfig'
 
 /* Cross-fade transition shared by all state wrappers.
    Critically damped (bounce: 0), ~200ms — system-driven, not gesture. */
@@ -19,7 +19,6 @@ function App({ onBack }) {
   const [jobId, setJobId] = useState(null)
   const [finalResult, setFinalResult] = useState(null)
   const [annotationData, setAnnotationData] = useState(null)
-  const [backendUrl, setBackendUrl] = useState(BACKEND_DOMAIN)
 
   const handleStartListening = () => {
     setAppState('listening')
@@ -167,34 +166,6 @@ function App({ onBack }) {
           </motion.div>
         )}
       </AnimatePresence>
-
-
-      {/* Backend Configuration UI */}
-      <div className="app-backend-config">
-        {/* Finding 10 audit: converted px font-sizes to rem */}
-        <label htmlFor="tunnel-url">Tunnel URL:</label>
-        <input
-          id="tunnel-url"
-          type="text" 
-          value={backendUrl}
-          onChange={(e) => {
-            setBackendUrl(e.target.value)
-            setBackendDomain(e.target.value)
-          }}
-          placeholder="e.g. random-words.trycloudflare.com"
-          style={{
-            background: 'transparent',
-            border: '1px solid var(--text-faded)',
-            color: 'var(--text-primary)',
-            padding: '4px 8px',
-            borderRadius: '6px',
-            fontSize: '0.6875rem',
-            fontFamily: 'monospace',
-            width: '240px',
-            outline: 'none'
-          }}
-        />
-      </div>
     </>
   )
 }

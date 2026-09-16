@@ -1,19 +1,91 @@
-import React from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
+import { BACKEND_DOMAIN, setBackendDomain } from '../apiConfig'
 import './LandingPage.css'
 
 const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
 
 /**
- * Landing page — new app entry point.
- * Two cards: "Prosody Interface" and "LexiRep — Train Your Own Model".
+ * Landing page — App Entry Point.
+ * Features:
+ * - Two cards: "Prosody Interface" and "LexiRep — Train Your Own Model".
+ * - Centralized Cloudflare Tunnel URL connection bar that sets the backend
+ *   globally for both Prosody Interface and LexiRep Training.
  */
 export default function LandingPage({ onNavigate }) {
+  const [tunnelUrl, setTunnelUrl] = useState(BACKEND_DOMAIN)
+  const [status, setStatus] = useState('checking') // 'connected' | 'checking' | 'offline' | 'local' | 'idle'
+  const [isPinging, setIsPinging] = useState(false)
+  const debounceRef = useRef(null)
+
+  const checkConnection = useCallback(async (domain) => {
+    const clean = domain
+      ? domain.trim().replace(/^https?:\/\//, '').replace(/^wss?:\/\//, '').replace(/\/$/, '')
+      : ''
+
+    if (!clean) {
+      // Check local fallback
+      try {
+        const res = await fetch('/health', { signal: AbortSignal.timeout(2500) })
+        if (res.ok) setStatus('local')
+        else setStatus('idle')
+      } catch {
+        setStatus('idle')
+      }
+      return
+    }
+
+    setStatus('checking')
+    setIsPinging(true)
+    try {
+      const res = await fetch(`https://${clean}/health`, {
+        signal: AbortSignal.timeout(5000),
+      })
+      if (res.ok) {
+        setStatus('connected')
+      } else {
+        setStatus('offline')
+      }
+    } catch {
+      setStatus('offline')
+    } finally {
+      setIsPinging(false)
+    }
+  }, [])
+
+  // Check on mount
+  useEffect(() => {
+    checkConnection(BACKEND_DOMAIN)
+  }, [checkConnection])
+
+  // Handle URL changes with debounce
+  const handleChange = (e) => {
+    const val = e.target.value
+    setTunnelUrl(val)
+    setBackendDomain(val)
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      checkConnection(val)
+    }, 600)
+  }
+
+  const handleManualTest = () => {
+    checkConnection(tunnelUrl)
+  }
+
+  const handleClear = () => {
+    setTunnelUrl('')
+    setBackendDomain('')
+    checkConnection('')
+  }
+
   return (
     <div className="landing-container">
       <div className="landing-wordmark" aria-label="Prosody.">
         <span>Pros</span><span className="landing-wordmark-accent">ody.</span>
       </div>
+
       <h1 className="landing-title">Choose an interface</h1>
 
       <div className="landing-cards">
@@ -30,7 +102,6 @@ export default function LandingPage({ onNavigate }) {
           transition={tapSpring}
         >
           <div className="landing-card-icon">
-            {/* Waveform / microphone icon (inline SVG) */}
             <svg
               width="28"
               height="28"
@@ -72,7 +143,6 @@ export default function LandingPage({ onNavigate }) {
           transition={tapSpring}
         >
           <div className="landing-card-icon">
-            {/* Neural network / model icon (inline SVG) */}
             <svg
               width="28"
               height="28"
@@ -100,6 +170,71 @@ export default function LandingPage({ onNavigate }) {
             a custom LexiRep model
           </span>
         </motion.div>
+      </div>
+
+      {/* ── Centralized Cloudflare Tunnel Connection Bar ─── */}
+      <div className="landing-tunnel-bar">
+        <div className="landing-tunnel-header">
+          <div className="landing-tunnel-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+              <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+              <line x1="12" y1="20" x2="12.01" y2="20" />
+            </svg>
+            <span>Cloudflare Tunnel Backend</span>
+          </div>
+
+          <div className={`landing-tunnel-status ${status}`}>
+            <span className="status-dot" />
+            <span className="status-text">
+              {status === 'connected' && 'Online'}
+              {status === 'checking' && 'Testing…'}
+              {status === 'offline' && 'Unreachable'}
+              {status === 'local' && 'Local Backend'}
+              {status === 'idle' && 'No Tunnel Set'}
+            </span>
+          </div>
+        </div>
+
+        <div className="landing-tunnel-input-row">
+          <div className="landing-tunnel-input-wrapper">
+            <input
+              id="landing-tunnel-input"
+              type="text"
+              value={tunnelUrl}
+              onChange={handleChange}
+              placeholder="e.g. your-subdomain.trycloudflare.com"
+              spellCheck="false"
+              autoComplete="off"
+            />
+            {tunnelUrl && (
+              <button
+                type="button"
+                className="landing-tunnel-clear"
+                onClick={handleClear}
+                title="Clear URL"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="landing-tunnel-test-btn"
+            onClick={handleManualTest}
+            disabled={isPinging}
+            title="Test connection to backend"
+          >
+            {isPinging ? 'Testing…' : 'Test'}
+          </button>
+        </div>
+
+        <div className="landing-tunnel-hint">
+          Connected globally — both <strong>Prosody Interface</strong> and <strong>LexiRep Training</strong> will communicate through this backend.
+        </div>
       </div>
     </div>
   )
