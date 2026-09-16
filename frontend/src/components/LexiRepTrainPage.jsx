@@ -361,7 +361,7 @@ export default function LexiRepTrainPage({ onBack }) {
           // Network hiccup during polling — keep retrying
           console.warn('[LexiRep] Polling status ping failed, retrying...', pollErr)
         }
-      }, 1000)
+      }, 500)
     } catch (err) {
       console.error('[LexiRep] Training initiation failed:', err)
       setError(err.message || 'An unexpected error occurred during dataset upload.')
@@ -593,18 +593,26 @@ export default function LexiRepTrainPage({ onBack }) {
             </AnimatePresence>
           </div>
 
-          <div className="lexirep-loop-counter">
-            Loop <span className="highlight">{currentLoop}</span> / {totalLoops}
-          </div>
-
-          {/* Minimalist 2px Progress Bar right under text */}
-          <div className="lexirep-progress-track">
-            <motion.div
-              className="lexirep-progress-fill"
-              initial={{ width: '0%' }}
-              animate={{ width: `${Math.max(progress, 5)}%` }}
-              transition={{ ease: 'easeOut', duration: 0.35 }}
-            />
+          {/* Minimalist Progress Container with seamlessly iterating loop count & percentage */}
+          <div className="lexirep-progress-container">
+            <div className="lexirep-progress-meta">
+              <span className="lexirep-progress-loop">
+                {currentLoop > 0 ? (
+                  <>loop <span className="highlight">{currentLoop}</span> of {totalLoops}</>
+                ) : (
+                  'initializing pipeline'
+                )}
+              </span>
+              <span className="lexirep-progress-percent">{Math.min(100, Math.max(0, progress))}%</span>
+            </div>
+            <div className="lexirep-progress-track">
+              <motion.div
+                className="lexirep-progress-fill"
+                initial={{ width: '0%' }}
+                animate={{ width: `${Math.max(progress, 4)}%` }}
+                transition={{ ease: 'easeOut', duration: 0.3 }}
+              />
+            </div>
           </div>
         </motion.div>
       )}

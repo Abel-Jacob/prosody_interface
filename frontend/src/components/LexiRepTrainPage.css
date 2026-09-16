@@ -317,29 +317,48 @@
   line-height: 1.4;
 }
 
-.lexirep-loop-counter {
-  font-family: Helvetica, Arial, sans-serif;
-  font-size: 0.85rem;
-  font-weight: 400;
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
+/* Minimalist Progress Container: loop count & percentage alongside 2px track */
+.lexirep-progress-container {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
 }
 
-.lexirep-loop-counter .highlight {
+.lexirep-progress-meta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+}
+
+.lexirep-progress-meta .highlight {
   color: var(--accent);
   font-weight: 500;
 }
 
-/* Minimalist Progress Bar: clean 2px line right under text */
+.lexirep-progress-percent {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
 .lexirep-progress-track {
   width: 100%;
-  max-width: 400px;
   height: 2px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
   position: relative;
-  margin-top: 4px;
 }
 
 .lexirep-progress-fill {
@@ -347,7 +366,7 @@
   border-radius: 2px;
   background: var(--accent);
   box-shadow: none;
-  transition: width 0.35s ease;
+  transition: width 0.3s ease;
 }
 
 .lexirep-orb-scale {

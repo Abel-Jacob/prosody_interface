@@ -745,9 +745,12 @@ def run_lexirep_training(
 
     for loop in range(1, epochs + 1):
         log_lexirep(f"[LexiRep Training] Starting Loop {loop}/{epochs}...")
+        loop_start_prog = int(14 + ((loop - 1) / epochs) * 82)
         if on_progress:
             on_progress({
                 "current_loop": loop,
+                "total_loops": epochs,
+                "progress": loop_start_prog,
                 "log": f"Loop {loop}/{epochs}: Running SupCon contrastive learning & IDEC joint clustering..."
             })
 
@@ -775,6 +778,15 @@ def run_lexirep_training(
             h_te = cl_encoder(torch.tensor(X_test, dtype=torch.float32).to(device))
             h_rs = cl_encoder(torch.tensor(rs_vec, dtype=torch.float32).to(device))
             h_ru = cl_encoder(torch.tensor(ru_vec, dtype=torch.float32).to(device))
+
+        loop_mid_prog = int(14 + ((loop - 0.5) / epochs) * 82)
+        if on_progress:
+            on_progress({
+                "current_loop": loop,
+                "total_loops": epochs,
+                "progress": loop_mid_prog,
+                "log": f"Loop {loop}/{epochs}: IDEC joint clustering & polar alignment..."
+            })
 
         # 6c. IDEC Joint Clustering
         idec_model.train()
