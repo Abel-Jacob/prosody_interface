@@ -331,14 +331,9 @@ export default function LexiRepTrainPage({ onBack }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
         >
-          {/* Performance Recommendation Tip */}
-          <div className="lexirep-tip-banner">
-            <div className="lexirep-tip-badge">RECOMMENDED</div>
-            <div className="lexirep-tip-text">
-              <strong>Speed Tip:</strong> Upload a precomputed <code>.npz</code> cache file for instant training (~10× faster).
-              If you upload a <code>.csv</code> dataset, it will be automatically parsed, filtered, and converted to an optimized <code>.npz</code> cache before training.
-            </div>
-          </div>
+          <p className="lexirep-upload-note">
+            Use a precomputed <code>.npz</code> cache for faster training. CSV files are converted automatically.
+          </p>
 
           <input
             type="file"
