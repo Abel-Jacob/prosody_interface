@@ -218,6 +218,7 @@ async def root():
             "health": "/health",
             "websocket": "/api/ws/audio",
             "jobs_create": "POST /api/jobs",
+            "jobs_list": "GET /api/jobs",
             "jobs_status": "GET /api/jobs/{job_id}",
         },
     }

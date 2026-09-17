@@ -16,7 +16,7 @@ from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 
-from database import create_job, get_job
+from database import create_job, get_job, get_recent_jobs
 from config import AUDIO_UPLOADS_DIR, ANNOTATIONS_DIR
 from schemas import JobResponse, JobCreateResponse, JobStatus, JobResult
 from pipeline.annotation import build_annotation
@@ -24,6 +24,31 @@ from pipeline.annotation import build_annotation
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
+
+
+@router.get("/jobs")
+async def list_recent_jobs(limit: int = 20):
+    """
+    List recent jobs and provide usage hint.
+    Prevents 405 Method Not Allowed when accessed via browser or GET.
+    """
+    jobs = get_recent_jobs(limit=limit)
+    return {
+        "status": "ok",
+        "message": "Prosody Interface Job API. To submit a new job, send a POST request with multipart/form-data containing 'audio'.",
+        "count": len(jobs),
+        "jobs": [
+            {
+                "job_id": j["job_id"],
+                "status": j["status"],
+                "progress": j["progress"],
+                "created_at": j["created_at"],
+                "completed_chunks": j.get("completed_chunks", 0),
+                "total_chunks": j.get("total_chunks", 0),
+            }
+            for j in jobs
+        ],
+    }
 
 
 @router.post("/jobs", response_model=JobCreateResponse)

@@ -76,6 +76,17 @@ def get_job(job_id: str) -> Optional[dict]:
         return _row_to_dict(row)
 
 
+def get_recent_jobs(limit: int = 50) -> list[dict]:
+    """Fetch recent jobs ordered by creation time descending."""
+    with get_connection() as conn:
+        rows = conn.execute(
+            """SELECT * FROM jobs
+               ORDER BY created_at DESC LIMIT ?""",
+            (limit,),
+        ).fetchall()
+        return [_row_to_dict(row) for row in rows]
+
+
 def get_next_queued_job() -> Optional[dict]:
     """Fetch the oldest queued job (FIFO). Returns None if queue is empty."""
     with get_connection() as conn:

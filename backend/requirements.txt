@@ -28,8 +28,8 @@ scipy>=1.10.0            # MAE linear programming solver (HiGHS)
 transformers>=4.36.0
 torch>=2.0.0
 
-# Silero VAD (loaded via torch.hub, no separate pip package)
-# Already covered by torch
+# Silero VAD (loaded via torch.hub)
+onnxruntime>=1.16.0
 
 # Syllable-level lexical stress (LexiRep)
 pyphen>=0.14.0
