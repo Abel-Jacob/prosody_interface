@@ -54,9 +54,10 @@ export default function ProsodyWord({
 
   // Strip trailing punctuation from the word for character rendering
   // but keep it as a suffix to display after the deformed characters
-  const punctMatch = word.match(/([.,!?;:"'\-]+)$/)
+  const safeWord = typeof word === 'string' ? word : (word != null ? String(word) : '')
+  const punctMatch = safeWord.match(/([.,!?;:"'-]+)$/)
   const punctuation = punctMatch ? punctMatch[1] : ''
-  const cleanWord = punctuation ? word.slice(0, -punctuation.length) : word
+  const cleanWord = punctuation ? safeWord.slice(0, -punctuation.length) : safeWord
 
   // Build per-character scale values
   const chars = cleanWord.split('')

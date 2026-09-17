@@ -223,14 +223,14 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
         <div className="tooltip-row">
           <span className="tooltip-label">Timing</span>
           <span className="tooltip-value">
-            {startVal !== undefined ? startVal.toFixed(2) : '0.00'}s ➔ {endVal !== undefined ? endVal.toFixed(2) : '0.00'}s
+            {startVal != null ? Number(startVal).toFixed(2) : '0.00'}s ➔ {endVal != null ? Number(endVal).toFixed(2) : '0.00'}s
           </span>
         </div>
 
         <div className="tooltip-row">
           <span className="tooltip-label">ASR Score</span>
           <span className="tooltip-value">
-            {(wordData.confidence * 100).toFixed(1)}%
+            {(((wordData.confidence ?? wordData.asr_confidence ?? 1.0)) * 100).toFixed(1)}%
           </span>
         </div>
 
@@ -249,7 +249,7 @@ export default function ProsodyTooltip({ wordData, wordRef, onClose }) {
             <span className="tooltip-value" style={{
               color: wordData.pause_after > 0.5 ? '#f97316' : 'inherit',
             }}>
-              {wordData.pause_after.toFixed(2)}s
+              {(wordData.pause_after || 0).toFixed(2)}s
             </span>
           </div>
         )}

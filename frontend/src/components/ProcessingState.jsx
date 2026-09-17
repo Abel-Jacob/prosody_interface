@@ -2,7 +2,7 @@ import React from 'react'
 import { ThinkingOrb } from 'thinking-orbs'
 import { useJobPolling } from '../services/useJobPolling'
 
-export default function ProcessingState({ jobId, onComplete }) {
+export default function ProcessingState({ jobId, onComplete, onReset }) {
   const { progress, status, currentStage, error } = useJobPolling(jobId, onComplete)
 
   const getStageDisplay = () => {
@@ -53,7 +53,52 @@ export default function ProcessingState({ jobId, onComplete }) {
       <div className="page-path" aria-label="Current page">PROSODY / INTERFACE</div>
 
       {error ? (
-        <h1 style={{ color: 'var(--error)' }}>Error: {error}</h1>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          gap: '1rem',
+          maxWidth: '28rem'
+        }}>
+          <h2 style={{
+            color: 'var(--error, #f87171)',
+            fontFamily: 'var(--font-mono, monospace)',
+            fontSize: '1rem',
+            margin: 0,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em'
+          }}>
+            Processing Failed
+          </h2>
+          <p style={{
+            color: 'var(--text-muted, #888)',
+            fontSize: '0.8rem',
+            lineHeight: 1.6,
+            margin: 0
+          }}>
+            {error}
+          </p>
+          <button
+            type="button"
+            onClick={onReset || (() => window.location.reload())}
+            style={{
+              padding: '8px 18px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-strong, #444)',
+              background: 'transparent',
+              color: 'var(--text-primary, #fff)',
+              fontFamily: 'var(--font-mono, monospace)',
+              fontSize: '0.72rem',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              marginTop: '0.5rem'
+            }}
+          >
+            ← Back to Recorder
+          </button>
+        </div>
       ) : (
         <>
           <div className="processing-orb-wrapper" style={{

@@ -18,6 +18,7 @@ export function useJobPolling(jobId, onComplete) {
     let isPolling = true
     let timeoutId
     let pollCount = 0
+    let consecutiveErrors = 0
 
     const pollJob = async () => {
       if (!isPolling) return
@@ -41,6 +42,7 @@ export function useJobPolling(jobId, onComplete) {
             setCurrentStage(data.current_stage)
           }
           
+          consecutiveErrors = 0
           if (data.status === 'complete') {
             if (onCompleteRef.current) {
               onCompleteRef.current(data.result)
@@ -53,8 +55,12 @@ export function useJobPolling(jobId, onComplete) {
         }
       } catch (err) {
         if (isPolling) {
-          setError(err.message)
-          return // Stop polling on error to prevent infinite loops
+          consecutiveErrors++
+          console.warn(`[useJobPolling] Transient polling error (${consecutiveErrors}/5):`, err.message)
+          if (consecutiveErrors >= 5) {
+            setError(`Connection lost: ${err.message}`)
+            return // Stop polling only after repeated failures
+          }
         }
       }
       

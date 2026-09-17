@@ -39,6 +39,7 @@ export default function AudioPlayer({ src, style }) {
   // Listen for spacebar to play/pause when player is mounted
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(e.target?.tagName) || e.target?.isContentEditable) return
       if (e.code === 'Space') {
         e.preventDefault()
         handlePlayPause()

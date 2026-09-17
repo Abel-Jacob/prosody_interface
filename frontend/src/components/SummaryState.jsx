@@ -20,9 +20,11 @@ const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
  * - Returns a new array with hesitation words removed.
  */
 function preprocessWords(words) {
+  if (!Array.isArray(words) || words.length === 0) return []
   const result = []
   for (let i = 0; i < words.length; i++) {
     const w = words[i]
+    if (!w) continue
     if (w.is_hesitation && result.length > 0) {
       // Merge this filler's entire span into the previous word's pause
       const prev = result[result.length - 1]

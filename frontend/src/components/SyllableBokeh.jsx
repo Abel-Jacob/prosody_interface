@@ -26,6 +26,7 @@ export default function SyllableBokeh({ wordData, onClose }) {
   const [activeModel, setActiveModel] = useState(() => {
     return localStorage.getItem('lexirep_active_model') || 'fused'
   })
+  const [selectedSylIdx, setSelectedSylIdx] = useState(null)
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -53,9 +54,6 @@ export default function SyllableBokeh({ wordData, onClose }) {
   // Syllables from LexiRep
   const syllables = wordData.syllables || null
   const isPolysyllabic = Array.isArray(syllables) && syllables.length > 1
-
-  // Selected syllable for interactive inspection
-  const [selectedSylIdx, setSelectedSylIdx] = useState(null)
 
   // Helper functions for model-specific stress
   const getIsSylStressed = (syl) => {

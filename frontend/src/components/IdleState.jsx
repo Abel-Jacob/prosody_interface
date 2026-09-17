@@ -12,9 +12,10 @@ export default function IdleState({ onStart, onUpload, onBack }) {
 
   const fileInputRef = useRef(null)
 
-  // Listen for spacebar to start speaking *only* when no file is uploaded
+  // Listen for spacebar to start speaking *only* when no file is uploaded and not typing in an input
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(e.target?.tagName) || e.target?.isContentEditable) return
       if (e.code === 'Space') {
         if (!selectedFile && !selectedFiles) {
           e.preventDefault()

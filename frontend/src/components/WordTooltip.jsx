@@ -92,8 +92,11 @@ export default function WordTooltip({ wordData, phraseIntonation, wordRef, onClo
   const range = wordData.pitch_range !== undefined && wordData.pitch_range !== null ? wordData.pitch_range : phraseIntonation?.pitch_range;
   const rangeStr = range != null ? `${range.toFixed(1)} Hz` : 'N/A';
 
-  // Duration
-  const durationMs = Math.round((wordData.end_time - wordData.start_time) * 1000);
+  // Duration & Confidence
+  const sTime = wordData.start_time ?? wordData.start ?? 0;
+  const eTime = wordData.end_time ?? wordData.end ?? 0;
+  const durationMs = Math.round((eTime - sTime) * 1000);
+  const confVal = wordData.asr_confidence ?? wordData.confidence ?? 1.0;
 
   const tooltipContent = (
     <motion.div
@@ -112,7 +115,7 @@ export default function WordTooltip({ wordData, phraseIntonation, wordRef, onClo
       <div className="word-tooltip-content" style={{ minWidth: '170px' }}>
         <div className="tooltip-row">
           <span className="tooltip-label">Timing:</span>
-          <span className="tooltip-value">{wordData.start_time.toFixed(2)}s ➔ {wordData.end_time.toFixed(2)}s</span>
+          <span className="tooltip-value">{sTime.toFixed(2)}s ➔ {eTime.toFixed(2)}s</span>
         </div>
         <div className="tooltip-row">
           <span className="tooltip-label">Duration:</span>
@@ -120,7 +123,7 @@ export default function WordTooltip({ wordData, phraseIntonation, wordRef, onClo
         </div>
         <div className="tooltip-row">
           <span className="tooltip-label">ASR Score:</span>
-          <span className="tooltip-value">{(wordData.asr_confidence * 100).toFixed(1)}%</span>
+          <span className="tooltip-value">{(confVal * 100).toFixed(1)}%</span>
         </div>
         
         <div className="tooltip-row">

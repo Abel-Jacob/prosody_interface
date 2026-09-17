@@ -109,6 +109,7 @@ export default function ListeningState({ onStop }) {
   // Separate effect for keydown so handleStop is always up-to-date
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(e.target?.tagName) || e.target?.isContentEditable) return
       if (e.code === 'Space') {
         e.preventDefault()
         handleStop()

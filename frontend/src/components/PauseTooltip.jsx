@@ -71,7 +71,7 @@ export default function PauseTooltip({ pauseVal, dotsRef }) {
             <div className="tooltip-row">
               <span className="tooltip-label">Pause:</span>
           <span className="tooltip-value" style={{ color: '#f97316' }}>
-            {pauseVal.toFixed(2)}s
+            {(pauseVal || 0).toFixed(2)}s
           </span>
             </div>
           </div>

@@ -79,7 +79,12 @@ function App({ onBack }) {
         body: formData,
       })
       if (!response.ok) {
-        throw new Error(`Failed to upload audio: ${response.statusText}`)
+        let errMsg = response.statusText
+        try {
+          const errData = await response.json()
+          if (errData?.detail) errMsg = errData.detail
+        } catch (_) {}
+        throw new Error(errMsg)
       }
       const data = await response.json()
       setJobId(data.job_id)
@@ -140,6 +145,7 @@ function App({ onBack }) {
             <ProcessingState 
               jobId={jobId} 
               onComplete={handleProcessingComplete} 
+              onReset={handleReset}
             />
           </motion.div>
         )}
