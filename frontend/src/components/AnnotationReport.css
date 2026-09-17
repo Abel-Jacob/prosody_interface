@@ -647,6 +647,66 @@
   font-weight: 600;
 }
 
+.table-syl-pill.clickable-pill {
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.table-syl-pill.clickable-pill:hover {
+  border-color: var(--accent);
+  background: rgba(196, 149, 106, 0.12);
+  color: var(--text-primary);
+}
+
+.word-syllable-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+  padding: 1px 5px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--overlay-border);
+  border-radius: 3px;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  user-select: none;
+}
+
+.word-syllable-tag:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(196, 149, 106, 0.1);
+}
+
+.word-syllable-tag .tag-dot {
+  color: var(--text-faded);
+}
+
+.word-syllable-tag .tag-stressed {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.clickable-syl-row {
+  cursor: pointer;
+  transition: background-color var(--transition-base);
+}
+
+.clickable-syl-row:hover {
+  background-color: rgba(196, 149, 106, 0.08) !important;
+}
+
+.annotation-report-body {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .detail-section-title {
   font-size: 0.65rem;
   color: var(--accent);

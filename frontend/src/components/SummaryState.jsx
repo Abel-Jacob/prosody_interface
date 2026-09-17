@@ -204,7 +204,7 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
           flexDirection: 'column',
           alignItems: 'center',
           minHeight: 0,
-          filter: inspectedWord ? 'blur(16px) brightness(0.35) saturate(1.2)' : 'none',
+          filter: inspectedWord ? 'blur(18px) brightness(0.85) saturate(1.25)' : 'none',
           transform: inspectedWord ? 'scale(0.985)' : 'scale(1)',
           transition: 'filter 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
           pointerEvents: inspectedWord ? 'none' : 'auto',

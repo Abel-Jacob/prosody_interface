@@ -10,14 +10,84 @@
 .syllable-bokeh-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 10000;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(8, 8, 10, 0.55);
+  background: rgba(12, 11, 10, 0.35);
+  backdrop-filter: blur(28px) saturate(150%) contrast(92%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%) contrast(92%);
   cursor: pointer;
   overflow: hidden;
+}
+
+/* Ambient optical bokeh light circles */
+.syllable-bokeh-orbs {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.bokeh-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.38;
+  animation: floatBokeh 14s ease-in-out infinite alternate;
+}
+
+.bokeh-orb-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(196, 149, 106, 0.55) 0%, rgba(196, 149, 106, 0) 70%);
+  top: 12%;
+  left: 18%;
+  animation-duration: 16s;
+}
+
+.bokeh-orb-2 {
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, rgba(255, 140, 56, 0.4) 0%, rgba(255, 140, 56, 0) 70%);
+  bottom: 18%;
+  right: 20%;
+  animation-duration: 20s;
+  animation-delay: -5s;
+}
+
+.bokeh-orb-3 {
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(235, 195, 155, 0.3) 0%, rgba(235, 195, 155, 0) 70%);
+  top: 42%;
+  right: 32%;
+  animation-duration: 18s;
+  animation-delay: -9s;
+}
+
+.bokeh-orb-4 {
+  width: 550px;
+  height: 550px;
+  background: radial-gradient(circle, rgba(160, 100, 50, 0.22) 0%, rgba(160, 100, 50, 0) 70%);
+  bottom: 8%;
+  left: 28%;
+  animation-duration: 22s;
+  animation-delay: -3s;
+}
+
+@keyframes floatBokeh {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(30px, -25px) scale(1.1);
+  }
+  100% {
+    transform: translate(-25px, 30px) scale(0.92);
+  }
 }
 
 /* ── Central card ─────────────────────────────────────────────── */
@@ -116,8 +186,21 @@
   font-weight: 300;
   color: var(--text-primary, #fff);
   letter-spacing: 0.02em;
-  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   position: relative;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 6px;
+}
+
+.syllable-bokeh-syl:hover {
+  transform: translateY(-2px) scale(1.04);
+}
+
+.syllable-bokeh-syl.focused {
+  transform: translateY(-2px) scale(1.08);
+  outline: 2px dashed var(--accent);
+  outline-offset: 4px;
 }
 
 /* ── Separator between syllables ──────────────────────────────── */

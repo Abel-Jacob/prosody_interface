@@ -565,7 +565,15 @@ export default function AnnotationReport({ data, onBack }) {
                 {syllables.map((syl, idx) => (
                   <React.Fragment key={idx}>
                     {idx > 0 && <span className="syllable-chip-sep">·</span>}
-                    <div className={`syllable-chip ${syl.stressed ? 'is-stressed' : ''}`}>
+                    <div
+                      className={`syllable-chip ${syl.stressed ? 'is-stressed' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedBokehWord(w)
+                      }}
+                      style={{ cursor: 'pointer' }}
+                      title={`Click to view Syllable Bokeh for "${w.word}" (${syl.text})`}
+                    >
                       <span className="syllable-chip-text">{syl.text}</span>
                       {syl.stressed && <span className="syllable-chip-badge">PRIMARY</span>}
                     </div>
@@ -592,7 +600,16 @@ export default function AnnotationReport({ data, onBack }) {
                       : '—'
 
                     return (
-                      <tr key={sIdx} className={syl.stressed ? 'syl-row-stressed' : ''}>
+                      <tr
+                        key={sIdx}
+                        className={`clickable-syl-row ${syl.stressed ? 'syl-row-stressed' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedBokehWord(w)
+                        }}
+                        style={{ cursor: 'pointer' }}
+                        title="Click to view syllable bokeh effect"
+                      >
                         <td className="syl-col-text">
                           <strong>{syl.text}</strong>
                         </td>
@@ -657,9 +674,25 @@ export default function AnnotationReport({ data, onBack }) {
 
   return (
     <div className="annotation-report-container" onClick={handlePageClick}>
-      {/* Header controls & stats */}
-      <header className="report-header">
-        <div className="header-title-section">
+      {/* Background content layer — blurs into authentic optical bokeh when a syllable is inspected */}
+      <div
+        className="annotation-report-body"
+        style={{
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          minHeight: 0,
+          filter: selectedBokehWord ? 'blur(18px) brightness(0.85) saturate(1.25)' : 'none',
+          transform: selectedBokehWord ? 'scale(0.985)' : 'scale(1)',
+          transition: 'filter 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+          pointerEvents: selectedBokehWord ? 'none' : 'auto',
+          userSelect: selectedBokehWord ? 'none' : 'auto',
+        }}
+      >
+        {/* Header controls & stats */}
+        <header className="report-header">
+          <div className="header-title-section">
           <h1 style={{ fontFamily: "var(--font-primary)" }}>Annotation Report</h1>
 
           <div className="metadata-row">
@@ -873,6 +906,25 @@ export default function AnnotationReport({ data, onBack }) {
                                   <span className="stress-dot" style={{ opacity: stressOpacity }} />
                                 )}
                               </div>
+                              {w.syllables && w.syllables.length > 1 && (
+                                <span
+                                  className="word-syllable-tag"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setSelectedBokehWord(w)
+                                  }}
+                                  title={`Inspect syllable bokeh for "${w.word}"`}
+                                >
+                                  {w.syllables.map((s, idx) => (
+                                    <React.Fragment key={idx}>
+                                      {idx > 0 && <span className="tag-dot">·</span>}
+                                      <span className={s.stressed ? 'tag-stressed' : ''}>
+                                        {s.stressed ? s.text.toUpperCase() : s.text}
+                                      </span>
+                                    </React.Fragment>
+                                  ))}
+                                </span>
+                              )}
                             </div>
 
                             {/* Render visual pause marker if present */}
@@ -945,7 +997,14 @@ export default function AnnotationReport({ data, onBack }) {
                                         {w.word}
                                       </span>
                                       {isPoly && (
-                                        <span className="table-syl-pill" title={`LexiRep: ${syllables.map((s) => s.text).join('·')}`}>
+                                        <span
+                                          className="table-syl-pill clickable-pill"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            setSelectedBokehWord(w)
+                                          }}
+                                          title={`Click to view Syllable Bokeh for "${w.word}"`}
+                                        >
                                           {syllables.map((s, idx) => (
                                             <React.Fragment key={idx}>
                                               {idx > 0 && <span className="syl-dot">·</span>}
@@ -1070,8 +1129,9 @@ export default function AnnotationReport({ data, onBack }) {
           </section>
         )}
       </main>
+    </div>
 
-      {/* Interactive LexiRep Syllable Bokeh Modal */}
+    {/* Interactive LexiRep Syllable Bokeh Modal */}
       <AnimatePresence>
         {selectedBokehWord && (
           <SyllableBokeh

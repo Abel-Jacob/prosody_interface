@@ -54,6 +54,9 @@ export default function SyllableBokeh({ wordData, onClose }) {
   const syllables = wordData.syllables || null
   const isPolysyllabic = Array.isArray(syllables) && syllables.length > 1
 
+  // Selected syllable for interactive inspection
+  const [selectedSylIdx, setSelectedSylIdx] = useState(null)
+
   // Helper functions for model-specific stress
   const getIsSylStressed = (syl) => {
     if (syl.models && syl.models[activeModel]) {
@@ -84,9 +87,17 @@ export default function SyllableBokeh({ wordData, onClose }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
+      transition={{ duration: 0.28, ease: 'easeOut' }}
       onClick={onClose}
     >
+      {/* Optical bokeh background light discs */}
+      <div className="syllable-bokeh-orbs" aria-hidden="true">
+        <div className="bokeh-orb bokeh-orb-1" />
+        <div className="bokeh-orb bokeh-orb-2" />
+        <div className="bokeh-orb bokeh-orb-3" />
+        <div className="bokeh-orb bokeh-orb-4" />
+      </div>
+
       {/* Center Bokeh Presentation Card */}
       <motion.div
         className="syllable-bokeh-card"
@@ -127,12 +138,17 @@ export default function SyllableBokeh({ wordData, onClose }) {
             syllables.map((syl, idx) => {
               const isStressed = getIsSylStressed(syl)
               const margin = getSylMargin(syl)
+              const isSelected = selectedSylIdx === idx
               return (
                 <React.Fragment key={idx}>
                   {idx > 0 && <span className="syllable-bokeh-sep">·</span>}
                   <span
-                    className={`syllable-bokeh-syl ${isStressed ? 'stressed' : ''}`}
-                    title={isStressed ? `Primary stress (margin: ${margin ?? 'N/A'})` : `Unstressed (margin: ${margin ?? 'N/A'})`}
+                    className={`syllable-bokeh-syl ${isStressed ? 'stressed' : ''} ${isSelected ? 'focused' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedSylIdx(selectedSylIdx === idx ? null : idx)
+                    }}
+                    title={isStressed ? `Primary stress (margin: ${margin ?? 'N/A'}). Click to inspect.` : `Unstressed (margin: ${margin ?? 'N/A'}). Click to inspect.`}
                   >
                     {syl.text}
                   </span>
@@ -150,17 +166,41 @@ export default function SyllableBokeh({ wordData, onClose }) {
         {/* Sub-label describing stress status */}
         <div className="syllable-bokeh-info">
           {isPolysyllabic ? (
-            <span>
-              {activeModelOption.label} primary stress on syllable:{' '}
-              <strong style={{ color: '#ffffff', letterSpacing: '0.04em' }}>
-                "{activeStressedSyl ? activeStressedSyl.text.toUpperCase() : 'N/A'}"
-              </strong>
-              {activeMargin != null && (
-                <span style={{ opacity: 0.7, marginLeft: '6px' }}>
-                  (margin: {activeMargin > 0 ? `+${activeMargin}` : activeMargin})
+            (() => {
+              const currentSyl = selectedSylIdx !== null ? syllables[selectedSylIdx] : activeStressedSyl
+              const isCurrStressed = currentSyl ? getIsSylStressed(currentSyl) : false
+              const currMargin = currentSyl ? getSylMargin(currentSyl) : null
+
+              return (
+                <span>
+                  {selectedSylIdx !== null ? (
+                    <>
+                      Syllable <strong style={{ color: '#ffffff' }}>"{currentSyl?.text?.toUpperCase()}"</strong>:{' '}
+                      <span style={{ color: isCurrStressed ? 'var(--accent)' : 'var(--text-muted)', fontWeight: 600 }}>
+                        {isCurrStressed ? 'PRIMARY STRESS' : 'UNSTRESSED'}
+                      </span>
+                      {currMargin != null && (
+                        <span style={{ opacity: 0.75, marginLeft: '6px' }}>
+                          (margin: {currMargin > 0 ? `+${currMargin}` : currMargin})
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {activeModelOption.label} primary stress on syllable:{' '}
+                      <strong style={{ color: '#ffffff', letterSpacing: '0.04em' }}>
+                        "{activeStressedSyl ? activeStressedSyl.text.toUpperCase() : 'N/A'}"
+                      </strong>
+                      {activeMargin != null && (
+                        <span style={{ opacity: 0.75, marginLeft: '6px' }}>
+                          (margin: {activeMargin > 0 ? `+${activeMargin}` : activeMargin})
+                        </span>
+                      )}
+                    </>
+                  )}
                 </span>
-              )}
-            </span>
+              )
+            })()
           ) : (
             <span>Monosyllabic word — single syllable (no intra-word stress contrast)</span>
           )}
