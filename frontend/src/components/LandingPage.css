@@ -1,5 +1,6 @@
 .landing-container {
   min-height: 100vh;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -67,25 +68,25 @@
 
 /* ── Seamless Minimalist Backend Connection Bar ── */
 .landing-backend-bar {
-  position: absolute;
-  bottom: 36px;
+  position: fixed;
+  bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(calc(100% - 64px), 480px);
-  margin: 0 auto;
+  width: min(calc(100% - 48px), 460px);
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 7px 16px;
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(18, 17, 16, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   transition: all 0.2s ease;
-  z-index: 10;
+  z-index: 50;
   outline: none !important;
-  box-shadow: none !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }
 
 .landing-backend-bar:focus-within {
@@ -202,33 +203,33 @@
 }
 
 @media (max-width: 640px) {
-  .landing-container { padding-top: 88px; padding-bottom: 48px; }
+  .landing-container { padding-top: 88px; padding-bottom: 72px; }
   .landing-title { align-self: flex-start; margin-bottom: 28px; font-size: 2rem; }
   .landing-cards { width: 100%; flex-direction: column; gap: 12px; }
   .landing-card { width: 100%; min-height: 180px; padding: 24px; }
   .landing-divider { justify-content: center; margin: 0; }
   .landing-divider-line { width: 48px; height: 1px; }
   .landing-backend-bar {
-    position: relative;
-    bottom: auto;
+    position: fixed;
+    bottom: 16px;
     left: 50%;
     transform: translateX(-50%);
-    width: min(100%, 480px);
-    margin: 36px auto 0;
+    width: min(calc(100% - 32px), 440px);
+    margin: 0;
   }
 }
 
 @media (max-height: 640px) {
   .landing-container {
     justify-content: flex-start;
-    padding-top: 72px;
-    padding-bottom: 36px;
+    padding-top: 56px;
+    padding-bottom: 72px;
   }
   .landing-backend-bar {
-    position: relative;
-    bottom: auto;
+    position: fixed;
+    bottom: 16px;
     left: 50%;
     transform: translateX(-50%);
-    margin: 36px auto 0;
+    margin: 0;
   }
 }

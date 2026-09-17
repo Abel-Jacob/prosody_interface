@@ -94,6 +94,7 @@ export default function AppRouter() {
         {page === 'landing' && (
           <motion.div
             key="landing"
+            style={{ width: '100%', minHeight: '100vh', position: 'relative' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
