@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './AnnotationReport.css'
 import ProsodyWord from './ProsodyWord'
+import SyllableBokeh from './SyllableBokeh'
 
 
 // Arrow icon mapping
@@ -17,6 +18,7 @@ export default function AnnotationReport({ data, onBack }) {
   const [expandedWordIndex, setExpandedWordIndex] = useState(null)
   const [viewMode, setViewMode] = useState('transcript') // 'transcript' | 'table'
   const [expandedSegmentIndex, setExpandedSegmentIndex] = useState(null)
+  const [selectedBokehWord, setSelectedBokehWord] = useState(null)
 
 
   const handleTranscriptWordClick = (w, e) => {
@@ -100,10 +102,24 @@ export default function AnnotationReport({ data, onBack }) {
       'word_index',
       'phrase_index',
       'asr_confidence_pct',
-      'is_hesitation'
+      'is_hesitation',
+      'syllables_breakdown',
+      'stressed_syllable',
+      'lexirep_margin'
     ]
     const wordRows = []
     words.forEach((w) => {
+      const syls = Array.isArray(w.syllables) ? w.syllables : null
+      const isPoly = syls && syls.length > 1
+      const stressedSyl = isPoly ? syls.find((s) => s.stressed) : null
+      const sylBreakdown = isPoly
+        ? syls.map((s) => (s.stressed ? s.text.toUpperCase() : s.text)).join('·')
+        : ''
+      const stressedSylText = stressedSyl ? stressedSyl.text : ''
+      const lexirepMargin = stressedSyl && stressedSyl.stress_margin !== undefined && stressedSyl.stress_margin !== null
+        ? Number(stressedSyl.stress_margin).toFixed(4)
+        : ''
+
       // 1. Add the word itself
       wordRows.push([
         `"${w.word.replace(/"/g, '""')}"`, // transcription
@@ -114,7 +130,10 @@ export default function AnnotationReport({ data, onBack }) {
         w.word_index,                      // word_index
         w.phrase_index,                    // phrase_index
         `${Math.round((w.asr_confidence || 1.0) * 100)}%`, // ASR confidence in %
-        w.is_hesitation ? 'TRUE' : 'FALSE' // is_hesitation
+        w.is_hesitation ? 'TRUE' : 'FALSE', // is_hesitation
+        sylBreakdown ? `"${sylBreakdown}"` : '',
+        stressedSylText ? `"${stressedSylText}"` : '',
+        lexirepMargin
       ].join(','))
 
       // 2. If a pause exists immediately following, add it as a separate [PAUSE] row
@@ -127,7 +146,10 @@ export default function AnnotationReport({ data, onBack }) {
           '',                               // word_index (empty)
           '',                               // phrase_index (empty)
           '',                               // asr_confidence_pct (empty)
-          ''                                // is_hesitation (empty)
+          '',                               // is_hesitation (empty)
+          '',                               // syllables_breakdown (empty)
+          '',                               // stressed_syllable (empty)
+          ''                                // lexirep_margin (empty)
         ].join(','))
       }
     })
@@ -137,13 +159,61 @@ export default function AnnotationReport({ data, onBack }) {
       '# SECTION 3: WORD LEVEL TIMESTAMPS, STRESS & PAUSES        #',
       '# ======================================================== #',
       wordHeaders.join(','),
-      ...wordRows
+      ...wordRows,
+      ''
+    ]
+
+    // Section 4: Syllable Level Lexical Stress (LexiRep)
+    const syllableHeaders = [
+      'word_index',
+      'word',
+      'start_time',
+      'end_time',
+      'syllable_index',
+      'syllable_text',
+      'is_primary_stress',
+      'stress_margin',
+      'fused_margin',
+      'ensemble_margin',
+      'ger_margin',
+      'ita_margin'
+    ]
+    const syllableRows = []
+    words.forEach((w) => {
+      if (Array.isArray(w.syllables) && w.syllables.length > 0) {
+        w.syllables.forEach((syl, sylIdx) => {
+          const m = syl.models || {}
+          syllableRows.push([
+            w.word_index,
+            `"${w.word.replace(/"/g, '""')}"`,
+            w.start_time.toFixed(3),
+            w.end_time.toFixed(3),
+            sylIdx + 1,
+            `"${syl.text.replace(/"/g, '""')}"`,
+            syl.stressed ? 'TRUE' : 'FALSE',
+            syl.stress_margin !== undefined && syl.stress_margin !== null ? Number(syl.stress_margin).toFixed(4) : '',
+            m.fused?.margin !== undefined ? Number(m.fused.margin).toFixed(4) : '',
+            m.ensemble?.margin !== undefined ? Number(m.ensemble.margin).toFixed(4) : '',
+            m.ger?.margin !== undefined ? Number(m.ger.margin).toFixed(4) : '',
+            m.ita?.margin !== undefined ? Number(m.ita.margin).toFixed(4) : ''
+          ].join(','))
+        })
+      }
+    })
+
+    const section4 = [
+      '# ======================================================== #',
+      '# SECTION 4: SYLLABLE LEVEL LEXICAL STRESS (LEXIREP)       #',
+      '# ======================================================== #',
+      syllableHeaders.join(','),
+      ...syllableRows
     ]
 
     const csvContent = [
       ...section1,
       ...section2,
-      ...section3
+      ...section3,
+      ...section4
     ].join('\n')
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -161,6 +231,10 @@ export default function AnnotationReport({ data, onBack }) {
     // Construct inline pauses in JSON words list
     const jsonWords = []
     words.forEach((w) => {
+      const syls = Array.isArray(w.syllables) ? w.syllables : null
+      const isPoly = syls && syls.length > 1
+      const stressedSyl = isPoly ? syls.find((s) => s.stressed) : null
+
       jsonWords.push({
         word: w.word,
         start_time: w.start_time,
@@ -170,7 +244,11 @@ export default function AnnotationReport({ data, onBack }) {
         word_index: w.word_index,
         phrase_index: w.phrase_index,
         asr_confidence_pct: `${Math.round((w.asr_confidence || 1.0) * 100)}%`,
-        is_hesitation: w.is_hesitation
+        is_hesitation: w.is_hesitation,
+        // Syllable-level lexical stress metrics
+        syllables: w.syllables || null,
+        lexirep_primary_stressed_syllable: stressedSyl?.text || null,
+        lexirep_stress_margin: stressedSyl && stressedSyl.stress_margin !== undefined ? stressedSyl.stress_margin : null
       })
 
       if (w.pause_after && w.pause_after > 0.5) {
@@ -180,13 +258,37 @@ export default function AnnotationReport({ data, onBack }) {
       }
     })
 
+    // Polysyllabic lexical stress breakdown list
+    const syllableStressData = words
+      .filter((w) => Array.isArray(w.syllables) && w.syllables.length > 0)
+      .map((w) => {
+        const stressedSyl = w.syllables.find((s) => s.stressed)
+        return {
+          word_index: w.word_index,
+          word: w.word,
+          start_time: w.start_time,
+          end_time: w.end_time,
+          syllable_count: w.syllables.length,
+          primary_stressed_syllable: stressedSyl?.text || null,
+          stress_margin: stressedSyl?.stress_margin ?? null,
+          syllables: w.syllables
+        }
+      })
+
     // Construct an ordered object to match the user's reading flow with section titles
     const orderedData = {
-      annotation_version: data.annotation_version,
+      annotation_version: data.annotation_version || '1.0',
       generated_at: data.generated_at,
       recording: data.recording,
-      models: data.models,
-      summary: data.summary,
+      models: {
+        ...data.models,
+        syllable_stress_model: data.models?.syllable_stress_model || 'lexirep',
+        syllable_stress_backbone: data.models?.syllable_stress_backbone || 'facebook/wav2vec2-base'
+      },
+      summary: {
+        ...data.summary,
+        polysyllabic_words_count: data.summary?.polysyllabic_words_count ?? syllableStressData.length
+      },
       // 1. Full Transcription
       full_transcription: phrases.map((p) => p.text).join(' '),
       // 2. Phrase Level Intonation
@@ -199,7 +301,10 @@ export default function AnnotationReport({ data, onBack }) {
       })),
       // 3. Word Level Timestamps, Stress, and Pauses
       word_level_timestamps_and_stress: jsonWords,
-      errors: data.errors
+      // 4. Syllable Level Lexical Stress (LexiRep)
+      syllable_level_lexical_stress: syllableStressData,
+      voiced_segments: data.voiced_segments || [],
+      errors: data.errors || []
     }
 
     const blob = new Blob([JSON.stringify(orderedData, null, 2)], { type: 'application/json' })
@@ -376,12 +481,16 @@ export default function AnnotationReport({ data, onBack }) {
     setExpandedWordIndex(null)
   }
 
-  // Complete structured grid of all properties from the JSON file
+  // Complete structured grid of all properties including LexiRep syllable stress
   const renderWordDetailGrid = (w) => {
+    const syllables = Array.isArray(w.syllables) ? w.syllables : null
+    const isPolysyllabic = syllables && syllables.length > 1
+    const stressedSyl = isPolysyllabic ? syllables.find((s) => s.stressed) : null
+
     return (
-      <div className="detail-grid-container" style={{ gridTemplateColumns: '1fr' }}>
+      <div className={`detail-grid-container ${isPolysyllabic ? 'has-syllables' : ''}`}>
         <div>
-          <div className="detail-section-title">Word Properties</div>
+          <div className="detail-section-title">Word & Acoustic Properties</div>
           <table className="property-details-table">
             <tbody>
               {/* 1. Transcription */}
@@ -399,16 +508,148 @@ export default function AnnotationReport({ data, onBack }) {
                 <td className="prop-val">{w.end_time.toFixed(3)}s</td>
               </tr>
               <tr>
+                <td className="prop-key">duration</td>
+                <td className="prop-val">{Math.max(0, (w.end_time - w.start_time)).toFixed(3)}s</td>
+              </tr>
+              <tr>
                 <td className="prop-key">asr_confidence</td>
-                <td className="prop-val">{w.asr_confidence !== undefined ? `${Math.round(w.asr_confidence * 100)}%` : 'null'}</td>
+                <td className="prop-val">
+                  {w.asr_confidence !== undefined ? `${Math.round(w.asr_confidence * 100)}%` : 'null'}
+                </td>
               </tr>
               {/* 3. Stress labels */}
               <tr>
-                <td className="prop-key">stressed</td>
-                <td className="prop-val">{w.stressed ? 'true' : 'false'}</td>
+                <td className="prop-key">sentence_prominence (WhiStress)</td>
+                <td className="prop-val" style={{ color: w.stressed ? 'var(--accent)' : 'inherit', fontWeight: w.stressed ? 600 : 400 }}>
+                  {w.stressed ? 'PROMINENT (TRUE)' : 'FALSE'}
+                </td>
               </tr>
+              {w.pause_after && w.pause_after > 0.05 ? (
+                <tr>
+                  <td className="prop-key">pause_after</td>
+                  <td className="prop-val">{w.pause_after.toFixed(2)}s</td>
+                </tr>
+              ) : null}
+              {w.is_hesitation ? (
+                <tr>
+                  <td className="prop-key">is_hesitation</td>
+                  <td className="prop-val" style={{ color: 'var(--accent)' }}>TRUE</td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
+        </div>
+
+        <div>
+          <div className="detail-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Syllable-Level Lexical Stress (LexiRep)</span>
+            {isPolysyllabic && (
+              <button
+                type="button"
+                className="syllable-bokeh-trigger-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setSelectedBokehWord(w)
+                }}
+                title="Open interactive Syllable Bokeh view"
+              >
+                Inspect Bokeh ↗
+              </button>
+            )}
+          </div>
+
+          {isPolysyllabic ? (
+            <div className="syllable-report-box">
+              {/* Visual Syllable Chips Breakdown */}
+              <div className="syllable-chips-row">
+                {syllables.map((syl, idx) => (
+                  <React.Fragment key={idx}>
+                    {idx > 0 && <span className="syllable-chip-sep">·</span>}
+                    <div className={`syllable-chip ${syl.stressed ? 'is-stressed' : ''}`}>
+                      <span className="syllable-chip-text">{syl.text}</span>
+                      {syl.stressed && <span className="syllable-chip-badge">PRIMARY</span>}
+                    </div>
+                  </React.Fragment>
+                ))}
+              </div>
+
+              {/* Syllable metrics table */}
+              <table className="syllable-metrics-table">
+                <thead>
+                  <tr>
+                    <th>Syllable</th>
+                    <th>Stress</th>
+                    <th>Margin</th>
+                    <th>Model Breakdown</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {syllables.map((syl, sIdx) => {
+                    const models = syl.models || {}
+                    const margin = syl.stress_margin
+                    const marginStr = margin !== undefined && margin !== null
+                      ? (margin > 0 ? `+${margin.toFixed(3)}` : margin.toFixed(3))
+                      : '—'
+
+                    return (
+                      <tr key={sIdx} className={syl.stressed ? 'syl-row-stressed' : ''}>
+                        <td className="syl-col-text">
+                          <strong>{syl.text}</strong>
+                        </td>
+                        <td>
+                          {syl.stressed ? (
+                            <span className="syl-badge-stressed">STRESSED</span>
+                          ) : (
+                            <span className="syl-badge-unstressed">UNSTRESSED</span>
+                          )}
+                        </td>
+                        <td
+                          className="syl-col-margin"
+                          style={{
+                            fontFamily: 'monospace',
+                            color: syl.stressed ? 'var(--accent)' : 'var(--text-muted)'
+                          }}
+                        >
+                          {marginStr}
+                        </td>
+                        <td className="syl-col-models">
+                          <div className="syl-models-chips">
+                            {models.fused && (
+                              <span className="model-chip" title="Fused Model Margin">
+                                fused: {models.fused.margin > 0 ? `+${models.fused.margin.toFixed(2)}` : models.fused.margin.toFixed(2)}
+                              </span>
+                            )}
+                            {models.ensemble && (
+                              <span className="model-chip" title="Dual-Model Ensemble (GER+ITA)">
+                                ens: {models.ensemble.margin > 0 ? `+${models.ensemble.margin.toFixed(2)}` : models.ensemble.margin.toFixed(2)}
+                              </span>
+                            )}
+                            {models.ger && (
+                              <span className="model-chip" title="German Model Margin">
+                                ger: {models.ger.margin > 0 ? `+${models.ger.margin.toFixed(2)}` : models.ger.margin.toFixed(2)}
+                              </span>
+                            )}
+                            {models.ita && (
+                              <span className="model-chip" title="Italian Model Margin">
+                                ita: {models.ita.margin > 0 ? `+${models.ita.margin.toFixed(2)}` : models.ita.margin.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="monosyllabic-note">
+              <div className="monosyllabic-title">Monosyllabic Word</div>
+              <p className="monosyllabic-desc">
+                Single syllable word ("{w.word}") — lexical stress contrast is evaluated across polysyllabic words (≥2 syllables). Sentence-level acoustic prominence is evaluated by WhiStress ({w.stressed ? 'Prominent' : 'Unstressed'}).
+              </p>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -429,15 +670,20 @@ export default function AnnotationReport({ data, onBack }) {
               WPM: <strong>{Math.round(summary?.wpm || 0)}</strong>
             </span>
             <span className="metadata-item">
-              Stress Ratio: <strong>{Math.round((summary?.stress_ratio || 0) * 100)}%</strong>
+              Sentence Stress: <strong>{Math.round((summary?.stress_ratio || 0) * 100)}%</strong>
             </span>
             <span className="metadata-item">
               Phrases: <strong>{summary?.phrase_count || phrases.length}</strong>
             </span>
+            {words.some((w) => Array.isArray(w.syllables) && w.syllables.length > 1) && (
+              <span className="metadata-item">
+                Polysyllabic Words: <strong>{words.filter((w) => Array.isArray(w.syllables) && w.syllables.length > 1).length}</strong>
+              </span>
+            )}
           </div>
 
           <div className="models-row">
-            ASR: {models?.asr_final || 'N/A'} ({models?.asr_device || 'cpu'}) | VAD: {models?.vad_model || 'N/A'} | Stress: {models?.stress_model || 'N/A'}
+            ASR: {models?.asr_final || 'N/A'} ({models?.asr_device || 'cpu'}) | VAD: {models?.vad_model || 'silero_vad'} | Sentence Stress: {models?.stress_model || 'whistress'} | Syllable Stress: {models?.syllable_stress_model ? models.syllable_stress_model.toUpperCase() : 'LEXIREP'} ({models?.syllable_stress_backbone || 'wav2vec2'})
           </div>
         </div>
 
@@ -665,11 +911,11 @@ export default function AnnotationReport({ data, onBack }) {
                     <table className="phrase-data-table" style={{ tableLayout: 'fixed', width: '100%' }}>
                       <thead>
                         <tr>
-                          <th style={{ width: '8%', textAlign: 'left' }}>#</th>
-                          <th style={{ width: '30%', textAlign: 'left' }}>Word</th>
-                          <th style={{ width: '32%', textAlign: 'left' }}>Time Range</th>
-                          <th style={{ width: '15%', textAlign: 'left' }}>Confidence</th>
-                          <th style={{ width: '15%', textAlign: 'left' }}>Stressed</th>
+                          <th style={{ width: '6%', textAlign: 'left' }}>#</th>
+                          <th style={{ width: '34%', textAlign: 'left' }}>Word</th>
+                          <th style={{ width: '26%', textAlign: 'left' }}>Time Range</th>
+                          <th style={{ width: '14%', textAlign: 'left' }}>Confidence</th>
+                          <th style={{ width: '20%', textAlign: 'left' }}>Stress (WhiStress / LexiRep)</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -682,6 +928,9 @@ export default function AnnotationReport({ data, onBack }) {
                         ) : (
                           phraseWords.map((w) => {
                             const isExpanded = expandedWordIndex === w.word_index
+                            const syllables = Array.isArray(w.syllables) ? w.syllables : null
+                            const isPoly = syllables && syllables.length > 1
+                            const stressedSyl = isPoly ? syllables.find((s) => s.stressed) : null
 
                             return (
                               <React.Fragment key={w.word_index}>
@@ -690,15 +939,38 @@ export default function AnnotationReport({ data, onBack }) {
                                   onClick={(e) => handleWordClick(w.word_index, e)}
                                 >
                                   <td style={{ textAlign: 'left' }}>{w.word_index}</td>
-                                  <td style={{ textAlign: 'left', ...(w.stressed ? { color: 'var(--accent)', fontWeight: 600, textTransform: 'uppercase' } : {}) }}>
-                                    {w.word}
+                                  <td style={{ textAlign: 'left' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                      <span style={w.stressed ? { color: 'var(--accent)', fontWeight: 600, textTransform: 'uppercase' } : {}}>
+                                        {w.word}
+                                      </span>
+                                      {isPoly && (
+                                        <span className="table-syl-pill" title={`LexiRep: ${syllables.map((s) => s.text).join('·')}`}>
+                                          {syllables.map((s, idx) => (
+                                            <React.Fragment key={idx}>
+                                              {idx > 0 && <span className="syl-dot">·</span>}
+                                              <span className={s.stressed ? 'syl-accent' : ''}>
+                                                {s.stressed ? s.text.toUpperCase() : s.text}
+                                              </span>
+                                            </React.Fragment>
+                                          ))}
+                                        </span>
+                                      )}
+                                    </div>
                                   </td>
                                   <td style={{ textAlign: 'left', fontFamily: 'monospace' }}>
                                     {w.start_time.toFixed(3)}s – {w.end_time.toFixed(3)}s
                                   </td>
                                   <td style={{ textAlign: 'left' }}>{Math.round((w.asr_confidence || 0) * 100)}%</td>
                                   <td style={{ textAlign: 'left' }}>
-                                    {w.stressed ? 'YES' : 'NO'}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                      <span>{w.stressed ? 'YES' : 'NO'}</span>
+                                      {isPoly && stressedSyl && (
+                                        <span style={{ fontSize: '0.65rem', color: 'var(--accent)', fontFamily: 'monospace' }}>
+                                          Syl: {stressedSyl.text.toUpperCase()} ({stressedSyl.stress_margin !== undefined && stressedSyl.stress_margin !== null ? (stressedSyl.stress_margin > 0 ? `+${stressedSyl.stress_margin.toFixed(2)}` : stressedSyl.stress_margin.toFixed(2)) : '—'})
+                                        </span>
+                                      )}
+                                    </div>
                                   </td>
                                 </tr>
                                 {isExpanded && (
@@ -798,6 +1070,17 @@ export default function AnnotationReport({ data, onBack }) {
           </section>
         )}
       </main>
+
+      {/* Interactive LexiRep Syllable Bokeh Modal */}
+      <AnimatePresence>
+        {selectedBokehWord && (
+          <SyllableBokeh
+            key="syllable-bokeh-modal"
+            wordData={selectedBokehWord}
+            onClose={() => setSelectedBokehWord(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

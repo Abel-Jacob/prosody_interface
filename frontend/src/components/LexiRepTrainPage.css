@@ -3,7 +3,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 72px 32px 64px;
+  justify-content: center;
+  padding: 80px 32px 64px;
   position: relative;
   background: var(--bg);
 }
@@ -46,7 +47,7 @@
   color: var(--text-primary);
   font-family: Helvetica, Arial, sans-serif;
   font-size: clamp(1.8rem, 4.5vw, 2.6rem);
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.1;
   text-transform: lowercase;
@@ -384,15 +385,16 @@
   background: rgba(255, 255, 255, 0.015);
 }
 
-/* ── Unified Loading & Training View (Image 2 Style — Open Canvas, No Gray Box) ── */
+/* ── Unified Loading & Training View (Seamless under header) ── */
 .lexirep-loading-view {
   width: 100%;
-  max-width: 540px;
+  max-width: 580px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  padding: 48px 0;
+  padding: 20px 0 32px;
+  margin: 0 auto;
   background: transparent;
   border: none;
   text-align: center;
@@ -404,12 +406,12 @@
   justify-content: center;
   transform: scale(1.28);
   transform-origin: center;
-  margin: 10px 0 16px;
+  margin: 12px 0 16px;
 }
 
 .lexirep-status-label {
   font-family: Helvetica, Arial, sans-serif;
-  font-weight: 400; /* strictly not bold */
+  font-weight: 400;
   font-size: 1.05rem;
   color: var(--text-primary);
   letter-spacing: 0.08em;
@@ -433,53 +435,45 @@
 
 .lexirep-status-fader-text {
   font-family: Helvetica, Arial, sans-serif;
-  font-weight: 400; /* strictly not bold */
-  font-size: 1.05rem;
+  font-weight: 400;
+  font-size: 0.95rem;
   color: var(--text-primary);
   letter-spacing: 0.02em;
   text-align: center;
   line-height: 1.4;
 }
 
-/* Minimalist Progress Container: loop counter & percentage alongside 2px track */
+/* Minimalist Progress Container: loop counter centered above 2px track, no percentage */
 .lexirep-progress-container {
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.lexirep-progress-meta {
-  width: 100%;
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  font-family: Helvetica, Arial, sans-serif;
-  font-size: 0.72rem;
-  font-weight: 400;
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
+  gap: 12px;
+  margin-top: 18px;
 }
 
-.lexirep-progress-meta .highlight {
-  color: var(--accent);
-  font-weight: 500;
-}
-
-.lexirep-progress-percent {
+.lexirep-loop-counter {
   font-family: Helvetica, Arial, sans-serif;
-  font-size: 0.72rem;
+  font-size: 1.45rem;
   font-weight: 400;
   color: var(--text-muted);
+  letter-spacing: -0.01em;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.lexirep-loop-counter .highlight {
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .lexirep-progress-track {
   width: 100%;
   height: 2px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
   position: relative;
 }
@@ -487,7 +481,7 @@
 .lexirep-progress-fill {
   height: 100%;
   border-radius: 2px;
-  background: var(--accent);
+  background: var(--text-primary);
   box-shadow: none;
   transition: width 0.3s ease;
 }
@@ -582,7 +576,7 @@
   align-items: center;
   justify-content: center;
   gap: 24px;
-  margin: 8px 0 20px;
+  margin: 8px 0 28px;
 }
 
 .metric-item {
@@ -619,8 +613,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  margin-top: 8px;
+  gap: 24px;
+  margin-top: 24px;
 }
 
 .lexirep-download-grid {
@@ -651,9 +645,18 @@
 }
 
 .lexirep-action-btn:hover {
-  color: var(--text-primary);
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.03);
+  color: #ff8c38 !important;
+  border-color: #ff8c38 !important;
+  background: rgba(255, 140, 56, 0.1) !important;
+  box-shadow: 0 0 14px rgba(255, 140, 56, 0.22) !important;
+}
+
+.lexirep-action-btn:hover svg {
+  stroke: #ff8c38 !important;
+}
+
+.lexirep-action-btn:hover span {
+  color: #ff8c38 !important;
 }
 
 .lexirep-reset-link {
@@ -661,18 +664,19 @@
   border: none;
   color: var(--text-muted);
   font-family: Helvetica, Arial, sans-serif;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 400;
-  letter-spacing: 0.06em;
-  text-transform: lowercase;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
   cursor: pointer;
-  padding: 4px 8px;
-  transition: color 0.15s ease;
+  padding: 6px 12px;
+  transition: all 0.2s ease;
 }
 
 .lexirep-reset-link:hover {
   color: var(--text-primary);
-  text-decoration: underline;
+  text-decoration: none;
+  letter-spacing: 0.18em;
 }
 
 /* Result Error State */

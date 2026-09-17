@@ -298,9 +298,7 @@
   border-radius: 8px;
   padding: 0.8rem 1.2rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 1.2rem;
+  width: 100%;
 }
 
 .detail-row {
@@ -451,15 +449,202 @@
 /* High-Density Property Details Grid */
 .detail-grid-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 1.5rem;
   width: 100%;
 }
 
-@media (max-width: 768px) {
-  .detail-grid-container {
+.detail-grid-container.has-syllables {
+  grid-template-columns: 1fr 1.35fr;
+}
+
+@media (max-width: 900px) {
+  .detail-grid-container.has-syllables {
     grid-template-columns: 1fr;
   }
+}
+
+/* Syllable-Level Lexical Stress (LexiRep) in Report */
+.syllable-bokeh-trigger-btn {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  font-family: var(--font-primary);
+}
+
+.syllable-bokeh-trigger-btn:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.syllable-report-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.syllable-chips-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-subtle);
+  border: 1px solid var(--overlay-border);
+  border-radius: 4px;
+}
+
+.syllable-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--overlay-border);
+  background: var(--bg);
+  font-size: 0.75rem;
+  font-family: var(--font-primary);
+  color: var(--text-muted);
+}
+
+.syllable-chip.is-stressed {
+  border-color: var(--accent);
+  background: rgba(196, 149, 106, 0.12);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.syllable-chip-sep {
+  color: var(--text-faded);
+  font-weight: bold;
+}
+
+.syllable-chip-badge {
+  font-size: 0.55rem;
+  background: var(--accent);
+  color: var(--bg);
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.syllable-metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.68rem;
+  margin-top: 0.2rem;
+}
+
+.syllable-metrics-table th {
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--overlay-border);
+  font-weight: 600;
+}
+
+.syllable-metrics-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  vertical-align: middle;
+}
+
+.syllable-metrics-table tr.syl-row-stressed {
+  background: rgba(196, 149, 106, 0.04);
+}
+
+.syl-badge-stressed {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(196, 149, 106, 0.18);
+  color: var(--accent);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.syl-badge-unstressed {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-faded);
+  font-size: 0.58rem;
+}
+
+.syl-models-chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.model-chip {
+  display: inline-block;
+  font-family: monospace;
+  font-size: 0.58rem;
+  padding: 1px 4px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--overlay-border);
+  border-radius: 3px;
+  color: var(--text-muted);
+}
+
+.monosyllabic-note {
+  padding: 0.6rem 0.8rem;
+  background: var(--bg-subtle);
+  border: 1px dashed var(--overlay-border);
+  border-radius: 4px;
+}
+
+.monosyllabic-title {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.monosyllabic-desc {
+  font-size: 0.68rem;
+  color: var(--text-faded);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Table View Syllable Pill */
+.table-syl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--overlay-border);
+  border-radius: 3px;
+  font-size: 0.625rem;
+  font-family: var(--font-primary);
+  color: var(--text-muted);
+}
+
+.table-syl-pill .syl-dot {
+  color: var(--text-faded);
+}
+
+.table-syl-pill .syl-accent {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .detail-section-title {

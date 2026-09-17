@@ -68,25 +68,31 @@
 /* ── Seamless Minimalist Backend Connection Bar ── */
 .landing-backend-bar {
   position: absolute;
-  bottom: 28px;
+  bottom: 36px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(calc(100% - 64px), 440px);
-  margin: 0;
+  width: min(calc(100% - 64px), 480px);
+  margin: 0 auto;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.015);
+  padding: 7px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   transition: all 0.2s ease;
   z-index: 10;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .landing-backend-bar:focus-within {
   border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .landing-backend-dot {
@@ -124,17 +130,29 @@
   50% { transform: scale(1.4); opacity: 0.4; }
 }
 
+#landing-tunnel-input,
 .landing-backend-input {
   flex: 1;
   min-width: 0;
-  border: none;
+  border: none !important;
   background: transparent;
   color: var(--text-primary);
   font-family: Helvetica, Arial, sans-serif;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 400;
   letter-spacing: 0.02em;
-  outline: none;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+#landing-tunnel-input:focus,
+#landing-tunnel-input:focus-visible,
+.landing-backend-input:focus,
+.landing-backend-input:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 .landing-backend-input::placeholder {
@@ -193,10 +211,10 @@
   .landing-backend-bar {
     position: relative;
     bottom: auto;
-    left: auto;
-    transform: none;
-    width: 100%;
-    margin-top: 36px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(100%, 480px);
+    margin: 36px auto 0;
   }
 }
 
@@ -209,8 +227,8 @@
   .landing-backend-bar {
     position: relative;
     bottom: auto;
-    left: auto;
-    transform: none;
+    left: 50%;
+    transform: translateX(-50%);
     margin: 36px auto 0;
   }
 }

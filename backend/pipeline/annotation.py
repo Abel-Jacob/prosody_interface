@@ -79,6 +79,8 @@ def build_annotation(job: dict) -> dict:
         "stress_model": "whistress",
         "stress_backbone": WHISTRESS_WHISPER_BACKBONE,
         "stress_device": WHISTRESS_DEVICE,
+        "syllable_stress_model": "lexirep",
+        "syllable_stress_backbone": "facebook/wav2vec2-base",
         "pitch_method": "swipe",
         "pitch_polynomial_order": 1,
     }
@@ -130,6 +132,7 @@ def build_annotation(job: dict) -> dict:
         "stress_ratio": result.get("stress_ratio", 0.0),
         "pitch_variation_hz": result.get("pitch_variation", 0.0),
         "phrase_count": len(annotation_phrases),
+        "polysyllabic_words_count": sum(1 for w in all_words if w.get("syllables")),
     }
 
     # ── Assemble the final document ────────────────────────────────
@@ -141,6 +144,17 @@ def build_annotation(job: dict) -> dict:
         "summary": summary,
         "phrases": annotation_phrases,
         "words": all_words,
+        "syllable_stress": [
+            {
+                "word_index": w["word_index"],
+                "word": w["word"],
+                "start_time": w["start_time"],
+                "end_time": w["end_time"],
+                "syllables": w["syllables"],
+            }
+            for w in all_words
+            if w.get("syllables")
+        ],
         "voiced_segments": result.get("voiced_segments", []),
         "errors": errors,
     }
@@ -157,9 +171,17 @@ def _build_word_entry(word_data: dict, phrase_index: int, phrase_intonation: Opt
     """
     Transform a single WordResult dict into an annotation word entry.
     Word entries carry word-level stress, pause, confidence data,
-    and a single normalized_pitch scalar for frontend visual scaling only.
+    syllables breakdown from LexiRep, and a single normalized_pitch scalar.
     Analytical intonation fields remain phrase-level only.
     """
+    raw_syls = word_data.get("syllables") if isinstance(word_data, dict) else getattr(word_data, "syllables", None)
+    syllables_list = None
+    if raw_syls:
+        syllables_list = [
+            s.model_dump() if hasattr(s, "model_dump") else (s if isinstance(s, dict) else dict(s))
+            for s in raw_syls
+        ]
+
     return {
         "word_index": 0,  # Will be reassigned after sorting
         "word": word_data.get("word", ""),
@@ -182,5 +204,5 @@ def _build_word_entry(word_data: dict, phrase_index: int, phrase_intonation: Opt
         "pitch_trend": word_data.get("pitch_trend"),
         "char_pitches": word_data.get("char_pitches"),
         "voiced_segment_index": word_data.get("voiced_segment_index"),
-        "syllables": word_data.get("syllables"),
+        "syllables": syllables_list,
     }

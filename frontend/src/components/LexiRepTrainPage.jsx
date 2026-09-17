@@ -424,8 +424,8 @@ export default function LexiRepTrainPage({ onBack }) {
         back
       </motion.button>
 
-      {/* ── Header ────────────────────────────────────── */}
-      {pageState === 'idle' && (
+      {/* ── Header: Kept in place during idle, uploading, and training ── */}
+      {(pageState === 'idle' || pageState === 'uploading' || pageState === 'training') && (
         <div className="lexirep-header">
           <h1>lexirep training</h1>
           <p>
@@ -563,35 +563,19 @@ export default function LexiRepTrainPage({ onBack }) {
         </motion.div>
       )}
 
-      {/* ── UPLOADING ──────────────────────────────────── */}
-      {pageState === 'uploading' && (
+      {/* ── UPLOADING & TRAINING: Orb in place of dropzone, header retained ── */}
+      {(pageState === 'uploading' || pageState === 'training') && (
         <motion.div
           className="lexirep-loading-view"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2 }}
-        >
-          <div className="lexirep-orb-wrapper">
-            <SafeThinkingOrb state="connecting" size={64} />
-          </div>
-          <span className="lexirep-status-label">PREPARING &amp; UPLOADING DATASET...</span>
-          <span className="lexirep-status-sub">Validating 768-D representation tensors</span>
-        </motion.div>
-      )}
-
-      {/* ── TRAINING (Connecting Orb — Pure Seamless Minimalism) ───── */}
-      {pageState === 'training' && (
-        <motion.div
-          className="lexirep-loading-view"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
         >
           <div className="lexirep-orb-wrapper">
             <SafeThinkingOrb state="connecting" size={64} />
           </div>
 
-          {/* Strictly ONE line for progress text under the orb */}
+          {/* Status text directly under the orb */}
           <div className="lexirep-training-status-wrapper">
             <AnimatePresence mode="wait">
               <motion.div
@@ -599,7 +583,7 @@ export default function LexiRepTrainPage({ onBack }) {
                 initial={{ opacity: 0, y: 3 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -3 }}
-                transition={{ duration: 0.28, ease: 'easeInOut' }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
                 className="lexirep-status-fader-text"
               >
                 {statusText}
@@ -607,23 +591,16 @@ export default function LexiRepTrainPage({ onBack }) {
             </AnimatePresence>
           </div>
 
-          {/* Loop counter near the progress bar */}
+          {/* Loop counter centered directly above the progress bar track, no percentage */}
           <div className="lexirep-progress-container">
-            <div className="lexirep-progress-meta">
-              <span className="lexirep-progress-loop">
-                {currentLoop > 0 ? (
-                  <>loop <span className="highlight">{currentLoop}</span> of {totalLoops}</>
-                ) : (
-                  'initializing pipeline'
-                )}
-              </span>
-              <span className="lexirep-progress-percent">{Math.min(100, Math.max(0, progress))}%</span>
+            <div className="lexirep-loop-counter">
+              loop <span className="highlight">{currentLoop}</span> of {totalLoops}
             </div>
             <div className="lexirep-progress-track">
               <motion.div
                 className="lexirep-progress-fill"
                 initial={{ width: '0%' }}
-                animate={{ width: `${Math.max(progress, 4)}%` }}
+                animate={{ width: `${Math.max(progress, 3)}%` }}
                 transition={{ ease: 'easeOut', duration: 0.3 }}
               />
             </div>
@@ -729,7 +706,7 @@ export default function LexiRepTrainPage({ onBack }) {
               className="lexirep-reset-link"
               onClick={handleReset}
             >
-              train another model
+              TRAIN ANOTHER MODEL
             </button>
           </div>
         </motion.div>
