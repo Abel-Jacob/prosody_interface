@@ -423,8 +423,8 @@ async def export_batch_txt(job_id: str):
     for idx, f in enumerate(files):
         fname = f.get("filename", f"file_{idx+1}")
         status = f.get("status", "unknown")
-        dur = f.get("duration", 0.0)
-        wcount = f.get("word_count", 0)
+        dur = float(f.get("duration") or 0.0)
+        wcount = int(f.get("word_count") or 0)
         
         lines.append(f"FILE [{idx+1}/{len(files)}]: {fname}")
         lines.append(f"Status: {status} | Duration: {dur:.2f}s | Words: {wcount}")
@@ -478,8 +478,13 @@ async def export_batch_zip(job_id: str):
         summary_bytes = json.dumps(res, indent=2, ensure_ascii=False).encode("utf-8")
         zf.writestr("batch_summary.json", summary_bytes)
         
+        used_stems = set()
         for idx, f in enumerate(files):
-            stem = Path(f.get("filename", f"file_{idx+1}")).stem
+            raw_stem = Path(f.get("filename", f"file_{idx+1}")).stem
+            stem = raw_stem
+            if stem in used_stems:
+                stem = f"{stem}_{idx+1}"
+            used_stems.add(stem)
             ann = f.get("annotation")
             if not ann and f.get("result"):
                 sub_job = {

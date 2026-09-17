@@ -619,23 +619,46 @@ class Worker:
                     pass
 
             # Update live progress after each file
-            interim_batch_result = BatchJobResult(
-                is_batch=True,
-                batch_name=batch_dir.name,
-                total_files=total_files,
-                completed_files=completed_count,
-                failed_files=failed_count,
-                total_duration=round(total_duration, 2),
-                total_words=total_words,
-                files=batch_files,
-            )
-            update_job_progress(
-                job_id,
-                progress=round(file_num / total_files, 3),
-                completed_chunks=file_num,
-                current_stage=f"file_{file_num}_of_{total_files}: {filename}",
-                partial_result=interim_batch_result.model_dump(),
-            )
+            # For interim progress updates, save lightweight file metadata periodically (every 10 files or last file)
+            # Full heavy annotations will be stored once at job completion to keep database operations sub-millisecond
+            should_save_partial = (file_num == total_files) or (file_num <= 10) or (file_num % 10 == 0)
+            if should_save_partial:
+                lightweight_files = [
+                    BatchFileItem(
+                        file_id=f.file_id,
+                        filename=f.filename,
+                        status=f.status,
+                        duration=f.duration,
+                        word_count=f.word_count,
+                        sentence_count=f.sentence_count,
+                        error=f.error,
+                    )
+                    for f in batch_files
+                ]
+                interim_batch_result = BatchJobResult(
+                    is_batch=True,
+                    batch_name=batch_dir.name,
+                    total_files=total_files,
+                    completed_files=completed_count,
+                    failed_files=failed_count,
+                    total_duration=round(total_duration, 2),
+                    total_words=total_words,
+                    files=lightweight_files,
+                )
+                update_job_progress(
+                    job_id,
+                    progress=round(file_num / total_files, 3),
+                    completed_chunks=file_num,
+                    current_stage=f"file_{file_num}_of_{total_files}: {filename}",
+                    partial_result=interim_batch_result.model_dump(),
+                )
+            else:
+                update_job_progress(
+                    job_id,
+                    progress=round(file_num / total_files, 3),
+                    completed_chunks=file_num,
+                    current_stage=f"file_{file_num}_of_{total_files}: {filename}",
+                )
 
         # Batch finished
         final_batch_result = BatchJobResult(

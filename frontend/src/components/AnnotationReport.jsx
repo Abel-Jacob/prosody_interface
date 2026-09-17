@@ -613,18 +613,19 @@ export default function AnnotationReport({ data, onBack }) {
       })
 
     // Construct an ordered object to match the user's reading flow with section titles
+    const targetSource = currentReport || data
     const orderedData = {
-      annotation_version: data.annotation_version || '1.0',
-      generated_at: data.generated_at,
-      recording: data.recording,
+      annotation_version: targetSource.annotation_version || data.annotation_version || '1.0',
+      generated_at: targetSource.generated_at || data.generated_at,
+      recording: targetSource.recording || data.recording,
       models: {
-        ...data.models,
-        syllable_stress_model: data.models?.syllable_stress_model || 'lexirep',
-        syllable_stress_backbone: data.models?.syllable_stress_backbone || 'facebook/wav2vec2-base'
+        ...(targetSource.models || data.models),
+        syllable_stress_model: (targetSource.models || data.models)?.syllable_stress_model || 'lexirep',
+        syllable_stress_backbone: (targetSource.models || data.models)?.syllable_stress_backbone || 'facebook/wav2vec2-base'
       },
       summary: {
-        ...data.summary,
-        polysyllabic_words_count: data.summary?.polysyllabic_words_count ?? syllableStressData.length
+        ...(targetSource.summary || data.summary),
+        polysyllabic_words_count: (targetSource.summary || data.summary)?.polysyllabic_words_count ?? syllableStressData.length
       },
       // 1. Full Transcription
       full_transcription: phrases.map((p) => p.text).join(' '),
@@ -640,8 +641,8 @@ export default function AnnotationReport({ data, onBack }) {
       word_level_timestamps_and_stress: jsonWords,
       // 4. Syllable Level Lexical Stress (LexiRep)
       syllable_level_lexical_stress: syllableStressData,
-      voiced_segments: data.voiced_segments || [],
-      errors: data.errors || []
+      voiced_segments: targetSource.voiced_segments || data.voiced_segments || [],
+      errors: targetSource.errors || data.errors || []
     }
 
     const blob = new Blob([JSON.stringify(orderedData, null, 2)], { type: 'application/json' })
