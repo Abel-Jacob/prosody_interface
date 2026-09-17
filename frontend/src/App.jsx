@@ -40,7 +40,11 @@ function App({ onBack }) {
 
   const handleProcessingComplete = (result) => {
     setFinalResult(result)
-    setAppState('summary')
+    if (result && result.is_batch) {
+      handleViewAnnotation(jobId)
+    } else {
+      setAppState('summary')
+    }
   }
 
   const handleViewAnnotation = async (id) => {
@@ -59,10 +63,16 @@ function App({ onBack }) {
     }
   }
 
-  const handleUploadAudio = async (file) => {
+  const handleUploadAudio = async (filesOrFile) => {
     setAppState('processing')
     const formData = new FormData()
-    formData.append('audio', file)
+    if (Array.isArray(filesOrFile)) {
+      filesOrFile.forEach((f) => {
+        formData.append('files', f)
+      })
+    } else {
+      formData.append('audio', filesOrFile)
+    }
     try {
       const response = await fetch(getHttpUrl('/api/jobs'), {
         method: 'POST',
@@ -161,7 +171,13 @@ function App({ onBack }) {
           >
             <AnnotationReport 
               data={annotationData} 
-              onBack={() => setAppState('summary')} 
+              onBack={() => {
+                if (finalResult && finalResult.is_batch) {
+                  handleReset()
+                } else {
+                  setAppState('summary')
+                }
+              }} 
             />
           </motion.div>
         )}

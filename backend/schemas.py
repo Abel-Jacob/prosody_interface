@@ -6,7 +6,7 @@ flowing between frontend, API, worker, and database.
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Union, Any
 from enum import Enum
 
 
@@ -112,6 +112,31 @@ class JobResult(BaseModel):
     voiced_segments: list[VoicedSegmentDetail] = Field(default_factory=list, description="Contiguous voiced segment stylization results")
 
 
+class BatchFileItem(BaseModel):
+    """An individual file processed within a batch job."""
+    file_id: str
+    filename: str
+    status: str = "complete"  # "complete" | "error"
+    duration: float = 0.0
+    word_count: int = 0
+    sentence_count: int = 0
+    error: Optional[str] = None
+    result: Optional[JobResult] = None
+    annotation: Optional[dict] = None
+
+
+class BatchJobResult(BaseModel):
+    """Result container for multi-audio or ZIP batch jobs."""
+    is_batch: bool = True
+    batch_name: str = "batch"
+    total_files: int = 0
+    completed_files: int = 0
+    failed_files: int = 0
+    total_duration: float = 0.0
+    total_words: int = 0
+    files: list[BatchFileItem] = Field(default_factory=list)
+
+
 class JobResponse(BaseModel):
     """Response shape for GET /jobs/{job_id}."""
     job_id: str
@@ -123,7 +148,7 @@ class JobResponse(BaseModel):
     total_chunks: int = 0
     completed_chunks: int = 0
     current_stage: str = ""
-    result: Optional[JobResult] = None
+    result: Optional[Union[JobResult, BatchJobResult, dict]] = None
     error: str = ""
 
 

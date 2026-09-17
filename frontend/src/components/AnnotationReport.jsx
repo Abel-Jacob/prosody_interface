@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './AnnotationReport.css'
 import ProsodyWord from './ProsodyWord'
 import SyllableBokeh from './SyllableBokeh'
+import { getHttpUrl } from '../apiConfig'
 
 
 // Arrow icon mapping
@@ -19,13 +20,131 @@ export default function AnnotationReport({ data, onBack }) {
   const [viewMode, setViewMode] = useState('transcript') // 'transcript' | 'table'
   const [expandedSegmentIndex, setExpandedSegmentIndex] = useState(null)
   const [selectedBokehWord, setSelectedBokehWord] = useState(null)
-
+  const [selectedFileIndex, setSelectedFileIndex] = useState(null)
+  const [batchSearchQuery, setBatchSearchQuery] = useState('')
+  const [batchFilterStatus, setBatchFilterStatus] = useState('all')
 
   const handleTranscriptWordClick = (w, e) => {
     e.stopPropagation()
     setExpandedWordIndex(expandedWordIndex === w.word_index ? null : w.word_index)
   }
 
+  const isBatch = Boolean(data && data.is_batch)
+  const batchFiles = (isBatch && Array.isArray(data.files)) ? data.files : []
+  const isBatchFileActive = isBatch && selectedFileIndex !== null && Boolean(batchFiles[selectedFileIndex])
+  const activeBatchFile = isBatchFileActive ? batchFiles[selectedFileIndex] : null
+
+  const filteredFiles = useMemo(() => {
+    if (!batchFiles.length) return []
+    return batchFiles.filter((file) => {
+      if (batchFilterStatus !== 'all' && file.status !== batchFilterStatus) {
+        return false
+      }
+      if (batchSearchQuery.trim()) {
+        const query = batchSearchQuery.toLowerCase()
+        const nameMatches = (file.filename || '').toLowerCase().includes(query)
+        const transcriptMatches = (
+          file.annotation?.full_transcription ||
+          file.result?.phrases?.map((p) => p.text).join(' ') ||
+          ''
+        ).toLowerCase().includes(query)
+        return nameMatches || transcriptMatches
+      }
+      return true
+    })
+  }, [batchFiles, batchSearchQuery, batchFilterStatus])
+
+  // Resolve current active report
+  const currentReport = useMemo(() => {
+    if (!data) return null
+    if (!isBatch) return data
+    if (activeBatchFile) {
+      if (activeBatchFile.annotation) {
+        return { ...activeBatchFile.annotation, filename: activeBatchFile.filename }
+      }
+      if (activeBatchFile.result) {
+        return {
+          recording: {
+            job_id: activeBatchFile.file_id,
+            audio_duration_sec: activeBatchFile.duration,
+          },
+          summary: {
+            word_count: activeBatchFile.word_count,
+            wpm: activeBatchFile.result.wpm,
+            stress_ratio: activeBatchFile.result.stress_ratio,
+            phrase_count: activeBatchFile.result.phrases?.length || 0,
+          },
+          phrases: activeBatchFile.result.phrases || [],
+          words: (activeBatchFile.result.phrases || []).flatMap((p) => p.words || []),
+          voiced_segments: activeBatchFile.result.voiced_segments || [],
+          filename: activeBatchFile.filename,
+        }
+      }
+    }
+    return data
+  }, [data, isBatch, activeBatchFile])
+
+  // Batch Export Handlers
+  const handleDownloadBatchJSON = () => {
+    const jsonStr = JSON.stringify(data, null, 2)
+    const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `batch_${data.job_id || 'manifest'}_all_annotations.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  const handleDownloadBatchTXT = () => {
+    const lines = []
+    lines.push(`BATCH ANNOTATION TRANSCRIPTS — JOB ${data.job_id || 'EXPORT'}`)
+    lines.push(`Total Files: ${batchFiles.length} | Completed: ${data.completed_files || 0} | Total Words: ${data.total_words || 0}`)
+    lines.push('='.repeat(80) + '\n')
+
+    batchFiles.forEach((f, idx) => {
+      lines.push(`FILE [${idx + 1}/${batchFiles.length}]: ${f.filename}`)
+      lines.push(`Status: ${f.status} | Duration: ${(f.duration || 0).toFixed(2)}s | Words: ${f.word_count || 0}`)
+      lines.push('-'.repeat(40))
+
+      if (f.status === 'error') {
+        lines.push(`[ERROR: ${f.error || 'Unknown error'}]`)
+      } else {
+        const fullTxt = f.annotation?.full_transcription ||
+          f.result?.phrases?.map((p) => p.text).join(' ') ||
+          '[No speech detected]'
+        lines.push(fullTxt)
+      }
+      lines.push('\n' + '='.repeat(80) + '\n')
+    })
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `batch_${data.job_id || 'export'}_all_transcripts.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  const handleDownloadBatchZIP = () => {
+    const jId = data.job_id || (batchFiles[0]?.file_id ? batchFiles[0].file_id.split('_')[0] : null)
+    if (jId) {
+      const exportUrl = getHttpUrl(`/api/jobs/${jId}/export/batch-zip`)
+      const link = document.createElement('a')
+      link.href = exportUrl
+      link.download = `batch_${jId}_all_reports.zip`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } else {
+      alert('Job ID not found for batch export')
+    }
+  }
 
   if (!data) {
     return (
@@ -41,7 +160,223 @@ export default function AnnotationReport({ data, onBack }) {
     )
   }
 
-  const { recording, models, summary, phrases = [], words = [], errors = [] } = data
+  // If viewing batch overview
+  if (isBatch && selectedFileIndex === null) {
+    const totalFiles = data.total_files || batchFiles.length
+    const completedFiles = data.completed_files ?? batchFiles.filter((f) => f.status === 'complete').length
+    const failedFiles = data.failed_files ?? batchFiles.filter((f) => f.status === 'error').length
+    const totalDurationSec = data.total_duration ?? batchFiles.reduce((acc, f) => acc + (f.duration || 0), 0)
+    const totalWordsCount = data.total_words ?? batchFiles.reduce((acc, f) => acc + (f.word_count || 0), 0)
+
+    const formatDuration = (secs) => {
+      const m = Math.floor(secs / 60)
+      const s = Math.round(secs % 60)
+      return m > 0 ? `${m}m ${s}s` : `${secs.toFixed(1)}s`
+    }
+
+    return (
+      <div className="annotation-report-container">
+        <div className="batch-overview-container">
+          {/* Header */}
+          <header className="report-header" style={{ marginBottom: '0.8rem' }}>
+            <div className="header-title-section">
+              <div className="page-path" style={{ position: 'static', marginBottom: '0.2rem' }}>
+                PROSODY / BATCH ANNOTATION
+              </div>
+              <h1 style={{ fontFamily: 'var(--font-primary)', fontSize: '1.25rem', fontWeight: 600 }}>
+                Batch Annotation Report
+              </h1>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                {data.batch_name || 'Batch Session'} • {completedFiles} of {totalFiles} files processed successfully
+              </div>
+            </div>
+
+            <div className="header-controls">
+              <button
+                className="control-btn"
+                onClick={onBack}
+                style={{ borderColor: 'var(--text-faded)' }}
+              >
+                ← Back to Recorder
+              </button>
+            </div>
+          </header>
+
+          {/* Hero stats grid */}
+          <div className="batch-hero-stats">
+            <div className="batch-stat-card">
+              <span className="batch-stat-label">Total Files</span>
+              <span className="batch-stat-val">{totalFiles}</span>
+            </div>
+            <div className="batch-stat-card">
+              <span className="batch-stat-label">Completed</span>
+              <span className="batch-stat-val success">{completedFiles}</span>
+            </div>
+            <div className="batch-stat-card">
+              <span className="batch-stat-label">Errors</span>
+              <span className={`batch-stat-val ${failedFiles > 0 ? 'error' : ''}`}>{failedFiles}</span>
+            </div>
+            <div className="batch-stat-card">
+              <span className="batch-stat-label">Total Duration</span>
+              <span className="batch-stat-val accent">{formatDuration(totalDurationSec)}</span>
+            </div>
+            <div className="batch-stat-card">
+              <span className="batch-stat-label">Total Words</span>
+              <span className="batch-stat-val accent">{totalWordsCount.toLocaleString()}</span>
+            </div>
+          </div>
+
+          {/* One-click Combined Downloads Action Bar */}
+          <div className="batch-actions-bar">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+                Batch Exports:
+              </span>
+              <div className="batch-download-group">
+                <button
+                  type="button"
+                  className="batch-action-btn"
+                  onClick={handleDownloadBatchJSON}
+                  title="Download all file annotations in a single combined JSON"
+                >
+                  📥 Combined JSON
+                </button>
+                <button
+                  type="button"
+                  className="batch-action-btn"
+                  onClick={handleDownloadBatchTXT}
+                  title="Download all transcripts in a single text file"
+                >
+                  📄 Combined Transcripts (TXT)
+                </button>
+                <button
+                  type="button"
+                  className="batch-action-btn"
+                  onClick={handleDownloadBatchZIP}
+                  title="Download ZIP archive of individual JSONs and TXTs"
+                >
+                  📦 All Reports (ZIP)
+                </button>
+              </div>
+            </div>
+
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-faded)' }}>
+              Click any file below to inspect sentence prosody & syllables
+            </span>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div className="batch-filter-bar">
+            <div className="batch-search-wrapper">
+              <input
+                type="text"
+                className="batch-search-input"
+                placeholder="Search by filename or speech transcript content..."
+                value={batchSearchQuery}
+                onChange={(e) => setBatchSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="batch-filter-tabs">
+              <button
+                type="button"
+                className={`batch-filter-tab ${batchFilterStatus === 'all' ? 'active' : ''}`}
+                onClick={() => setBatchFilterStatus('all')}
+              >
+                All ({batchFiles.length})
+              </button>
+              <button
+                type="button"
+                className={`batch-filter-tab ${batchFilterStatus === 'complete' ? 'active' : ''}`}
+                onClick={() => setBatchFilterStatus('complete')}
+              >
+                Completed ({completedFiles})
+              </button>
+              {failedFiles > 0 && (
+                <button
+                  type="button"
+                  className={`batch-filter-tab ${batchFilterStatus === 'error' ? 'active' : ''}`}
+                  onClick={() => setBatchFilterStatus('error')}
+                >
+                  Failed ({failedFiles})
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* File Cards Scroll Area */}
+          <div className="batch-file-list-scroll">
+            {filteredFiles.length === 0 ? (
+              <div className="empty-state" style={{ padding: '3rem 1rem' }}>
+                <h3>No Files Match Your Filter</h3>
+                <p>Try adjusting your search query or filter tab.</p>
+              </div>
+            ) : (
+              filteredFiles.map((f) => {
+                const originalIndex = batchFiles.indexOf(f)
+                const isError = f.status === 'error'
+                const fullText = f.annotation?.full_transcription ||
+                  f.result?.phrases?.map((p) => p.text).join(' ') ||
+                  (isError ? `Error: ${f.error || 'Failed to process audio'}` : 'No speech detected')
+
+                return (
+                  <div
+                    key={f.file_id || originalIndex}
+                    className={`batch-file-card ${isError ? 'is-error' : ''}`}
+                    onClick={() => {
+                      if (!isError) {
+                        setSelectedFileIndex(originalIndex)
+                      }
+                    }}
+                  >
+                    <div className="batch-file-header">
+                      <div className="batch-file-title-left">
+                        <span className={`batch-status-dot ${isError ? 'error' : ''}`} />
+                        <span className="batch-file-name">{f.filename}</span>
+                      </div>
+                      <div className="batch-file-meta-badges">
+                        <span className="batch-meta-badge">
+                          {(f.duration || 0).toFixed(1)}s
+                        </span>
+                        {!isError && (
+                          <>
+                            <span className="batch-meta-badge">
+                              {f.sentence_count || f.result?.phrases?.length || 0} sent
+                            </span>
+                            <span className="batch-meta-badge">
+                              {f.word_count || 0} words
+                            </span>
+                          </>
+                        )}
+                        {isError && (
+                          <span className="batch-meta-badge" style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.3)' }}>
+                            FAILED
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="batch-file-snippet">
+                      "{fullText}"
+                    </div>
+
+                    {!isError && (
+                      <div className="batch-file-action-row">
+                        <span className="batch-inspect-link">
+                          View Full Annotation →
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const { recording, models, summary, phrases = [], words = [], errors = [] } = currentReport || {}
 
   // CSV Export Handler
   const handleDownloadCSV = () => {
@@ -216,11 +551,12 @@ export default function AnnotationReport({ data, onBack }) {
       ...section4
     ].join('\n')
 
+    const fileStem = currentReport?.filename ? currentReport.filename.replace(/\.[^/.]+$/, "") : (recording?.job_id || 'export')
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.setAttribute('href', url)
-    link.setAttribute('download', `annotation_${recording?.job_id || 'export'}.csv`)
+    link.setAttribute('download', `annotation_${fileStem}.csv`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -228,6 +564,7 @@ export default function AnnotationReport({ data, onBack }) {
 
   // JSON Export Handler
   const handleDownloadJSON = () => {
+    const fileStem = currentReport?.filename ? currentReport.filename.replace(/\.[^/.]+$/, "") : (recording?.job_id || 'export')
     // Construct inline pauses in JSON words list
     const jsonWords = []
     words.forEach((w) => {
@@ -311,10 +648,43 @@ export default function AnnotationReport({ data, onBack }) {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.setAttribute('href', url)
-    link.setAttribute('download', `annotation_${recording?.job_id || 'export'}.json`)
+    link.setAttribute('download', `annotation_${fileStem}.json`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  // TXT Export Handler (individual file)
+  const handleDownloadTXT = () => {
+    if (!phrases || phrases.length === 0) return
+    const fileStem = currentReport?.filename ? currentReport.filename.replace(/\.[^/.]+$/, "") : (recording?.job_id || 'export')
+    const fullText = phrases.map((p) => p.text).join(' ')
+    const lines = []
+    lines.push(`TRANSCRIPTION REPORT — ${currentReport?.filename || fileStem}`)
+    lines.push(`Duration: ${(recording?.audio_duration_sec || 0).toFixed(2)}s | Words: ${words.length} | WPM: ${Math.round(summary?.wpm || 0)}`)
+    lines.push('='.repeat(70) + '\n')
+    lines.push('FULL TRANSCRIPTION:')
+    lines.push(fullText || '[No speech detected]')
+    lines.push('\n' + '='.repeat(70) + '\n')
+    lines.push('SENTENCE BREAKDOWN:')
+    phrases.forEach((p, idx) => {
+      lines.push(`[Sentence ${idx + 1}] (${p.start_time.toFixed(2)}s – ${p.end_time.toFixed(2)}s)`)
+      lines.push(`Text: ${p.text}`)
+      if (p.intonation) {
+        lines.push(`Pitch Trend: ${p.intonation.pitch_trend || 'N/A'} | Mean Pitch: ${p.intonation.mean_pitch != null ? p.intonation.mean_pitch.toFixed(1) + ' Hz' : 'N/A'}`)
+      }
+      lines.push('')
+    })
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${fileStem}_transcript.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   // Sparkline SVG renderer
@@ -690,10 +1060,51 @@ export default function AnnotationReport({ data, onBack }) {
           userSelect: selectedBokehWord ? 'none' : 'auto',
         }}
       >
+        {/* If viewing a file from a batch, show sticky navigation banner */}
+        {isBatchFileActive && (
+          <div className="batch-file-nav-banner">
+            <button
+              type="button"
+              className="batch-back-btn"
+              onClick={() => setSelectedFileIndex(null)}
+            >
+              ← Back to File List
+            </button>
+            <div className="batch-file-nav-center">
+              <span className="batch-file-nav-tag">
+                FILE {selectedFileIndex + 1} OF {batchFiles.length}
+              </span>
+              <span className="batch-file-nav-name">{activeBatchFile?.filename}</span>
+            </div>
+            <div className="batch-file-nav-actions">
+              <button
+                type="button"
+                className="batch-nav-arrow-btn"
+                onClick={() => setSelectedFileIndex((prev) => Math.max(0, prev - 1))}
+                disabled={selectedFileIndex === 0}
+                title="Previous file"
+              >
+                ◀ Prev
+              </button>
+              <button
+                type="button"
+                className="batch-nav-arrow-btn"
+                onClick={() => setSelectedFileIndex((prev) => Math.min(batchFiles.length - 1, prev + 1))}
+                disabled={selectedFileIndex === batchFiles.length - 1}
+                title="Next file"
+              >
+                Next ▶
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Header controls & stats */}
         <header className="report-header">
           <div className="header-title-section">
-          <h1 style={{ fontFamily: "var(--font-primary)" }}>Annotation Report</h1>
+          <h1 style={{ fontFamily: "var(--font-primary)" }}>
+            {isBatchFileActive ? activeBatchFile.filename : 'Annotation Report'}
+          </h1>
 
           <div className="metadata-row">
             <span className="metadata-item">
@@ -749,8 +1160,15 @@ export default function AnnotationReport({ data, onBack }) {
           <button className="control-btn" onClick={handleDownloadJSON}>
             Download JSON
           </button>
-          <button className="control-btn" onClick={onBack} style={{ borderColor: 'var(--text-faded)' }}>
-            Back
+          <button className="control-btn" onClick={handleDownloadTXT}>
+            Download TXT
+          </button>
+          <button
+            className="control-btn"
+            onClick={isBatchFileActive ? () => setSelectedFileIndex(null) : onBack}
+            style={{ borderColor: 'var(--text-faded)' }}
+          >
+            {isBatchFileActive ? '← Back to Files' : 'Back'}
           </button>
         </div>
       </header>

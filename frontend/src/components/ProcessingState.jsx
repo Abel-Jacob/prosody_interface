@@ -7,6 +7,15 @@ export default function ProcessingState({ jobId, onComplete }) {
 
   const getStageDisplay = () => {
     if (!currentStage) return { title: 'TRANSCRIPTION IN PROGRESS…', subtitle: 'Analyzing speech prosody & rhythm' }
+    if (currentStage.startsWith('file_')) {
+      const match = currentStage.match(/file_(\d+)_of_(\d+):\s*(.*)/)
+      if (match) {
+        return {
+          title: `PROCESSING BATCH: FILE ${match[1]} OF ${match[2]}…`,
+          subtitle: match[3] ? `${match[3]}` : 'Evaluating prosody, rhythm & intonation'
+        }
+      }
+    }
     if (currentStage === 'loading_audio') return { title: 'PREPARING AUDIO…', subtitle: 'Decoding and normalizing speech signal' }
     if (currentStage === 'transcribing_full_audio') return { title: 'TRANSCRIBING SPEECH…', subtitle: 'faster-whisper acoustic word alignment' }
     if (currentStage.startsWith('analyzing_sentence_')) {
