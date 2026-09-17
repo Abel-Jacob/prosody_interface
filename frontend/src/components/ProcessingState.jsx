@@ -3,7 +3,29 @@ import { ThinkingOrb } from 'thinking-orbs'
 import { useJobPolling } from '../services/useJobPolling'
 
 export default function ProcessingState({ jobId, onComplete }) {
-  const { error } = useJobPolling(jobId, onComplete)
+  const { progress, status, currentStage, error } = useJobPolling(jobId, onComplete)
+
+  const getStageDisplay = () => {
+    if (!currentStage) return { title: 'TRANSCRIPTION IN PROGRESS…', subtitle: 'Analyzing speech prosody & rhythm' }
+    if (currentStage === 'loading_audio') return { title: 'PREPARING AUDIO…', subtitle: 'Decoding and normalizing speech signal' }
+    if (currentStage === 'transcribing_full_audio') return { title: 'TRANSCRIBING SPEECH…', subtitle: 'faster-whisper acoustic word alignment' }
+    if (currentStage.startsWith('analyzing_sentence_')) {
+      const match = currentStage.match(/analyzing_sentence_(\d+)_of_(\d+)/)
+      if (match) {
+        return {
+          title: `ANALYZING PROSODY (${match[1]}/${match[2]})…`,
+          subtitle: 'Evaluating WhiStress, LexiRep 768-D & SWIPE pitch'
+        }
+      }
+      return { title: 'ANALYZING PROSODY…', subtitle: 'Evaluating WhiStress, LexiRep 768-D & SWIPE pitch' }
+    }
+    if (currentStage === 'pitch_stylization') return { title: 'STYLIZING PITCH…', subtitle: 'Dynamic programming piecewise linear MAE' }
+    if (currentStage === 'finalizing') return { title: 'FINALIZING REPORT…', subtitle: 'Synthesizing prosody metrics' }
+    return { title: 'TRANSCRIPTION IN PROGRESS…', subtitle: 'Analyzing speech prosody & rhythm' }
+  }
+
+  const { title, subtitle } = getStageDisplay()
+  const percent = Math.min(99, Math.max(0, Math.round((progress || 0) * 100)))
 
   return (
     <div className="processing-state" style={{
@@ -52,7 +74,7 @@ export default function ProcessingState({ jobId, onComplete }) {
               lineHeight: 1.4,
               margin: 0
             }}>
-              TRANSCRIPTION IN PROGRESS…
+              {title}
             </div>
             <div style={{
               fontFamily: 'Helvetica, Arial, sans-serif',
@@ -62,8 +84,34 @@ export default function ProcessingState({ jobId, onComplete }) {
               color: 'var(--text-muted)',
               margin: 0
             }}>
-              Analyzing speech prosody &amp; rhythm
+              {subtitle}
             </div>
+
+            {/* Hairline Progress Bar & Percentage */}
+            <div style={{
+              width: '180px',
+              height: '2px',
+              background: 'rgba(255, 255, 255, 0.08)',
+              borderRadius: '2px',
+              overflow: 'hidden',
+              marginTop: '10px'
+            }}>
+              <div style={{
+                width: `${percent}%`,
+                height: '100%',
+                background: 'var(--accent, #c4956a)',
+                transition: 'width 0.25s ease'
+              }} />
+            </div>
+            <span style={{
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              fontSize: '0.68rem',
+              letterSpacing: '0.06em',
+              color: 'var(--text-muted)',
+              marginTop: '2px'
+            }}>
+              {percent}%
+            </span>
           </div>
         </>
       )}

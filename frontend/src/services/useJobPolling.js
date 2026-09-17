@@ -4,6 +4,7 @@ import { getHttpUrl } from '../apiConfig'
 export function useJobPolling(jobId, onComplete) {
   const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState('queued')
+  const [currentStage, setCurrentStage] = useState('')
   const [error, setError] = useState(null)
   
   const onCompleteRef = useRef(onComplete)
@@ -36,6 +37,9 @@ export function useJobPolling(jobId, onComplete) {
         if (isPolling) {
           setProgress(data.progress || 0)
           setStatus(data.status)
+          if (data.current_stage) {
+            setCurrentStage(data.current_stage)
+          }
           
           if (data.status === 'complete') {
             if (onCompleteRef.current) {
@@ -76,6 +80,6 @@ export function useJobPolling(jobId, onComplete) {
     }
   }, [jobId]) // Removed onComplete from dependencies
 
-  return { progress, status, error }
+  return { progress, status, currentStage, error }
 }
 
