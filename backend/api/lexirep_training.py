@@ -55,9 +55,9 @@ GAMMA = 0.4
 ALPHA = 1.0
 LEARNING_RATE = 0.001
 IDEC_LR = 0.001
-BATCH_WORDS = 32
-EPOCHS_PER_LOOP = 6
-IDEC_EPOCHS_PER_LOOP = 5
+BATCH_WORDS = 64
+EPOCHS_PER_LOOP = 2
+IDEC_EPOCHS_PER_LOOP = 2
 SEED = 42
 
 
@@ -168,8 +168,8 @@ def make_word_batches(X, labels, wmap, batch_words=BATCH_WORDS):
                 b_idxs.extend(s_idxs * rep + u_idxs)
         if len(b_idxs) >= 8:
             batches.append((
-                torch.tensor(X[b_idxs], dtype=torch.float32),
-                torch.tensor(labels[b_idxs], dtype=torch.long)
+                torch.as_tensor(X[b_idxs], dtype=torch.float32),
+                torch.as_tensor(labels[b_idxs], dtype=torch.long)
             ))
     return batches
 
@@ -546,12 +546,22 @@ def find_best_anchor(
             s_cand.append(s)
             u_cand.append(u)
 
+    # Pre-filter to the top 150 candidates with highest acoustic contrast:
+    # A polar anchor has high intra-word distance between stressed and unstressed syllables
+    if len(candidates) > 150:
+        with torch.no_grad():
+            pair_cos = torch.sum(X_norm[s_cand] * X_norm[u_cand], dim=1)
+            top_k_indices = torch.topk(-pair_cos, k=150).indices.cpu().numpy()
+            candidates = [candidates[i] for i in top_k_indices]
+            s_cand = [s_cand[i] for i in top_k_indices]
+            u_cand = [u_cand[i] for i in top_k_indices]
+
     s_cand_tensor = torch.tensor(s_cand, dtype=torch.long, device=torch_device)
     u_cand_tensor = torch.tensor(u_cand, dtype=torch.long, device=torch_device)
 
     # 3. Batched evaluation across candidates
     cand_accs = []
-    batch_size = 500
+    batch_size = 200
     base_correct = len(Y_train) - 2 * len(wmap_tr)
 
     with torch.no_grad():
@@ -714,9 +724,9 @@ def run_lexirep_training(
     # Pretrain IDEC Autoencoder on initial 10-D representations
     cl_encoder.eval()
     with torch.no_grad():
-        h_tr_init = cl_encoder(torch.tensor(X_train, dtype=torch.float32).to(device))
+        h_tr_init = cl_encoder(torch.as_tensor(X_train, dtype=torch.float32, device=device))
 
-    for ep in range(IDEC_EPOCHS_PER_LOOP):
+    for ep in range(3):
         idec_optimizer.zero_grad()
         _, rec, _ = idec_model(h_tr_init)
         loss_rec = F.mse_loss(rec, h_tr_init)
@@ -797,10 +807,10 @@ def run_lexirep_training(
         # 6b. Extract representations
         cl_encoder.eval()
         with torch.no_grad():
-            h_tr = cl_encoder(torch.tensor(X_train, dtype=torch.float32).to(device))
-            h_te = cl_encoder(torch.tensor(X_test, dtype=torch.float32).to(device))
-            h_rs = cl_encoder(torch.tensor(rs_vec, dtype=torch.float32).to(device))
-            h_ru = cl_encoder(torch.tensor(ru_vec, dtype=torch.float32).to(device))
+            h_tr = cl_encoder(torch.as_tensor(X_train, dtype=torch.float32, device=device))
+            h_te = cl_encoder(torch.as_tensor(X_test, dtype=torch.float32, device=device))
+            h_rs = cl_encoder(torch.as_tensor(rs_vec, dtype=torch.float32, device=device))
+            h_ru = cl_encoder(torch.as_tensor(ru_vec, dtype=torch.float32, device=device))
 
         loop_mid_prog = int(14 + ((loop - 0.5) / epochs) * 82)
         if on_progress:
@@ -852,8 +862,13 @@ def run_lexirep_training(
         z_s_h = h_tr_np[idx_s_h:idx_s_h + 1]
         z_u_h = h_tr_np[idx_u_h:idx_u_h + 1]
 
-        # 6e. Linguistic Constraint Enforcement (directional prototype similarity)
-        diff_tr = cosine_similarity(h_tr_np, z_s_h).flatten() - cosine_similarity(h_tr_np, z_u_h).flatten()
+        # 6e. Linguistic Constraint Enforcement (vectorized PyTorch prototype cosine scoring)
+        with torch.no_grad():
+            z_s_t = torch.as_tensor(z_s_h, dtype=torch.float32, device=device)
+            z_u_t = torch.as_tensor(z_u_h, dtype=torch.float32, device=device)
+            diff_tr = (F.cosine_similarity(h_tr, z_s_t, dim=-1) - F.cosine_similarity(h_tr, z_u_t, dim=-1)).cpu().numpy()
+            diff_te = (F.cosine_similarity(h_te, z_s_t, dim=-1) - F.cosine_similarity(h_te, z_u_t, dim=-1)).cpu().numpy()
+
         new_labels_tr = np.zeros(len(Y_train), dtype=int)
         for w, idxs in wmap_tr.items():
             new_labels_tr[idxs[np.argmax(diff_tr[idxs])]] = 1
@@ -861,7 +876,6 @@ def run_lexirep_training(
         train_acc = float(accuracy_score(Y_train, labels_tr) * 100)
 
         # 6f. Unseen Test Set Evaluation (BTQ argmax, directional)
-        diff_te = cosine_similarity(h_te_np, z_s_h).flatten() - cosine_similarity(h_te_np, z_u_h).flatten()
         preds_te = np.zeros(len(Y_test), dtype=int)
         for w, idxs in wmap_te.items():
             preds_te[idxs[np.argmax(diff_te[idxs])]] = 1
