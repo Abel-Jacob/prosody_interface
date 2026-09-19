@@ -6,7 +6,7 @@
    The stressed syllable glows with the same --accent orange.
    ========================================= */
 
-/* ── Full-screen backdrop overlay ─────────────────────────────── */
+/* ── Full-screen liquid-glass overlay ─────────────────────────── */
 .syllable-bokeh-overlay {
   position: fixed;
   inset: 0;
@@ -15,20 +15,25 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(18, 20, 24, 0.42);
-  backdrop-filter: blur(32px) saturate(105%) contrast(96%);
-  -webkit-backdrop-filter: blur(32px) saturate(105%) contrast(96%);
+  background: rgba(8, 8, 8, 0.52);
+  backdrop-filter: blur(24px) saturate(90%);
+  -webkit-backdrop-filter: blur(24px) saturate(90%);
   cursor: pointer;
   overflow: hidden;
 }
 
-/* Ambient optical bokeh light circles */
-.syllable-bokeh-orbs {
+.syllable-bokeh-overlay::before {
+  content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  overflow: hidden;
-  z-index: 1;
+  background: linear-gradient(135deg, rgba(255,255,255,.07), transparent 38%, rgba(255,255,255,.025));
+}
+
+/* Decorative orb nodes remain in the DOM for compatibility but are hidden
+   so the stress view reads as neutral glass rather than colored bokeh. */
+.syllable-bokeh-orbs {
+  display: none;
 }
 
 .bokeh-orb {
@@ -101,12 +106,12 @@
   cursor: default;
   position: relative;
   z-index: 10;
-  background: rgba(255, 255, 255, 0.055);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 22px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(18px) saturate(110%);
-  -webkit-backdrop-filter: blur(18px) saturate(110%);
+  background: rgba(255, 255, 255, 0.075);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(28px) saturate(90%);
+  -webkit-backdrop-filter: blur(28px) saturate(90%);
 }
 
 /* ── Model Selector Bar ───────────────────────────────────────── */

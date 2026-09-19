@@ -172,8 +172,8 @@ img, svg { max-width: 100%; }
 /* monochrome icon treatment */
 svg { color: currentColor; }
 
-/* Remove legacy glass styling if present. */
-[style*='backdrop-filter'] { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+/* Preserve explicit glass surfaces; legacy opaque surfaces should opt out
+   through their own component styles instead of globally disabling blur. */
 
 /* Preserve readable line length. */
 p { line-height: 1.55; }

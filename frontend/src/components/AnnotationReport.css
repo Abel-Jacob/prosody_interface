@@ -689,13 +689,77 @@
 }
 
 .word-syllable-tag:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: rgba(196, 149, 106, 0.1);
+  border-color: var(--surface-border-hover);
+  color: var(--text-primary);
+  background: var(--surface-raised);
 }
 
 .word-syllable-tag .tag-dot {
   color: var(--text-faded);
+}
+
+/* Minimal file-wise report hierarchy: glass surfaces carry grouping, while
+   bronze remains reserved for actual stress states and primary actions. */
+.annotation-report-container,
+.batch-overview-container {
+  font-family: var(--font-primary);
+}
+
+.batch-overview-container {
+  gap: 0.9rem;
+}
+
+.batch-stat-card,
+.batch-actions-bar,
+.batch-filter-bar,
+.batch-file-card,
+.phrase-card,
+.syllable-chips-row,
+.word-detail-card-content {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: var(--surface-border);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+  backdrop-filter: blur(18px) saturate(90%);
+  -webkit-backdrop-filter: blur(18px) saturate(90%);
+}
+
+.batch-file-card {
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+}
+
+.batch-file-card:hover {
+  border-color: var(--surface-border-hover);
+  background: rgba(255, 255, 255, 0.07);
+  transform: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.batch-file-card.is-error,
+.batch-file-card.is-error:hover {
+  border-color: rgba(248, 113, 113, 0.22);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.batch-file-snippet {
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.batch-inspect-link,
+.batch-meta-badge {
+  color: var(--text-muted);
+}
+
+.batch-filter-tab.active {
+  background: rgba(255,255,255,.09);
+  border-color: var(--surface-border-hover);
+  color: var(--text-primary);
+}
+
+@media (max-width: 720px) {
+  .batch-overview-container { gap: 0.7rem; }
+  .batch-actions-bar { align-items: flex-start; }
 }
 
 .word-syllable-tag .tag-stressed {
