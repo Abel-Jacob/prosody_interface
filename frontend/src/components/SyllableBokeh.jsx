@@ -4,10 +4,30 @@ import { motion } from 'framer-motion'
 import './SyllableBokeh.css'
 
 const MODEL_OPTIONS = [
-  { id: 'fused', label: 'Fused Model', desc: 'Cross-lingual combined L2 distribution (Recommended)' },
-  { id: 'ensemble', label: 'Dual Ensemble', desc: 'Consensus average of German & Italian models' },
-  { id: 'ger', label: 'German L2', desc: 'German learner acoustic specialist' },
-  { id: 'ita', label: 'Italian L2', desc: 'Italian learner acoustic specialist' },
+  { 
+    id: 'fused', 
+    label: 'Fused', 
+    desc: 'Cross-lingual combined L2 distribution — Fixed benchmark default (83.3% accuracy)',
+    isDefault: true 
+  },
+  { 
+    id: 'ensemble', 
+    label: 'Dual Ensemble', 
+    desc: 'Consensus average of German & Italian models (Optional comparison)',
+    isDefault: false 
+  },
+  { 
+    id: 'ger', 
+    label: 'German L2', 
+    desc: 'German learner acoustic specialist (Optional comparison)',
+    isDefault: false 
+  },
+  { 
+    id: 'ita', 
+    label: 'Italian L2', 
+    desc: 'Italian learner acoustic specialist (Optional comparison)',
+    isDefault: false 
+  },
 ]
 
 /**
@@ -16,7 +36,7 @@ const MODEL_OPTIONS = [
  * Features:
  * - Ambient floating bokeh light orbs & 20px frosted backdrop filter.
  * - Central card showing enlarged word and syllable breakdown.
- * - Interactive model selector toggle: [ Fused ] [ Dual Ensemble ] [ German L2 ] [ Italian L2 ].
+ * - Interactive model selector toggle: Fused (Fixed Default) + Optional Models.
  * - Dynamically updates the glowing orange stressed syllable per selected model.
  * - Consensus indicator: Shows whether German and Italian models agree or split.
  * - Displays both lexical stress and WhiStress utterance focal stress.
@@ -116,19 +136,53 @@ export default function SyllableBokeh({ wordData, onClose }) {
         {/* Model Selector Bar (for polysyllabic words with multi-model data) */}
         {isPolysyllabic && (
           <div className="syllable-bokeh-model-bar">
-            <span className="model-bar-label">LexiRep Model:</span>
+            <div className="model-bar-meta">
+              <span className="model-bar-label">LexiRep Model</span>
+              <span className="model-bar-badge">
+                {activeModel === 'fused' ? (
+                  <span className="model-badge-fixed">★ Fixed Default (83.3% Acc)</span>
+                ) : (
+                  <span className="model-badge-optional">
+                    Comparing Optional Model ·{' '}
+                    <button 
+                      type="button" 
+                      className="model-reset-link"
+                      onClick={() => handleSelectModel('fused')}
+                      title="Return to benchmark default model"
+                    >
+                      Reset to Default
+                    </button>
+                  </span>
+                )}
+              </span>
+            </div>
             <div className="syllable-bokeh-model-selector">
-              {MODEL_OPTIONS.map((opt) => (
+              <div className="model-selector-primary">
                 <button
-                  key={opt.id}
                   type="button"
-                  className={`syllable-bokeh-model-btn ${activeModel === opt.id ? 'active' : ''}`}
-                  onClick={() => handleSelectModel(opt.id)}
-                  title={opt.desc}
+                  className={`syllable-bokeh-model-btn is-primary ${activeModel === 'fused' ? 'active' : ''}`}
+                  onClick={() => handleSelectModel('fused')}
+                  title="Cross-lingual joint distribution — Fixed benchmark default (83.3% accuracy)"
                 >
-                  {opt.label}
+                  <span className="btn-main-label">Fused</span>
+                  <span className="btn-badge-label">Default</span>
                 </button>
-              ))}
+              </div>
+              <span className="model-selector-divider" aria-hidden="true" />
+              <div className="model-selector-optional">
+                <span className="optional-tag-label">Optional:</span>
+                {MODEL_OPTIONS.filter(opt => !opt.isDefault).map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`syllable-bokeh-model-btn is-optional ${activeModel === opt.id ? 'active' : ''}`}
+                    onClick={() => handleSelectModel(opt.id)}
+                    title={opt.desc}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -193,7 +247,7 @@ export default function SyllableBokeh({ wordData, onClose }) {
                     </>
                   ) : (
                     <>
-                      {activeModelOption.label} primary stress on syllable:{' '}
+                      {activeModelOption.isDefault ? 'Fused (Default · 83.3% Acc)' : `${activeModelOption.label} (Optional)`} primary stress on syllable:{' '}
                       <strong style={{ color: '#ffffff', letterSpacing: '0.04em' }}>
                         "{activeStressedSyl ? activeStressedSyl.text.toUpperCase() : 'N/A'}"
                       </strong>

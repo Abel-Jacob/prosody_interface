@@ -937,22 +937,22 @@ export default function AnnotationReport({ data, onBack }) {
                         <td className="syl-col-models">
                           <div className="syl-models-chips">
                             {models.fused && (
-                              <span className="model-chip" title="Fused Model Margin">
-                                fused: {safeMarginStr(models.fused.margin, 2)}
+                              <span className="model-chip model-chip-primary" title="Fused Model Margin (Fixed Benchmark Default · 83.3% Acc)">
+                                fused (default): {safeMarginStr(models.fused.margin, 2)}
                               </span>
                             )}
                             {models.ensemble && (
-                              <span className="model-chip" title="Dual-Model Ensemble (GER+ITA)">
+                              <span className="model-chip" title="Dual-Model Ensemble (GER+ITA) — Optional">
                                 ens: {safeMarginStr(models.ensemble.margin, 2)}
                               </span>
                             )}
                             {models.ger && (
-                              <span className="model-chip" title="German Model Margin">
+                              <span className="model-chip" title="German Model Margin — Optional">
                                 ger: {safeMarginStr(models.ger.margin, 2)}
                               </span>
                             )}
                             {models.ita && (
-                              <span className="model-chip" title="Italian Model Margin">
+                              <span className="model-chip" title="Italian Model Margin — Optional">
                                 ita: {safeMarginStr(models.ita.margin, 2)}
                               </span>
                             )}

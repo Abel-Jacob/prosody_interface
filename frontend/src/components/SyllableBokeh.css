@@ -112,19 +112,62 @@
 /* ── Model Selector Bar ───────────────────────────────────────── */
 .syllable-bokeh-model-bar {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.8rem;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-bottom: -0.5rem;
+  gap: 0.5rem;
+  margin-bottom: -0.4rem;
+}
+
+.model-bar-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-secondary, var(--font-primary));
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .model-bar-label {
-  font-family: var(--font-secondary, var(--font-primary));
-  font-size: 0.65rem;
   color: var(--text-muted);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+}
+
+.model-bar-badge {
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+}
+
+.model-badge-fixed {
+  color: var(--accent, #f39c12);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.model-badge-optional {
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.model-reset-link {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.62rem;
+  font-family: inherit;
+  letter-spacing: inherit;
+  transition: opacity 0.2s;
+}
+
+.model-reset-link:hover {
+  opacity: 0.8;
 }
 
 .syllable-bokeh-model-selector {
@@ -133,15 +176,42 @@
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 9999px;
-  padding: 3px;
-  gap: 2px;
+  padding: 3px 6px 3px 4px;
+  gap: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.model-selector-primary {
+  display: inline-flex;
+}
+
+.model-selector-divider {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.model-selector-optional {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.optional-tag-label {
+  font-family: var(--font-secondary, var(--font-primary));
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.7;
+  padding-left: 2px;
 }
 
 .syllable-bokeh-model-btn {
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   outline: none;
-  padding: 0.35rem 0.9rem;
+  padding: 0.32rem 0.85rem;
   font-family: var(--font-secondary, var(--font-primary));
   font-size: 0.68rem;
   letter-spacing: 0.08em;
@@ -151,6 +221,9 @@
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .syllable-bokeh-model-btn:hover {
@@ -161,9 +234,29 @@
 .syllable-bokeh-model-btn.active {
   color: #ffffff;
   background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.45);
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.12);
   font-weight: 600;
+}
+
+.syllable-bokeh-model-btn.is-primary.active {
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.18);
+}
+
+.btn-badge-label {
+  font-size: 0.55rem;
+  padding: 1px 5px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.syllable-bokeh-model-btn.active .btn-badge-label {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
 }
 
 

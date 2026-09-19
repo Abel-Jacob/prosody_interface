@@ -608,6 +608,13 @@
   color: var(--text-muted);
 }
 
+.model-chip.model-chip-primary {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
 .monosyllabic-note {
   padding: 0.6rem 0.8rem;
   background: var(--bg-subtle);
