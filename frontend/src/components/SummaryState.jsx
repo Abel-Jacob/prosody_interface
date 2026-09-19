@@ -154,15 +154,35 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
     }
   }
 
+  const isBatch = Boolean(result?.is_batch && Array.isArray(result?.files))
+
   const phrases = result?.phrases || []
 
-  // Pre-process: absorb hesitation words into pauses for each phrase
+  // Pre-process: absorb hesitation words into pauses for each phrase (single-file mode)
   const processedPhrases = useMemo(() => {
+    if (isBatch) return []
     return phrases.map(p => ({
       ...p,
       words: preprocessWords(p.words)
     }))
-  }, [phrases])
+  }, [isBatch, phrases])
+
+  // Pre-process: each file's phrases in batch mode
+  const batchFilesData = useMemo(() => {
+    if (!isBatch) return []
+    return (result.files || []).map((f, fIdx) => {
+      const rawPhrases = f.result?.phrases || f.phrases || []
+      const processed = rawPhrases.map(p => ({
+        ...p,
+        words: preprocessWords(p.words)
+      }))
+      return {
+        ...f,
+        fileIndex: fIdx,
+        processedPhrases: processed,
+      }
+    })
+  }, [isBatch, result])
 
   if (!result) {
     return (
@@ -203,18 +223,33 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
     )
   }
   
-  // Feature 4: Calculate total average confidence (from processed words)
+  // Feature 4: Calculate total words and average confidence (from processed words)
   let wordCount = 0;
   let totalConfidence = 0;
-  processedPhrases.forEach(p => {
-    p.words.forEach(w => {
-      wordCount++;
-      const c = (w.confidence != null && !isNaN(w.confidence))
-        ? Number(w.confidence)
-        : (w.asr_confidence != null && !isNaN(w.asr_confidence) ? Number(w.asr_confidence) : 1);
-      totalConfidence += c;
-    })
-  });
+
+  if (isBatch) {
+    batchFilesData.forEach(file => {
+      file.processedPhrases.forEach(p => {
+        p.words.forEach(w => {
+          wordCount++;
+          const c = (w.confidence != null && !isNaN(w.confidence))
+            ? Number(w.confidence)
+            : (w.asr_confidence != null && !isNaN(w.asr_confidence) ? Number(w.asr_confidence) : 1);
+          totalConfidence += c;
+        });
+      });
+    });
+  } else {
+    processedPhrases.forEach(p => {
+      p.words.forEach(w => {
+        wordCount++;
+        const c = (w.confidence != null && !isNaN(w.confidence))
+          ? Number(w.confidence)
+          : (w.asr_confidence != null && !isNaN(w.asr_confidence) ? Number(w.asr_confidence) : 1);
+        totalConfidence += c;
+      });
+    });
+  }
   const avgConfidence = wordCount > 0 ? Math.round((totalConfidence / wordCount) * 100) : 0;
 
   const handleCanvasClick = () => {
@@ -257,13 +292,13 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
           userSelect: inspectedWord ? 'none' : 'auto'
         }}
       >
-        {/* Transcript View — spring config migrated from stiffness/damping */}
+        {/* Transcript View — scrollable container */}
         <motion.div 
           initial={{ y: 30, opacity: 0.85 }}
           animate={{ y: 0, opacity: 1 }}
           transition={transcriptSpring}
           style={{
-            maxWidth: '48rem',
+            maxWidth: '52rem',
             width: '100%',
             flex: 1,
             minHeight: 0,
@@ -280,20 +315,79 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
             color: 'var(--text-primary)',
             fontFamily: 'var(--font-primary)'
           }}>
-            {processedPhrases.map((phrase, pIndex) => (
-              <div key={pIndex} style={{ marginBottom: '1.2rem' }}>
-                {phrase.words.map((w, wIndex) => (
-                  <TranscribedWord 
-                    key={wIndex} 
-                    w={w} 
-                    isLast={wIndex === phrase.words.length - 1} 
-                    inspectedWord={inspectedWord}
-                    setInspectedWord={setInspectedWord}
-                    wordKey={`${pIndex}-${wIndex}-${w.word}`}
-                  />
-                ))}
-              </div>
-            ))}
+            {isBatch ? (
+              batchFilesData.map((file, fIdx) => (
+                <div key={file.fileIndex ?? fIdx} style={{ marginBottom: '3rem' }}>
+                  {/* Small title of file name above each transcription */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.6rem',
+                    margin: fIdx === 0 ? '0 0 1.25rem 0' : '2.5rem 0 1.25rem 0',
+                    paddingBottom: '0.5rem',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+                  }}>
+                    <span style={{
+                      fontSize: '0.72rem',
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      color: 'var(--accent)',
+                      fontWeight: 600,
+                      fontFamily: 'var(--font-secondary)'
+                    }}>
+                      {file.filename || `File ${fIdx + 1}`}
+                    </span>
+                    {file.duration > 0 && (
+                      <span style={{
+                        fontSize: '0.65rem',
+                        color: 'var(--text-muted)',
+                        fontFamily: 'var(--font-secondary)',
+                        letterSpacing: '0.04em'
+                      }}>
+                        · {file.duration.toFixed(1)}s
+                      </span>
+                    )}
+                  </div>
+
+                  {file.processedPhrases.length === 0 ? (
+                    <div style={{ color: 'var(--text-faded)', fontSize: '0.85rem', fontStyle: 'italic', margin: '0.5rem 0' }}>
+                      {file.error ? `⚠️ Error: ${file.error}` : 'No speech detected in this file'}
+                    </div>
+                  ) : (
+                    file.processedPhrases.map((phrase, pIndex) => (
+                      <div key={pIndex} style={{ marginBottom: '1.2rem' }}>
+                        {phrase.words.map((w, wIndex) => (
+                          <TranscribedWord 
+                            key={wIndex} 
+                            w={w} 
+                            isLast={wIndex === phrase.words.length - 1} 
+                            inspectedWord={inspectedWord}
+                            setInspectedWord={setInspectedWord}
+                            wordKey={`b-${fIdx}-${pIndex}-${wIndex}-${w.word}`}
+                          />
+                        ))}
+                      </div>
+                    ))
+                  )}
+                </div>
+              ))
+            ) : (
+              processedPhrases.map((phrase, pIndex) => (
+                <div key={pIndex} style={{ marginBottom: '1.2rem' }}>
+                  {phrase.words.map((w, wIndex) => (
+                    <TranscribedWord 
+                      key={wIndex} 
+                      w={w} 
+                      isLast={wIndex === phrase.words.length - 1} 
+                      inspectedWord={inspectedWord}
+                      setInspectedWord={setInspectedWord}
+                      wordKey={`${pIndex}-${wIndex}-${w.word}`}
+                    />
+                  ))}
+                </div>
+              ))
+            )}
           </div>
         </motion.div>
 
@@ -326,10 +420,12 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '6rem' }}>
             <span style={{ fontSize: '1.2rem', fontWeight: 300, color: 'var(--text-primary)' }}>
-              {Math.round(result.wpm || 0)}
+              {isBatch 
+                ? `${result.completed_files ?? result.files?.length ?? 0}/${result.total_files ?? result.files?.length ?? 0}` 
+                : Math.round(result.wpm || 0)}
             </span>
             <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: '0.3rem' }}>
-              WPM
+              {isBatch ? 'Files' : 'WPM'}
             </span>
           </div>
 

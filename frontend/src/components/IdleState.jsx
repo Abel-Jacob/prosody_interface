@@ -129,141 +129,62 @@ export default function IdleState({ onStart, onUpload, onBack }) {
           padding: '0 2rem'
         }}
       >
-        <div style={{
-          width: '100%',
-          maxWidth: '28rem',
-          background: 'var(--bg-subtle)',
-          border: '1px solid var(--text-faded)',
-          padding: '2rem 1.6rem',
-          borderRadius: '12px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1.2rem',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.36)'
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <span style={{
-              fontSize: '0.65rem',
-              color: 'var(--accent)',
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              fontWeight: 600,
-              display: 'block',
-              marginBottom: '0.35rem'
-            }}>
+        <div className="batch-modal-card">
+          <div className="batch-modal-header">
+            <span className="batch-modal-kicker">
               {isZip ? 'ZIP Archive Detected' : 'Batch Audio Selection'}
             </span>
-            <span style={{
-              fontSize: '1rem',
-              color: 'var(--text-primary)',
-              fontFamily: 'var(--font-secondary)',
-              fontWeight: 500,
-              wordBreak: 'break-all'
-            }}>
+            <span className="batch-modal-title">
               {isZip ? selectedFiles[0].name : `${selectedFiles.length} Audio Files Selected`}
             </span>
-            <div style={{
-              fontSize: '0.75rem',
-              color: 'var(--text-muted)',
-              marginTop: '0.3rem',
-              fontFamily: 'var(--font-secondary)'
-            }}>
+            <div className="batch-modal-subtitle">
               {isZip ? `Archive Size: ${formattedSize}` : `Total Size: ${formattedSize} • Ready for batch analysis`}
             </div>
           </div>
 
           {/* Preview list of files */}
-          <div style={{
-            background: 'rgba(0, 0, 0, 0.25)',
-            border: '1px solid rgba(255, 255, 255, 0.05)',
-            borderRadius: '8px',
-            padding: '0.75rem 1rem',
-            maxHeight: '130px',
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.35rem',
-            fontSize: '0.75rem',
-            color: 'var(--text-muted)'
-          }}>
+          <div className="batch-modal-file-list">
             {selectedFiles.slice(0, 5).map((f, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '75%', color: 'var(--text-primary)' }}>
-                  🎵 {f.name}
-                </span>
-                <span style={{ fontSize: '0.68rem', color: 'var(--text-faded)' }}>
+              <div key={i} className="batch-modal-file-row">
+                <div className="batch-modal-file-info">
+                  <svg className="batch-modal-file-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M9 18V5l12-2v13" />
+                    <circle cx="6" cy="18" r="3" />
+                    <circle cx="18" cy="16" r="3" />
+                  </svg>
+                  <span className="batch-modal-file-name">
+                    {f.name}
+                  </span>
+                </div>
+                <span className="batch-modal-file-size">
                   {(f.size / 1024).toFixed(0)} KB
                 </span>
               </div>
             ))}
             {selectedFiles.length > 5 && (
-              <div style={{ fontSize: '0.7rem', color: 'var(--accent)', marginTop: '0.2rem', textAlign: 'center' }}>
+              <div className="batch-modal-more-badge">
                 + {selectedFiles.length - 5} more files in batch
               </div>
             )}
           </div>
 
-          <div style={{ height: '1px', backgroundColor: 'var(--text-faded)', margin: '0.2rem 0' }} />
+          <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.07)', margin: '0.1rem 0' }} />
 
           {/* Action Row */}
-          <div style={{
-            display: 'flex',
-            gap: '1rem',
-            width: '100%'
-          }}>
+          <div className="batch-modal-actions">
             <button
+              type="button"
               onClick={handleCancel}
-              style={{
-                flex: 1,
-                background: 'none',
-                border: '1px solid var(--text-faded)',
-                color: 'var(--text-muted)',
-                padding: '0.6rem',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '0.7rem',
-                fontFamily: 'var(--font-secondary)',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.color = 'var(--text-primary)'
-                e.target.style.borderColor = 'var(--text-muted)'
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.color = 'var(--text-muted)'
-                e.target.style.borderColor = 'var(--text-faded)'
-              }}
+              className="batch-modal-cancel-btn"
             >
               Cancel
             </button>
 
             <button
+              type="button"
               onClick={handleProceed}
               disabled={isSubmitting}
-              style={{
-                flex: 1.5,
-                background: isSubmitting ? 'var(--text-faded)' : 'var(--accent)',
-                border: '1px solid var(--accent)',
-                color: 'var(--bg)',
-                padding: '0.6rem',
-                borderRadius: '8px',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                fontSize: '0.7rem',
-                fontWeight: 600,
-                fontFamily: 'var(--font-secondary)',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                transition: 'all 0.2s',
-                opacity: isSubmitting ? 0.7 : 1
-              }}
-              onMouseEnter={(e) => {
-                if (!isSubmitting) e.target.style.opacity = '0.85'
-              }}
-              onMouseLeave={(e) => {
-                if (!isSubmitting) e.target.style.opacity = '1'
-              }}
+              className="batch-modal-process-btn"
             >
               {isSubmitting ? 'Uploading...' : (isZip ? 'Extract & Process ZIP' : `Process ${selectedFiles.length} Files`)}
             </button>

@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import './AnnotationReport.css'
-import ProsodyWord from './ProsodyWord'
 import SyllableBokeh from './SyllableBokeh'
 import { getHttpUrl } from '../apiConfig'
 
@@ -856,9 +855,9 @@ export default function AnnotationReport({ data, onBack }) {
                   e.stopPropagation()
                   setSelectedBokehWord(w)
                 }}
-                title="Open interactive Syllable Bokeh view"
+                title="Open interactive syllable stress view"
               >
-                Inspect Bokeh ↗
+                View Stress ↗
               </button>
             )}
           </div>
@@ -877,7 +876,7 @@ export default function AnnotationReport({ data, onBack }) {
                         setSelectedBokehWord(w)
                       }}
                       style={{ cursor: 'pointer' }}
-                      title={`Click to view Syllable Bokeh for "${w.word}" (${syl.text})`}
+                      title={`Click to view syllable stress for "${w.word}" (${syl.text})`}
                     >
                       <span className="syllable-chip-text">{syl.text}</span>
                       {syl.stressed && <span className="syllable-chip-badge">PRIMARY</span>}
@@ -913,7 +912,7 @@ export default function AnnotationReport({ data, onBack }) {
                           setSelectedBokehWord(w)
                         }}
                         style={{ cursor: 'pointer' }}
-                        title="Click to view syllable bokeh effect"
+                        title="Click to view syllable stress analysis"
                       >
                         <td className="syl-col-text">
                           <strong>{syl.text}</strong>
@@ -1248,13 +1247,9 @@ export default function AnnotationReport({ data, onBack }) {
                                 className={`word-default-view ${w.stressed ? 'is-stressed' : ''} ${w.is_hesitation ? 'is-hesitation' : ''
                                   } ${isExpanded ? 'expanded-word' : ''}`}
                               >
-                                <ProsodyWord
-                                  word={w.word}
-                                  charPitches={w.char_pitches}
-                                  stressed={w.stressed}
-                                  isInspected={isExpanded}
-                                  confidence={w.asr_confidence}
-                                />
+                                <span className="word-text">
+                                  {w.word}
+                                </span>
                                 {w.stressed && (
                                   <span className="stress-dot" style={{ opacity: stressOpacity }} />
                                 )}
@@ -1266,7 +1261,7 @@ export default function AnnotationReport({ data, onBack }) {
                                     e.stopPropagation()
                                     setSelectedBokehWord(w)
                                   }}
-                                  title={`Inspect syllable bokeh for "${w.word}"`}
+                                  title={`View syllable stress for "${w.word}"`}
                                 >
                                   {w.syllables.map((s, idx) => (
                                     <React.Fragment key={idx}>

@@ -38,18 +38,9 @@ function App({ onBack }) {
     }
   }
 
-  const handleProcessingComplete = async (result) => {
+  const handleProcessingComplete = (result) => {
     setFinalResult(result)
-    if (result && result.is_batch) {
-      try {
-        await handleViewAnnotation(jobId)
-      } catch (err) {
-        console.error('Failed to view batch annotation, falling back to summary:', err)
-        setAppState('summary')
-      }
-    } else {
-      setAppState('summary')
-    }
+    setAppState('summary')
   }
 
   const handleViewAnnotation = async (id) => {
@@ -182,13 +173,7 @@ function App({ onBack }) {
           >
             <AnnotationReport 
               data={annotationData} 
-              onBack={() => {
-                if (finalResult && finalResult.is_batch) {
-                  handleReset()
-                } else {
-                  setAppState('summary')
-                }
-              }} 
+              onBack={() => setAppState('summary')} 
             />
           </motion.div>
         )}
