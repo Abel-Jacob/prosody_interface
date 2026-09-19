@@ -62,7 +62,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  text-shadow: 0 0 5px var(--accent-dim), 0 0 14px rgba(196, 149, 106, 0.22);
+  text-shadow: 0 0 5px var(--accent-dim), 0 0 14px var(--accent-glow);
 }
 
 .prosody-word.inspected {
