@@ -7,14 +7,27 @@
   --border-strong: #3A3732;
   --accent: #C4956A;
   --accent-dim: rgba(196, 149, 106, 0.15);
+  --accent-soft: rgba(196, 149, 106, 0.04);
   --pause: #F97316;
   --error: #F97316;
+  --success: #4ADE80;
+  --danger: #F87171;
+  --surface-border: rgba(255, 255, 255, 0.08);
+  --surface-border-hover: rgba(255, 255, 255, 0.18);
+  --surface-subtle: rgba(255, 255, 255, 0.015);
+  --surface-raised: rgba(255, 255, 255, 0.03);
   --overlay-bg: #11100F;
   --overlay-border: #242321;
   --font-primary: Helvetica, Arial, sans-serif;
   --font-secondary: var(--font-primary);
   --font-mono: var(--font-primary);
   --transition-base: 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-pill: 22px;
+  --surface-overlay: rgba(18, 17, 16, 0.75);
+  --accent-glow: rgba(196, 149, 106, 0.22);
+  --shadow-tooltip: 0 8px 24px rgba(23, 23, 23, 0.12);
   --pitch-deform-duration: 0.6s;
 }
 

@@ -1,7 +1,7 @@
 .annotation-report-container {
-  --font-primary: Helvetica, Arial, sans-serif;
-  --font-secondary: Helvetica, Arial, sans-serif;
-  font-family: Helvetica, Arial, sans-serif;
+  --font-primary: var(--font-primary);
+  --font-secondary: var(--font-primary);
+  font-family: var(--font-primary);
   min-height: 100vh;
   max-height: 100vh;
   display: flex;
@@ -70,7 +70,7 @@
   background: var(--bg-subtle);
   border: 1px solid var(--text-faded);
   padding: 0.4rem 0.8rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 0.65rem;
   color: var(--text-muted);
   letter-spacing: 0.12em;
@@ -295,7 +295,7 @@
 .word-detail-card-content {
   background-color: var(--overlay-bg);
   border: 1px solid var(--overlay-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0.8rem 1.2rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   width: 100%;
@@ -369,7 +369,7 @@
   display: inline-flex;
   background: var(--bg-subtle);
   border: 1px solid var(--text-faded);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 2px;
   margin-right: 0.5rem;
 }
@@ -868,7 +868,7 @@
   background: rgba(26, 24, 22, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.04);
   padding: 0.9rem 1.1rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -911,7 +911,7 @@
   padding: 0.75rem 1rem;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 
@@ -1027,7 +1027,7 @@
 .batch-file-card {
   background: rgba(24, 22, 20, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0.95rem 1.2rem;
   cursor: pointer;
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1153,7 +1153,7 @@
   background: rgba(18, 16, 14, 0.94);
   backdrop-filter: blur(14px);
   border: 1px solid rgba(196, 149, 106, 0.3);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   margin-bottom: 1rem;
   width: 100%;
   max-width: 88rem;

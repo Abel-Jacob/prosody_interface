@@ -24,10 +24,10 @@
   background-color: var(--text-primary);
   color: var(--bg);
   padding: 0.4rem 0.6rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   font-size: 0.65rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-tooltip);
+  border: 1px solid var(--overlay-border);
   position: relative;
 }
 
@@ -59,4 +59,4 @@
   gap: 8px;
 }
 .tooltip-label { color: rgba(255, 255, 255, 0.6); font-weight: 500; }
-.tooltip-value { font-weight: 600; font-family: monospace; }
+.tooltip-value { font-weight: 600; font-family: var(--font-mono); }

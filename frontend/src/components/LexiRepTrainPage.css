@@ -15,10 +15,10 @@
   right: 28px;
   padding: 8px 12px;
   background: none;
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  border-radius: 4px;
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-sm);
   color: var(--text-muted);
-  font: .65rem Helvetica, Arial, sans-serif;
+  font: .65rem var(--font-primary);
   letter-spacing: .08em;
   text-transform: uppercase;
   cursor: pointer;
@@ -45,7 +45,7 @@
 .lexirep-header h1 {
   margin: 0 0 8px;
   color: var(--text-primary);
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: clamp(1.8rem, 4.5vw, 2.6rem);
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -56,7 +56,7 @@
 .lexirep-header p {
   margin: 0;
   color: var(--text-muted);
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.84rem;
   font-weight: 400;
   line-height: 1.55;
@@ -81,7 +81,7 @@
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.015);
   color: var(--text-muted);
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.74rem;
   font-weight: 400;
   line-height: 1.45;
@@ -101,7 +101,7 @@
 .lexirep-step-label {
   margin-bottom: 9px;
   color: var(--text-muted);
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.68rem;
   font-weight: 400;
   letter-spacing: 0.08em;
@@ -152,7 +152,7 @@
 .lexirep-upload-zone-text {
   margin-bottom: 5px;
   color: var(--text-primary);
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.86rem;
   font-weight: 450;
   letter-spacing: 0.01em;
@@ -160,7 +160,7 @@
 
 .lexirep-upload-zone-hint {
   color: var(--text-muted);
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.72rem;
   font-weight: 400;
   letter-spacing: 0.02em;
@@ -213,7 +213,7 @@
 .lexirep-file-pill-name {
   overflow: hidden;
   color: var(--text-primary);
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.82rem;
   font-weight: 450;
   letter-spacing: 0.01em;
@@ -223,7 +223,7 @@
 
 .lexirep-file-pill-meta {
   color: var(--text-muted);
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.68rem;
   font-weight: 400;
 }
@@ -249,7 +249,7 @@
 
 .lexirep-validation-msg {
   margin-top: 8px;
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.72rem;
   color: #4ade80;
   display: flex;
@@ -285,7 +285,7 @@
 
 .lexirep-epoch-title {
   color: var(--text-muted);
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.68rem;
   font-weight: 400;
   letter-spacing: 0.08em;
@@ -294,7 +294,7 @@
 
 .lexirep-epoch-number {
   color: var(--accent);
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 500;
   font-size: 1.35rem;
   font-variant-numeric: tabular-nums;
@@ -336,7 +336,7 @@
   display: flex;
   justify-content: space-between;
   color: var(--text-muted);
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.65rem;
   font-weight: 400;
   letter-spacing: 0.02em;
@@ -360,7 +360,7 @@
   background: rgba(255, 255, 255, 0.035);
   color: var(--text-primary);
   cursor: pointer;
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.74rem;
   font-weight: 500;
   letter-spacing: 0.08em;
@@ -410,7 +410,7 @@
 }
 
 .lexirep-status-label {
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 400;
   font-size: 1.05rem;
   color: var(--text-primary);
@@ -419,7 +419,7 @@
 }
 
 .lexirep-status-sub {
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 400;
   font-size: 0.8rem;
   color: var(--text-muted);
@@ -434,7 +434,7 @@
 }
 
 .lexirep-status-fader-text {
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-weight: 400;
   font-size: 0.95rem;
   color: var(--text-primary);
@@ -455,7 +455,7 @@
 }
 
 .lexirep-loop-counter {
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 1.45rem;
   font-weight: 400;
   color: var(--text-muted);
@@ -535,7 +535,7 @@
 }
 
 .lexirep-complete-kicker {
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.65rem;
   font-weight: 400;
   color: var(--text-muted);
@@ -553,7 +553,7 @@
 }
 
 .lexirep-hero-metric .hero-val {
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: clamp(3.2rem, 8vw, 4.6rem);
   font-weight: 400; /* strictly not bold */
   color: var(--text-primary);
@@ -562,7 +562,7 @@
 }
 
 .lexirep-hero-metric .hero-label {
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.78rem;
   font-weight: 400;
   color: var(--text-muted);
@@ -587,14 +587,14 @@
 }
 
 .metric-item .metric-val {
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 1.15rem;
   font-weight: 400;
   color: var(--text-primary);
 }
 
 .metric-item .metric-lbl {
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.65rem;
   font-weight: 400;
   color: var(--text-muted);
@@ -634,7 +634,7 @@
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 4px;
   color: var(--text-muted);
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.72rem;
   font-weight: 400;
   letter-spacing: 0.06em;
@@ -663,7 +663,7 @@
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: var(--font-primary);
   font-size: 0.65rem;
   font-weight: 400;
   letter-spacing: 0.16em;
@@ -695,7 +695,7 @@
 
 .lexirep-result-title.error {
   color: #f87171;
-  font: 700 1rem Helvetica, Arial, sans-serif;
+  font: 700 1rem var(--font-primary);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -703,7 +703,7 @@
 .lexirep-result-detail {
   max-width: 28rem;
   color: var(--text-muted);
-  font: 0.78rem Helvetica, Arial, sans-serif;
+  font: 0.78rem var(--font-primary);
   line-height: 1.5;
 }
 
