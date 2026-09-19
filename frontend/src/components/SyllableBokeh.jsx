@@ -24,7 +24,11 @@ const MODEL_OPTIONS = [
  */
 export default function SyllableBokeh({ wordData, onClose }) {
   const [activeModel, setActiveModel] = useState(() => {
-    return localStorage.getItem('lexirep_active_model') || 'fused'
+    try {
+      return localStorage.getItem('lexirep_active_model') || 'fused'
+    } catch {
+      return 'fused'
+    }
   })
   const [selectedSylIdx, setSelectedSylIdx] = useState(null)
 
@@ -42,11 +46,15 @@ export default function SyllableBokeh({ wordData, onClose }) {
 
   const handleSelectModel = (modelKey) => {
     setActiveModel(modelKey)
-    localStorage.setItem('lexirep_active_model', modelKey)
+    try {
+      localStorage.setItem('lexirep_active_model', modelKey)
+    } catch {
+      // Ignore storage error
+    }
   }
 
   // Word text cleaned of trailing punctuation for display
-  const rawWord = wordData.word || ''
+  const rawWord = String(wordData.word ?? '')
   const punctMatch = rawWord.match(/([.,!?;:"'-]+)$/)
   const punctuation = punctMatch ? punctMatch[1] : ''
   const cleanWord = punctuation ? rawWord.slice(0, -punctuation.length) : rawWord

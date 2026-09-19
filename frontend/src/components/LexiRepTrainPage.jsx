@@ -109,6 +109,9 @@ function validateNpzBuffer(buffer) {
 function validateNpyBuffer(buffer) {
   try {
     const view = new DataView(buffer)
+    if (view.byteLength < 16) {
+      return { valid: false, message: 'File is too small to be a valid .npy file' }
+    }
     const magic = String.fromCharCode(
       view.getUint8(0), view.getUint8(1), view.getUint8(2),
       view.getUint8(3), view.getUint8(4), view.getUint8(5)
@@ -198,7 +201,7 @@ export default function LexiRepTrainPage({ onBack }) {
         const buffer = await file.arrayBuffer()
         return validateNpzBuffer(buffer)
       } else if (ext === 'csv') {
-        const text = await file.text()
+        const text = await file.slice(0, 65536).text()
         return validateCsvText(text)
       } else if (ext === 'npy') {
         const buffer = await file.arrayBuffer()
@@ -397,6 +400,25 @@ export default function LexiRepTrainPage({ onBack }) {
     setStatusText('training in progress…')
     setStartTime(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
+  }, [])
+
+  const handleDownloadArtifact = useCallback(async (url, filename) => {
+    try {
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`Download failed (HTTP ${res.status})`)
+      const blob = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(blobUrl)
+    } catch (err) {
+      console.warn('[LexiRep] Blob download fallback:', err)
+      window.open(url, '_blank')
+    }
   }, [])
 
   const sliderPercent = ((epochs - 1) / (30 - 1)) * 100
@@ -623,7 +645,9 @@ export default function LexiRepTrainPage({ onBack }) {
           {/* Hero Score: Pure Typography, NO BOX */}
           <div className="lexirep-hero-metric">
             <span className="hero-val">
-              {modelSummary?.final_metrics?.BTQ ?? currentMetrics?.BTQ ?? '—'}%
+              {(modelSummary?.final_metrics?.BTQ ?? currentMetrics?.BTQ) != null
+                ? `${modelSummary?.final_metrics?.BTQ ?? currentMetrics?.BTQ}%`
+                : '—'}
             </span>
             <span className="hero-label">
               bi + tri + quad (btq) linguistic accuracy
@@ -633,12 +657,20 @@ export default function LexiRepTrainPage({ onBack }) {
           {/* Supporting Metrics: Clean horizontal row, zero boxes, zero borders */}
           <div className="lexirep-metric-row">
             <div className="metric-item">
-              <span className="metric-val">{modelSummary?.final_metrics?.B ?? currentMetrics?.B ?? '—'}%</span>
+              <span className="metric-val">
+                {(modelSummary?.final_metrics?.B ?? currentMetrics?.B) != null
+                  ? `${modelSummary?.final_metrics?.B ?? currentMetrics?.B}%`
+                  : '—'}
+              </span>
               <span className="metric-lbl">bi-syllabic</span>
             </div>
             <span className="metric-sep">/</span>
             <div className="metric-item">
-              <span className="metric-val">{modelSummary?.final_metrics?.BT ?? currentMetrics?.BT ?? '—'}%</span>
+              <span className="metric-val">
+                {(modelSummary?.final_metrics?.BT ?? currentMetrics?.BT) != null
+                  ? `${modelSummary?.final_metrics?.BT ?? currentMetrics?.BT}%`
+                  : '—'}
+              </span>
               <span className="metric-lbl">bi + tri</span>
             </div>
             <span className="metric-sep">/</span>
@@ -655,10 +687,14 @@ export default function LexiRepTrainPage({ onBack }) {
           {/* Minimal Monochrome Actions — hairline outlines, zero solid colored fills */}
           <div className="lexirep-download-section">
             <div className="lexirep-download-grid">
-              <a
+              <button
+                type="button"
                 className="lexirep-action-btn"
-                href={jobId ? getHttpUrl(`/lexirep/train-result/${jobId}?file=final_lexirep_model.pt`) : '#'}
-                download="final_lexirep_model.pt"
+                onClick={() => {
+                  if (jobId) {
+                    handleDownloadArtifact(getHttpUrl(`/lexirep/train-result/${jobId}?file=final_lexirep_model.pt`), 'final_lexirep_model.pt')
+                  }
+                }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -667,12 +703,16 @@ export default function LexiRepTrainPage({ onBack }) {
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
                 <span>download model (.pt)</span>
-              </a>
+              </button>
 
-              <a
+              <button
+                type="button"
                 className="lexirep-action-btn"
-                href={jobId ? getHttpUrl(`/lexirep/train-result/${jobId}`) : '#'}
-                download={`lexirep_bundle_${jobId ? jobId.slice(0, 8) : 'export'}.zip`}
+                onClick={() => {
+                  if (jobId) {
+                    handleDownloadArtifact(getHttpUrl(`/lexirep/train-result/${jobId}`), `lexirep_bundle_${jobId.slice(0, 8)}.zip`)
+                  }
+                }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -681,13 +721,17 @@ export default function LexiRepTrainPage({ onBack }) {
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
                 <span>download bundle (.zip)</span>
-              </a>
+              </button>
 
               {hasCacheFile && (
-                <a
+                <button
+                  type="button"
                   className="lexirep-action-btn"
-                  href={jobId ? getHttpUrl(`/lexirep/train-result/${jobId}?file=dataset_cache.npz`) : '#'}
-                  download="dataset_cache.npz"
+                  onClick={() => {
+                    if (jobId) {
+                      handleDownloadArtifact(getHttpUrl(`/lexirep/train-result/${jobId}?file=dataset_cache.npz`), 'dataset_cache.npz')
+                    }
+                  }}
                   title="Download precomputed binary NPZ cache"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -697,7 +741,7 @@ export default function LexiRepTrainPage({ onBack }) {
                     <polyline points="7 3 7 8 15 8" />
                   </svg>
                   <span>download .npz cache</span>
-                </a>
+                </button>
               )}
             </div>
 

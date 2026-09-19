@@ -38,10 +38,15 @@ function App({ onBack }) {
     }
   }
 
-  const handleProcessingComplete = (result) => {
+  const handleProcessingComplete = async (result) => {
     setFinalResult(result)
     if (result && result.is_batch) {
-      handleViewAnnotation(jobId)
+      try {
+        await handleViewAnnotation(jobId)
+      } catch (err) {
+        console.error('Failed to view batch annotation, falling back to summary:', err)
+        setAppState('summary')
+      }
     } else {
       setAppState('summary')
     }
@@ -130,7 +135,7 @@ function App({ onBack }) {
             exit={{ opacity: 0 }}
             transition={stateTransition}
           >
-            <ListeningState onStop={handleStopListening} />
+            <ListeningState onStop={handleStopListening} onCancel={handleReset} />
           </motion.div>
         )}
         

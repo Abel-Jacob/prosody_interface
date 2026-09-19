@@ -2,6 +2,34 @@ import React from 'react'
 import { ThinkingOrb } from 'thinking-orbs'
 import { useJobPolling } from '../services/useJobPolling'
 
+class SafeThinkingOrb extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+  componentDidCatch(err) {
+    console.warn('[ProcessingState] ThinkingOrb canvas failed:', err)
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          width: 64,
+          height: 64,
+          borderRadius: '50%',
+          border: '2px solid var(--accent, #c4956a)',
+          borderTopColor: 'transparent',
+          animation: 'spin 1s linear infinite'
+        }} />
+      )
+    }
+    return <ThinkingOrb {...this.props} />
+  }
+}
+
 export default function ProcessingState({ jobId, onComplete, onReset }) {
   const { progress, status, currentStage, error } = useJobPolling(jobId, onComplete)
 
@@ -109,7 +137,7 @@ export default function ProcessingState({ jobId, onComplete, onReset }) {
             transformOrigin: 'center',
             margin: '12px 0 16px'
           }}>
-            <ThinkingOrb state="connecting" size={64} />
+            <SafeThinkingOrb state="connecting" size={64} />
           </div>
           <div style={{
             display: 'flex',

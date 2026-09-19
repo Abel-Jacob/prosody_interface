@@ -28,7 +28,22 @@ export class AudioService {
 
       this.pendingChunks = []
 
-      this.mediaRecorder = new MediaRecorder(this.stream, { mimeType: 'audio/webm' })
+      let options = {}
+      const candidateMimeTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/aac',
+        ''
+      ]
+      for (const mime of candidateMimeTypes) {
+        if (!mime || (typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(mime))) {
+          if (mime) options = { mimeType: mime }
+          break
+        }
+      }
+
+      this.mediaRecorder = new MediaRecorder(this.stream, options)
 
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -90,22 +105,21 @@ export class AudioService {
    * Stop recording. Returns a promise that resolves with { jobId, result }.
    * 
    * Guards:
-   * - If already stopping, returns a never-resolving promise (safe no-op).
-   * - If mediaRecorder isn't ready yet (WebSocket still connecting), 
-   *   cleans up gracefully instead of showing a scary error.
+   * - If already stopping, rejects early to avoid hanging caller.
+   * - If mediaRecorder or socket isn't active, cleans up gracefully.
    */
   stopRecording() {
     if (this.isStopping) {
       console.warn('[AudioService] stopRecording() called while already stopping — ignoring')
-      return new Promise(() => {})
+      return Promise.reject(new Error('Recording stop already in progress.'))
     }
     this.isStopping = true
 
     // If the socket completely failed or we have no stream, reject
-    if (!this.stream) {
-      console.warn('[AudioService] No stream available at stop time')
+    if (!this.stream || !this.socket) {
+      console.warn('[AudioService] No stream or connection available at stop time')
       this.cleanup()
-      return Promise.reject(new Error('Microphone was not active.'))
+      return Promise.reject(new Error('Microphone or connection was not active.'))
     }
 
     return new Promise((resolve, reject) => {

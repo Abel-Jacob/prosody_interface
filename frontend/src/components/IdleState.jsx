@@ -9,13 +9,15 @@ export default function IdleState({ onStart, onUpload, onBack }) {
   const [selectedFiles, setSelectedFiles] = useState(null)
   const [isBatch, setIsBatch] = useState(false)
   const [audioUrl, setAudioUrl] = useState(null)
+  const [uploadError, setUploadError] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const fileInputRef = useRef(null)
 
-  // Listen for spacebar to start speaking *only* when no file is uploaded and not typing in an input
+  // Listen for spacebar to start speaking *only* when no file is uploaded and not typing in an input/button
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (['INPUT', 'TEXTAREA'].includes(e.target?.tagName) || e.target?.isContentEditable) return
+      if (['INPUT', 'TEXTAREA', 'BUTTON'].includes(e.target?.tagName) || e.target?.isContentEditable) return
       if (e.code === 'Space') {
         if (!selectedFile && !selectedFiles) {
           e.preventDefault()
@@ -30,16 +32,36 @@ export default function IdleState({ onStart, onUpload, onBack }) {
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files || [])
     if (!files.length) return
+    setUploadError(null)
+
+    const validExtensions = ['.wav', '.mp3', '.ogg', '.webm', '.flac', '.m4a', '.zip']
+    const hasEmptyFile = files.some(f => (f.size || 0) === 0)
+    if (hasEmptyFile) {
+      setUploadError("One or more selected files are empty (0 bytes).")
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
+    const hasInvalidExt = files.some(f => {
+      const name = f.name.toLowerCase()
+      return !validExtensions.some(ext => name.endsWith(ext)) && !f.type.startsWith('audio/')
+    })
+    if (hasInvalidExt) {
+      setUploadError("Please select valid audio files (.wav, .mp3, .ogg, .webm, .flac, .m4a) or a .zip archive.")
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl)
+      setAudioUrl(null)
+    }
 
     const isZip = files.length === 1 && files[0].name.toLowerCase().endsWith('.zip')
     if (files.length > 1 || isZip) {
       setIsBatch(true)
       setSelectedFiles(files)
       setSelectedFile(null)
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl)
-        setAudioUrl(null)
-      }
     } else {
       setIsBatch(false)
       setSelectedFiles(null)
@@ -51,12 +73,15 @@ export default function IdleState({ onStart, onUpload, onBack }) {
 
   const handleTriggerUpload = (e) => {
     e.stopPropagation()
-    fileInputRef.current.click()
+    setUploadError(null)
+    fileInputRef.current?.click()
   }
 
   const handleProceed = (e) => {
     e.stopPropagation()
+    if (isSubmitting) return
     if (onUpload) {
+      setIsSubmitting(true)
       if (isBatch && selectedFiles && selectedFiles.length > 0) {
         onUpload(selectedFiles)
       } else if (selectedFile) {
@@ -77,6 +102,8 @@ export default function IdleState({ onStart, onUpload, onBack }) {
     setSelectedFiles(null)
     setIsBatch(false)
     setAudioUrl(null)
+    setUploadError(null)
+    setIsSubmitting(false)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -214,29 +241,31 @@ export default function IdleState({ onStart, onUpload, onBack }) {
 
             <button
               onClick={handleProceed}
+              disabled={isSubmitting}
               style={{
                 flex: 1.5,
-                background: 'var(--accent)',
+                background: isSubmitting ? 'var(--text-faded)' : 'var(--accent)',
                 border: '1px solid var(--accent)',
                 color: 'var(--bg)',
                 padding: '0.6rem',
                 borderRadius: '8px',
-                cursor: 'pointer',
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
                 fontSize: '0.7rem',
                 fontWeight: 600,
                 fontFamily: 'var(--font-secondary)',
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                opacity: isSubmitting ? 0.7 : 1
               }}
               onMouseEnter={(e) => {
-                e.target.style.opacity = '0.85'
+                if (!isSubmitting) e.target.style.opacity = '0.85'
               }}
               onMouseLeave={(e) => {
-                e.target.style.opacity = '1'
+                if (!isSubmitting) e.target.style.opacity = '1'
               }}
             >
-              {isZip ? 'Extract & Process ZIP' : `Process ${selectedFiles.length} Files`}
+              {isSubmitting ? 'Uploading...' : (isZip ? 'Extract & Process ZIP' : `Process ${selectedFiles.length} Files`)}
             </button>
           </div>
         </div>
@@ -331,27 +360,29 @@ export default function IdleState({ onStart, onUpload, onBack }) {
 
             <button
               onClick={handleProceed}
+              disabled={isSubmitting}
               style={{
                 flex: 1,
-                background: 'var(--accent)',
+                background: isSubmitting ? 'var(--text-faded)' : 'var(--accent)',
                 border: '1px solid var(--accent)',
                 color: 'var(--bg)',
                 padding: '0.5rem',
                 borderRadius: '8px',
-                cursor: 'pointer',
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
                 fontSize: '0.65rem',
                 fontFamily: 'var(--font-secondary)',
                 letterSpacing: '0.1em',
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
+                opacity: isSubmitting ? 0.7 : 1
               }}
               onMouseEnter={(e) => {
-                e.target.style.opacity = '0.85'
+                if (!isSubmitting) e.target.style.opacity = '0.85'
               }}
               onMouseLeave={(e) => {
-                e.target.style.opacity = '1'
+                if (!isSubmitting) e.target.style.opacity = '1'
               }}
             >
-              Analyze Audio
+              {isSubmitting ? 'Uploading...' : 'Analyze Audio'}
             </button>
           </div>
         </div>
@@ -472,6 +503,19 @@ export default function IdleState({ onStart, onUpload, onBack }) {
       >
         upload audio file(s) or zip archive
       </motion.button>
+
+      {uploadError && (
+        <div style={{
+          marginTop: '1rem',
+          color: 'var(--error, #f87171)',
+          fontSize: '0.75rem',
+          textAlign: 'center',
+          maxWidth: '24rem',
+          lineHeight: 1.4
+        }}>
+          {uploadError}
+        </div>
+      )}
     </div>
   )
 }

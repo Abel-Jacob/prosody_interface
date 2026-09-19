@@ -28,7 +28,9 @@ function preprocessWords(words) {
     if (w.is_hesitation && result.length > 0) {
       // Merge this filler's entire span into the previous word's pause
       const prev = result[result.length - 1]
-      const fillerDuration = (w.end || 0) - (w.start || 0)
+      const wEnd = (w.end != null ? w.end : w.end_time) || 0
+      const wStart = (w.start != null ? w.start : w.start_time) || 0
+      const fillerDuration = Math.max(0, wEnd - wStart)
       prev.pause_after = (prev.pause_after || 0) + fillerDuration + (w.pause_after || 0)
       continue // skip rendering this word
     }
@@ -39,16 +41,16 @@ function preprocessWords(words) {
 }
 
 // Helper component to render each word and its ref
-function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
+function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord, wordKey }) {
   const wordRef = useRef(null)
   const dotsRef = useRef(null)
   const [dotsHovered, setDotsHovered] = useState(false)
   
-  const isInspected = inspectedWord && inspectedWord.data.word === w.word && inspectedWord.data.start === w.start
+  const isInspected = inspectedWord && inspectedWord.wordKey === wordKey
 
   const handleClick = (e) => {
     e.stopPropagation()
-    setInspectedWord({ data: w, ref: wordRef })
+    setInspectedWord({ data: w, ref: wordRef, wordKey })
   }
 
   // Determine pause visualization
@@ -59,7 +61,7 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
     : 0
   const showComma = dotCount === 0 && pauseVal >= 0.2 && pauseVal <= 0.5 && !isLast
 
-  const wordText = w.word
+  const wordText = String(w.word || '')
   const alreadyHasPunct = /[.,!?;:]$/.test(wordText)
   const displayWord = (showComma && !alreadyHasPunct) ? wordText + ',' : wordText
 
@@ -69,7 +71,9 @@ function TranscribedWord({ w, isLast, inspectedWord, setInspectedWord }) {
   const synthPitches = w.char_pitches || [pitchScale, pitchScale, pitchScale]
 
   // Confidence-based visual effects
-  const conf = w.confidence !== undefined ? w.confidence : 1
+  const conf = (w.confidence != null && !isNaN(w.confidence))
+    ? Number(w.confidence)
+    : (w.asr_confidence != null && !isNaN(w.asr_confidence) ? Number(w.asr_confidence) : 1)
   const opacity = conf < 0.95 ? Math.max(0.5, 0.4 + conf * 0.6) : 1
   const blurVal = conf < 0.85 ? Math.min(1.4, (0.85 - conf) * 4) : 0
   const filter = blurVal > 0.05 ? `blur(${blurVal.toFixed(2)}px)` : 'none'
@@ -160,7 +164,44 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
     }))
   }, [phrases])
 
-  if (!result) return null
+  if (!result) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '1rem',
+        padding: '2rem'
+      }}>
+        <h2 style={{ fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
+          No Session Results
+        </h2>
+        <p style={{ color: 'var(--text-faded)', fontSize: '0.8rem', margin: 0 }}>
+          No analysis result was found for this session.
+        </p>
+        <button
+          type="button"
+          onClick={onReset}
+          style={{
+            background: 'none',
+            border: '1px solid var(--text-faded)',
+            color: 'var(--text-primary)',
+            padding: '0.5rem 1rem',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '0.7rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            marginTop: '0.5rem'
+          }}
+        >
+          ← Start New Session
+        </button>
+      </div>
+    )
+  }
   
   // Feature 4: Calculate total average confidence (from processed words)
   let wordCount = 0;
@@ -168,7 +209,10 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
   processedPhrases.forEach(p => {
     p.words.forEach(w => {
       wordCount++;
-      totalConfidence += (w.confidence !== undefined ? w.confidence : 1);
+      const c = (w.confidence != null && !isNaN(w.confidence))
+        ? Number(w.confidence)
+        : (w.asr_confidence != null && !isNaN(w.asr_confidence) ? Number(w.asr_confidence) : 1);
+      totalConfidence += c;
     })
   });
   const avgConfidence = wordCount > 0 ? Math.round((totalConfidence / wordCount) * 100) : 0;
@@ -245,6 +289,7 @@ export default function SummaryState({ result, jobId, onReset, onViewAnnotation 
                     isLast={wIndex === phrase.words.length - 1} 
                     inspectedWord={inspectedWord}
                     setInspectedWord={setInspectedWord}
+                    wordKey={`${pIndex}-${wIndex}-${w.word}`}
                   />
                 ))}
               </div>

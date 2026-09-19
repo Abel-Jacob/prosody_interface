@@ -15,6 +15,26 @@ const TREND_ARROWS = {
   '↘': '↘',
 }
 
+const safeFixed = (val, digits = 2, fallback = '0.00') => {
+  if (val === null || val === undefined || isNaN(Number(val))) return fallback
+  return Number(val).toFixed(digits)
+}
+
+const safeMarginStr = (val, digits = 2) => {
+  if (val === null || val === undefined || isNaN(Number(val))) return '—'
+  const num = Number(val)
+  return num > 0 ? `+${num.toFixed(digits)}` : num.toFixed(digits)
+}
+
+const escapeCSV = (str) => {
+  if (str === null || str === undefined) return '""'
+  let s = String(str).replace(/"/g, '""')
+  if (/^[=+\-@]/.test(s)) {
+    s = "'" + s
+  }
+  return `"${s}"`
+}
+
 export default function AnnotationReport({ data, onBack }) {
   const [expandedWordIndex, setExpandedWordIndex] = useState(null)
   const [viewMode, setViewMode] = useState('transcript') // 'transcript' | 'table'
@@ -64,6 +84,24 @@ export default function AnnotationReport({ data, onBack }) {
         return { ...activeBatchFile.annotation, filename: activeBatchFile.filename }
       }
       if (activeBatchFile.result) {
+        const rawPhrases = activeBatchFile.result.phrases || []
+        const normalizedPhrases = rawPhrases.map((p, pIdx) => ({
+          ...p,
+          phrase_index: p.phrase_index ?? pIdx,
+          start_time: p.start_time ?? p.start ?? 0,
+          end_time: p.end_time ?? p.end ?? 0,
+        }))
+        const normalizedWords = rawPhrases.flatMap((p, pIdx) =>
+          (p.words || []).map((w, wIdx) => ({
+            ...w,
+            word_index: w.word_index ?? wIdx,
+            phrase_index: w.phrase_index ?? pIdx,
+            start_time: w.start_time ?? w.start ?? 0,
+            end_time: w.end_time ?? w.end ?? 0,
+            asr_confidence: w.asr_confidence ?? w.confidence ?? 1.0,
+          }))
+        )
+
         return {
           recording: {
             job_id: activeBatchFile.file_id,
@@ -73,10 +111,10 @@ export default function AnnotationReport({ data, onBack }) {
             word_count: activeBatchFile.word_count,
             wpm: activeBatchFile.result.wpm,
             stress_ratio: activeBatchFile.result.stress_ratio,
-            phrase_count: activeBatchFile.result.phrases?.length || 0,
+            phrase_count: normalizedPhrases.length,
           },
-          phrases: activeBatchFile.result.phrases || [],
-          words: (activeBatchFile.result.phrases || []).flatMap((p) => p.words || []),
+          phrases: normalizedPhrases,
+          words: normalizedWords,
           voiced_segments: activeBatchFile.result.voiced_segments || [],
           filename: activeBatchFile.filename,
         }
@@ -408,14 +446,14 @@ export default function AnnotationReport({ data, onBack }) {
     const phraseRows = phrases.map((p) => {
       const pInton = p.intonation
       return [
-        p.phrase_index,
-        p.start_time.toFixed(3),
-        p.end_time.toFixed(3),
+        p.phrase_index ?? 0,
+        safeFixed(p.start_time, 3),
+        safeFixed(p.end_time, 3),
         pInton?.pitch_trend || '',
-        pInton?.mean_pitch !== undefined && pInton?.mean_pitch !== null ? pInton.mean_pitch.toFixed(1) : '',
-        pInton?.pitch_slope !== undefined && pInton?.pitch_slope !== null ? pInton.pitch_slope.toFixed(2) : '',
-        pInton?.pitch_range !== undefined && pInton?.pitch_range !== null ? pInton.pitch_range.toFixed(1) : '',
-        `"${p.text.replace(/"/g, '""')}"`
+        pInton?.mean_pitch !== undefined && pInton?.mean_pitch !== null ? safeFixed(pInton.mean_pitch, 1) : '',
+        pInton?.pitch_slope !== undefined && pInton?.pitch_slope !== null ? safeFixed(pInton.pitch_slope, 2) : '',
+        pInton?.pitch_range !== undefined && pInton?.pitch_range !== null ? safeFixed(pInton.pitch_range, 1) : '',
+        escapeCSV(p.text)
       ].join(',')
     })
 
@@ -458,17 +496,17 @@ export default function AnnotationReport({ data, onBack }) {
 
       // 1. Add the word itself
       wordRows.push([
-        `"${w.word.replace(/"/g, '""')}"`, // transcription
-        w.start_time.toFixed(3),           // timestamps (onset)
-        w.end_time.toFixed(3),             // timestamps (offset)
-        w.stressed ? 'TRUE' : 'FALSE',     // stress labels (stressed)
+        escapeCSV(w.word),               // transcription
+        safeFixed(w.start_time, 3),      // timestamps (onset)
+        safeFixed(w.end_time, 3),        // timestamps (offset)
+        w.stressed ? 'TRUE' : 'FALSE',   // stress labels (stressed)
         `${Math.round((w.stress_score || 0.0) * 100)}%`, // stress score in %
-        w.word_index,                      // word_index
-        w.phrase_index,                    // phrase_index
-        `${Math.round((w.asr_confidence || 1.0) * 100)}%`, // ASR confidence in %
+        w.word_index ?? 0,               // word_index
+        w.phrase_index ?? 0,             // phrase_index
+        `${Math.round((w.asr_confidence ?? 1.0) * 100)}%`, // ASR confidence in %
         w.is_hesitation ? 'TRUE' : 'FALSE', // is_hesitation
-        sylBreakdown ? `"${sylBreakdown}"` : '',
-        stressedSylText ? `"${stressedSylText}"` : '',
+        sylBreakdown ? escapeCSV(sylBreakdown) : '',
+        stressedSylText ? escapeCSV(stressedSylText) : '',
         lexirepMargin
       ].join(','))
 
@@ -476,7 +514,7 @@ export default function AnnotationReport({ data, onBack }) {
       if (w.pause_after && w.pause_after > 0.5) {
         wordRows.push([
           '"[PAUSE]"',                      // transcription
-          `${w.pause_after.toFixed(2)}s`,   // duration (e.g. 0.80s)
+          `${safeFixed(w.pause_after, 2)}s`, // duration (e.g. 0.80s)
           '',                               // stressed (empty)
           '',                               // stress_score_pct (empty)
           '',                               // word_index (empty)
@@ -520,18 +558,18 @@ export default function AnnotationReport({ data, onBack }) {
         w.syllables.forEach((syl, sylIdx) => {
           const m = syl.models || {}
           syllableRows.push([
-            w.word_index,
-            `"${w.word.replace(/"/g, '""')}"`,
-            w.start_time.toFixed(3),
-            w.end_time.toFixed(3),
+            w.word_index ?? 0,
+            escapeCSV(w.word),
+            safeFixed(w.start_time, 3),
+            safeFixed(w.end_time, 3),
             sylIdx + 1,
-            `"${syl.text.replace(/"/g, '""')}"`,
+            escapeCSV(syl.text),
             syl.stressed ? 'TRUE' : 'FALSE',
-            syl.stress_margin !== undefined && syl.stress_margin !== null ? Number(syl.stress_margin).toFixed(4) : '',
-            m.fused?.margin !== undefined ? Number(m.fused.margin).toFixed(4) : '',
-            m.ensemble?.margin !== undefined ? Number(m.ensemble.margin).toFixed(4) : '',
-            m.ger?.margin !== undefined ? Number(m.ger.margin).toFixed(4) : '',
-            m.ita?.margin !== undefined ? Number(m.ita.margin).toFixed(4) : ''
+            syl.stress_margin !== undefined && syl.stress_margin !== null ? safeFixed(syl.stress_margin, 4) : '',
+            m.fused?.margin !== undefined ? safeFixed(m.fused.margin, 4) : '',
+            m.ensemble?.margin !== undefined ? safeFixed(m.ensemble.margin, 4) : '',
+            m.ger?.margin !== undefined ? safeFixed(m.ger.margin, 4) : '',
+            m.ita?.margin !== undefined ? safeFixed(m.ita.margin, 4) : ''
           ].join(','))
         })
       }
@@ -768,15 +806,15 @@ export default function AnnotationReport({ data, onBack }) {
               {/* 2. Word level timestamps */}
               <tr>
                 <td className="prop-key">start_time</td>
-                <td className="prop-val">{w.start_time.toFixed(3)}s</td>
+                <td className="prop-val">{safeFixed(w.start_time, 3)}s</td>
               </tr>
               <tr>
                 <td className="prop-key">end_time</td>
-                <td className="prop-val">{w.end_time.toFixed(3)}s</td>
+                <td className="prop-val">{safeFixed(w.end_time, 3)}s</td>
               </tr>
               <tr>
                 <td className="prop-key">duration</td>
-                <td className="prop-val">{Math.max(0, (w.end_time - w.start_time)).toFixed(3)}s</td>
+                <td className="prop-val">{safeFixed(Math.max(0, ((w.end_time || 0) - (w.start_time || 0))), 3)}s</td>
               </tr>
               <tr>
                 <td className="prop-key">asr_confidence</td>
@@ -900,22 +938,22 @@ export default function AnnotationReport({ data, onBack }) {
                           <div className="syl-models-chips">
                             {models.fused && (
                               <span className="model-chip" title="Fused Model Margin">
-                                fused: {models.fused.margin > 0 ? `+${models.fused.margin.toFixed(2)}` : models.fused.margin.toFixed(2)}
+                                fused: {safeMarginStr(models.fused.margin, 2)}
                               </span>
                             )}
                             {models.ensemble && (
                               <span className="model-chip" title="Dual-Model Ensemble (GER+ITA)">
-                                ens: {models.ensemble.margin > 0 ? `+${models.ensemble.margin.toFixed(2)}` : models.ensemble.margin.toFixed(2)}
+                                ens: {safeMarginStr(models.ensemble.margin, 2)}
                               </span>
                             )}
                             {models.ger && (
                               <span className="model-chip" title="German Model Margin">
-                                ger: {models.ger.margin > 0 ? `+${models.ger.margin.toFixed(2)}` : models.ger.margin.toFixed(2)}
+                                ger: {safeMarginStr(models.ger.margin, 2)}
                               </span>
                             )}
                             {models.ita && (
                               <span className="model-chip" title="Italian Model Margin">
-                                ita: {models.ita.margin > 0 ? `+${models.ita.margin.toFixed(2)}` : models.ita.margin.toFixed(2)}
+                                ita: {safeMarginStr(models.ita.margin, 2)}
                               </span>
                             )}
                           </div>
@@ -1005,7 +1043,7 @@ export default function AnnotationReport({ data, onBack }) {
 
           <div className="metadata-row">
             <span className="metadata-item">
-              Duration: <strong>{recording?.audio_duration_sec?.toFixed(1) || 0}s</strong>
+              Duration: <strong>{safeFixed(recording?.audio_duration_sec, 1, '0.0')}s</strong>
             </span>
             <span className="metadata-item">
               WPM: <strong>{Math.round(summary?.wpm || 0)}</strong>
@@ -1113,8 +1151,8 @@ export default function AnnotationReport({ data, onBack }) {
 
         {phrases.length === 0 ? (
           <div className="empty-state">
-            <h3>No Speech Detected</h3>
-            <p>The recording did not contain any valid speech segments.</p>
+            <h3>{activeBatchFile?.status === 'error' ? 'Processing Error' : 'No Speech Detected'}</h3>
+            <p>{activeBatchFile?.error || 'The recording did not contain any valid speech segments.'}</p>
           </div>
         ) : (
           phrases.map((phrase) => {
@@ -1126,7 +1164,7 @@ export default function AnnotationReport({ data, onBack }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <span className="phrase-title">Phrase #{phrase.phrase_index + 1}</span>
                     <span className="phrase-time">
-                      {phrase.start_time.toFixed(2)}s – {phrase.end_time.toFixed(2)}s
+                      {safeFixed(phrase.start_time, 2)}s – {safeFixed(phrase.end_time, 2)}s
                     </span>
                   </div>
                   {phrase.intonation && (
@@ -1333,7 +1371,7 @@ export default function AnnotationReport({ data, onBack }) {
                                     </div>
                                   </td>
                                   <td style={{ textAlign: 'left', fontFamily: 'monospace' }}>
-                                    {w.start_time.toFixed(3)}s – {w.end_time.toFixed(3)}s
+                                    {safeFixed(w.start_time, 3)}s – {safeFixed(w.end_time, 3)}s
                                   </td>
                                   <td style={{ textAlign: 'left' }}>{Math.round((w.asr_confidence || 0) * 100)}%</td>
                                   <td style={{ textAlign: 'left' }}>

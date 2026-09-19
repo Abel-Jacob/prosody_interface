@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 
 const formatTime = (secs) => {
-  if (isNaN(secs) || secs === null) return '0:00'
+  if (isNaN(secs) || secs === null || !isFinite(secs) || secs < 0) return '0:00'
   const minutes = Math.floor(secs / 60)
   const seconds = Math.floor(secs % 60)
   return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`
@@ -14,22 +14,32 @@ export default function AudioPlayer({ src, style }) {
   const audioRef = useRef(null)
 
   useEffect(() => {
-    if (audioRef.current && src) {
-      audioRef.current.load()
+    const audio = audioRef.current
+    if (audio && src) {
+      audio.load()
       setIsPlaying(false)
       setCurrentTime(0)
     }
+    return () => {
+      if (audio) {
+        audio.pause()
+        audio.src = ''
+      }
+    }
   }, [src])
 
-  const handlePlayPause = (e) => {
+  const handlePlayPause = async (e) => {
     if (e) e.stopPropagation()
     if (!audioRef.current) return
 
     if (audioRef.current.paused) {
-      audioRef.current.play().catch(err => {
+      try {
+        await audioRef.current.play()
+        setIsPlaying(true)
+      } catch (err) {
         console.error("Audio play failed:", err)
-      })
-      setIsPlaying(true)
+        setIsPlaying(false)
+      }
     } else {
       audioRef.current.pause()
       setIsPlaying(false)
@@ -107,6 +117,8 @@ export default function AudioPlayer({ src, style }) {
         onTimeUpdate={handleAudioTimeUpdate}
         onLoadedMetadata={handleAudioLoadedMetadata}
         onEnded={handleAudioEnded}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
       />
 
       {/* Time Labels */}

@@ -11,7 +11,7 @@ const wordEntranceSpring = { type: 'spring', duration: 0.3, bounce: 0 }
 /* Finding 7: status dot color crossfade (~150-200ms) */
 const dotColorTransition = { duration: 0.18, ease: 'easeOut' }
 
-export default function ListeningState({ onStop }) {
+export default function ListeningState({ onStop, onCancel }) {
   const [error, setError] = useState(null)
   const [isConnected, setIsConnected] = useState(false)
   const [previewText, setPreviewText] = useState('')
@@ -83,6 +83,9 @@ export default function ListeningState({ onStop }) {
         // Setup Web Audio API for visualizer
         const AudioContext = window.AudioContext || window.webkitAudioContext
         audioCtxRef.current = new AudioContext()
+        if (audioCtxRef.current.state === 'suspended') {
+          audioCtxRef.current.resume().catch(() => {})
+        }
         analyserRef.current = audioCtxRef.current.createAnalyser()
         const source = audioCtxRef.current.createMediaStreamSource(stream)
         source.connect(analyserRef.current)
@@ -113,11 +116,14 @@ export default function ListeningState({ onStop }) {
       if (e.code === 'Space') {
         e.preventDefault()
         handleStop()
+      } else if (e.code === 'Escape' && onCancel) {
+        e.preventDefault()
+        onCancel()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleStop])
+  }, [handleStop, onCancel])
 
   const drawWaveform = () => {
     if (!canvasRef.current || !analyserRef.current) return
@@ -340,7 +346,9 @@ export default function ListeningState({ onStop }) {
           }}>
             {words.length > 0 ? (
               words.map((w, index) => {
-                const conf = w.confidence !== undefined ? w.confidence : 1
+                const conf = (w.confidence != null && !isNaN(w.confidence))
+                  ? Number(w.confidence)
+                  : (w.asr_confidence != null && !isNaN(w.asr_confidence) ? Number(w.asr_confidence) : 1)
                 const opacity = conf < 0.95 ? Math.max(0.5, 0.4 + conf * 0.6) : 1
                 const blurVal = conf < 0.85 ? Math.min(1.4, (0.85 - conf) * 4) : 0
                 const filter = blurVal > 0.05 ? `blur(${blurVal.toFixed(2)}px)` : 'none'
@@ -385,7 +393,31 @@ export default function ListeningState({ onStop }) {
         )}
 
         {error && (
-          <p style={{ color: 'var(--error)', marginTop: '2rem' }}>{error}</p>
+          <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+            <p style={{ color: 'var(--error)', margin: 0, fontSize: '0.9rem' }}>{error}</p>
+            {onCancel && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onCancel()
+                }}
+                style={{
+                  padding: '0.4rem 1rem',
+                  fontSize: '0.75rem',
+                  background: 'var(--bg-subtle, #f5f5f7)',
+                  border: '1px solid var(--text-faded, rgba(0,0,0,0.15))',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  color: 'var(--text-primary)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}
+              >
+                ← Return to Recorder
+              </button>
+            )}
+          </div>
         )}
       </motion.div>
 

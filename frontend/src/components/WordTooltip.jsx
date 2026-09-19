@@ -20,8 +20,8 @@ export default function WordTooltip({ wordData, phraseIntonation, wordRef, onClo
       const isTooCloseToTop = rect.top < 75;
 
       setPosition({
-        top: isTooCloseToTop ? rect.bottom + window.scrollY + 8 : rect.top + window.scrollY - 8,
-        left: rect.left + window.scrollX + rect.width / 2,
+        top: isTooCloseToTop ? rect.bottom + 8 : rect.top - 8,
+        left: rect.left + rect.width / 2,
         position: isTooCloseToTop ? 'below' : 'above'
       });
     };

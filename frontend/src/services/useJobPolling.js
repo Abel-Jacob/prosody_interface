@@ -19,16 +19,26 @@ export function useJobPolling(jobId, onComplete) {
     let timeoutId
     let pollCount = 0
     let consecutiveErrors = 0
+    let activeController = null
 
     const pollJob = async () => {
       if (!isPolling) return
       
+      const controller = new AbortController()
+      activeController = controller
+      const fetchTimeout = setTimeout(() => {
+        controller.abort()
+      }, 8000)
+
       try {
         const response = await fetch(getHttpUrl(`/api/jobs/${jobId}`), {
           headers: {
             'ngrok-skip-browser-warning': 'true'
-          }
+          },
+          signal: controller.signal
         })
+        clearTimeout(fetchTimeout)
+
         if (!response.ok) {
           throw new Error('Failed to fetch job status')
         }
@@ -54,6 +64,7 @@ export function useJobPolling(jobId, onComplete) {
           }
         }
       } catch (err) {
+        clearTimeout(fetchTimeout)
         if (isPolling) {
           consecutiveErrors++
           console.warn(`[useJobPolling] Transient polling error (${consecutiveErrors}/5):`, err.message)
@@ -83,6 +94,9 @@ export function useJobPolling(jobId, onComplete) {
     return () => {
       isPolling = false
       clearTimeout(timeoutId)
+      if (activeController) {
+        activeController.abort()
+      }
     }
   }, [jobId]) // Removed onComplete from dependencies
 
