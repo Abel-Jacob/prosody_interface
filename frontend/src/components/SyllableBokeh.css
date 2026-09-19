@@ -15,9 +15,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(12, 11, 10, 0.35);
-  backdrop-filter: blur(28px) saturate(150%) contrast(92%);
-  -webkit-backdrop-filter: blur(28px) saturate(150%) contrast(92%);
+  background: rgba(18, 20, 24, 0.42);
+  backdrop-filter: blur(32px) saturate(105%) contrast(96%);
+  -webkit-backdrop-filter: blur(32px) saturate(105%) contrast(96%);
   cursor: pointer;
   overflow: hidden;
 }
@@ -42,7 +42,7 @@
 .bokeh-orb-1 {
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(196, 149, 106, 0.55) 0%, rgba(196, 149, 106, 0) 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.13) 0%, rgba(255, 255, 255, 0) 70%);
   top: 12%;
   left: 18%;
   animation-duration: 16s;
@@ -51,7 +51,7 @@
 .bokeh-orb-2 {
   width: 420px;
   height: 420px;
-  background: radial-gradient(circle, rgba(255, 140, 56, 0.4) 0%, rgba(255, 140, 56, 0) 70%);
+  background: radial-gradient(circle, rgba(220, 228, 238, 0.1) 0%, rgba(220, 228, 238, 0) 70%);
   bottom: 18%;
   right: 20%;
   animation-duration: 20s;
@@ -61,7 +61,7 @@
 .bokeh-orb-3 {
   width: 320px;
   height: 320px;
-  background: radial-gradient(circle, rgba(235, 195, 155, 0.3) 0%, rgba(235, 195, 155, 0) 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
   top: 42%;
   right: 32%;
   animation-duration: 18s;
@@ -71,7 +71,7 @@
 .bokeh-orb-4 {
   width: 550px;
   height: 550px;
-  background: radial-gradient(circle, rgba(160, 100, 50, 0.22) 0%, rgba(160, 100, 50, 0) 70%);
+  background: radial-gradient(circle, rgba(180, 190, 205, 0.07) 0%, rgba(180, 190, 205, 0) 70%);
   bottom: 8%;
   left: 28%;
   animation-duration: 22s;
@@ -101,6 +101,12 @@
   cursor: default;
   position: relative;
   z-index: 10;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 22px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(18px) saturate(110%);
+  -webkit-backdrop-filter: blur(18px) saturate(110%);
 }
 
 /* ── Model Selector Bar ───────────────────────────────────────── */
