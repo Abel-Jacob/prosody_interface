@@ -137,6 +137,7 @@ function App({ onBack }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={stateTransition}
+            style={{ width: '100%' }}
           >
             <ProcessingState 
               jobId={jobId} 
