@@ -1246,6 +1246,7 @@ export default function AnnotationReport({ data, onBack }) {
                                 onClick={(e) => handleTranscriptWordClick(w, e)}
                                 className={`word-default-view ${w.stressed ? 'is-stressed' : ''} ${w.is_hesitation ? 'is-hesitation' : ''
                                   } ${isExpanded ? 'expanded-word' : ''}`}
+                                title={w.syllables && w.syllables.length > 1 ? `Click to view details & syllable breakdown for "${w.word}"` : `Click to view details for "${w.word}"`}
                               >
                                 <span className="word-text">
                                   {w.word}
@@ -1254,25 +1255,6 @@ export default function AnnotationReport({ data, onBack }) {
                                   <span className="stress-dot" style={{ opacity: stressOpacity }} />
                                 )}
                               </div>
-                              {w.syllables && w.syllables.length > 1 && (
-                                <span
-                                  className="word-syllable-tag"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setSelectedBokehWord(w)
-                                  }}
-                                  title={`View syllable stress for "${w.word}"`}
-                                >
-                                  {w.syllables.map((s, idx) => (
-                                    <React.Fragment key={idx}>
-                                      {idx > 0 && <span className="tag-dot">·</span>}
-                                      <span className={s.stressed ? 'tag-stressed' : ''}>
-                                        {s.stressed ? s.text.toUpperCase() : s.text}
-                                      </span>
-                                    </React.Fragment>
-                                  ))}
-                                </span>
-                              )}
                             </div>
 
                             {/* Render visual pause marker if present */}
