@@ -20,11 +20,52 @@ from fastapi import APIRouter, UploadFile, File, Query, HTTPException, Response
 from fastapi.responses import JSONResponse, FileResponse
 
 from database import create_job, get_job, get_recent_jobs
-from config import AUDIO_UPLOADS_DIR, ANNOTATIONS_DIR
+from config import (
+    AUDIO_UPLOADS_DIR,
+    ANNOTATIONS_DIR,
+    MAX_SINGLE_AUDIO_MB,
+    MAX_SINGLE_AUDIO_BYTES,
+    MAX_ZIP_UPLOAD_MB,
+    MAX_ZIP_UPLOAD_BYTES,
+    MAX_BATCH_FILE_COUNT,
+    MAX_ZIP_UNCOMPRESSED_MB,
+    MAX_ZIP_UNCOMPRESSED_BYTES,
+)
 from schemas import JobResponse, JobCreateResponse, JobStatus, JobResult, BatchJobResult
 from pipeline.annotation import build_annotation
 
 logger = logging.getLogger(__name__)
+
+CHUNK_SIZE = 1024 * 1024  # 1MB chunk size for streaming
+
+
+async def save_upload_file_bounded(upload_file: UploadFile, destination: Path, max_bytes: int) -> int:
+    """
+    Stream an UploadFile to disk in chunks, enforcing max_bytes to prevent memory/disk exhaustion.
+    Removes the destination file and raises HTTPException 413 if the payload exceeds max_bytes.
+    """
+    total_written = 0
+    try:
+        with open(destination, "wb") as f:
+            while True:
+                chunk = await upload_file.read(CHUNK_SIZE)
+                if not chunk:
+                    break
+                total_written += len(chunk)
+                if total_written > max_bytes:
+                    max_mb = max_bytes // (1024 * 1024)
+                    fname = upload_file.filename or "uploaded_file"
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"File '{fname}' exceeds maximum allowed size of {max_mb} MB."
+                    )
+                f.write(chunk)
+        return total_written
+    except Exception:
+        if destination.exists():
+            destination.unlink(missing_ok=True)
+        raise
+
 
 router = APIRouter(prefix="/api")
 
@@ -97,10 +138,8 @@ async def create_new_job(
         filepath = AUDIO_UPLOADS_DIR / filename
         
         try:
-            with open(filepath, "wb") as f:
-                content = await single_file.read()
-                f.write(content)
-            logger.info(f"Saved audio file: {filepath} ({len(content)} bytes)")
+            total_saved = await save_upload_file_bounded(single_file, filepath, MAX_SINGLE_AUDIO_BYTES)
+            logger.info(f"Saved audio file: {filepath} ({total_saved} bytes)")
 
             # If it is a webm, remux it to make it seekable in browsers
             if suffix == ".webm":
@@ -121,6 +160,8 @@ async def create_new_job(
                         logger.warning(f"ffmpeg remux completed but temp file does not exist: {temp_filepath}")
                 except Exception as fe:
                     logger.error(f"Failed to remux uploaded webm: {fe}")
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Failed to save audio: {e}")
             raise HTTPException(status_code=500, detail="Failed to save audio file")
@@ -132,6 +173,12 @@ async def create_new_job(
 
     else:
         # Batch upload (multi-file or zip)
+        if len(uploaded_files) > MAX_BATCH_FILE_COUNT:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Too many files selected ({len(uploaded_files)}). Maximum allowed is {MAX_BATCH_FILE_COUNT} files per batch."
+            )
+
         batch_dir = AUDIO_UPLOADS_DIR / f"batch_{job_id}"
         batch_dir.mkdir(parents=True, exist_ok=True)
         
@@ -142,33 +189,51 @@ async def create_new_job(
                 upfile_name_lower = upfile.filename.lower()
                 
                 if upfile_name_lower.endswith(".zip"):
-                    # Extract zip file securely
-                    content = await upfile.read()
-                    zip_mem = io.BytesIO(content)
-                    with zipfile.ZipFile(zip_mem, 'r') as zf:
-                        for info in zf.infolist():
-                            if info.is_dir():
-                                continue
-                            member_path = Path(info.filename)
-                            if ".." in member_path.parts:
-                                continue
-                            if "__MACOSX" in member_path.parts or member_path.name.startswith("."):
-                                continue
-                            if member_path.suffix.lower() in AUDIO_EXTENSIONS:
-                                dest_name = member_path.name
+                    # Save zip to disk streaming bounded by MAX_ZIP_UPLOAD_BYTES limit
+                    temp_zip = batch_dir / f"_incoming_{uuid.uuid4().hex[:6]}.zip"
+                    await save_upload_file_bounded(upfile, temp_zip, MAX_ZIP_UPLOAD_BYTES)
+                    
+                    try:
+                        with zipfile.ZipFile(temp_zip, 'r') as zf:
+                            # Pre-inspect candidate audio members
+                            audio_members = [
+                                info for info in zf.infolist()
+                                if not info.is_dir()
+                                and ".." not in Path(info.filename).parts
+                                and "__MACOSX" not in Path(info.filename).parts
+                                and not Path(info.filename).name.startswith(".")
+                                and Path(info.filename).suffix.lower() in AUDIO_EXTENSIONS
+                            ]
+                            
+                            if len(audio_members) > MAX_BATCH_FILE_COUNT:
+                                raise HTTPException(
+                                    status_code=400,
+                                    detail=f"ZIP archive contains {len(audio_members)} audio files, which exceeds maximum allowed of {MAX_BATCH_FILE_COUNT} files."
+                                )
+                                
+                            # Zip bomb protection: uncompressed size check
+                            total_uncompressed = sum(info.file_size for info in audio_members)
+                            if total_uncompressed > MAX_ZIP_UNCOMPRESSED_BYTES:
+                                raise HTTPException(
+                                    status_code=413,
+                                    detail=f"Extracted audio content ({total_uncompressed // (1024 * 1024)} MB) exceeds maximum allowed uncompressed limit of {MAX_ZIP_UNCOMPRESSED_MB} MB."
+                                )
+                            
+                            for info in audio_members:
+                                dest_name = Path(info.filename).name
                                 dest_path = batch_dir / dest_name
                                 if dest_path.exists():
                                     dest_path = batch_dir / f"{uuid.uuid4().hex[:6]}_{dest_name}"
                                 with zf.open(info) as src, open(dest_path, "wb") as dst:
                                     shutil.copyfileobj(src, dst)
+                    finally:
+                        temp_zip.unlink(missing_ok=True)
                 elif Path(upfile.filename).suffix.lower() in AUDIO_EXTENSIONS:
                     dest_name = Path(upfile.filename).name
                     dest_path = batch_dir / dest_name
                     if dest_path.exists():
                         dest_path = batch_dir / f"{uuid.uuid4().hex[:6]}_{dest_name}"
-                    with open(dest_path, "wb") as f:
-                        content = await upfile.read()
-                        f.write(content)
+                    await save_upload_file_bounded(upfile, dest_path, MAX_SINGLE_AUDIO_BYTES)
                         
             valid_extracted = [
                 p for p in batch_dir.rglob("*")
@@ -179,6 +244,12 @@ async def create_new_job(
                 raise HTTPException(
                     status_code=400,
                     detail="No valid audio files found (.wav, .mp3, .ogg, .webm, .flac, .m4a)"
+                )
+            if len(valid_extracted) > MAX_BATCH_FILE_COUNT:
+                shutil.rmtree(batch_dir, ignore_errors=True)
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Batch contains {len(valid_extracted)} audio files, exceeding maximum of {MAX_BATCH_FILE_COUNT}."
                 )
                 
             logger.info(f"Created batch job {job_id} with {len(valid_extracted)} audio files")

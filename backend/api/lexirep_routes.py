@@ -22,7 +22,8 @@ from pathlib import Path
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 
-from config import BASE_DIR
+from config import BASE_DIR, MAX_DATASET_MB, MAX_DATASET_BYTES
+from api.routes import save_upload_file_bounded
 from api.lexirep_training import (
     create_train_job,
     get_train_job,
@@ -130,14 +131,18 @@ async def train_custom(
     output_dir = job_dir / "output"
     output_dir.mkdir(exist_ok=True)
 
-    # Save uploaded file
+    # Save uploaded file safely with streaming limit
     dataset_path = job_dir / f"dataset{ext}"
     try:
-        content = await dataset.read()
-        with open(dataset_path, "wb") as f:
-            f.write(content)
-        logger.info(f"[LexiRep] Saved dataset for job {job_id}: {dataset_path} ({len(content)} bytes)")
+        saved_bytes = await save_upload_file_bounded(dataset, dataset_path, MAX_DATASET_BYTES)
+        logger.info(f"[LexiRep] Saved dataset for job {job_id}: {dataset_path} ({saved_bytes} bytes)")
+    except HTTPException:
+        import shutil
+        shutil.rmtree(job_dir, ignore_errors=True)
+        raise
     except Exception as e:
+        import shutil
+        shutil.rmtree(job_dir, ignore_errors=True)
         raise HTTPException(status_code=500, detail=f"Failed to save uploaded file: {e}")
 
     # Validate file structure
@@ -193,9 +198,7 @@ async def convert_csv(
     npz_path = temp_dir / f"{Path(file.filename).stem}_cache.npz"
 
     try:
-        content = await file.read()
-        with open(csv_path, "wb") as f:
-            f.write(content)
+        await save_upload_file_bounded(file, csv_path, MAX_DATASET_BYTES)
 
         parse_and_convert_csv(csv_path, output_npz_path=npz_path)
 

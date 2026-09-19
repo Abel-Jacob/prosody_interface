@@ -325,7 +325,22 @@ def run_tests():
     with zipfile.ZipFile(io.BytesIO(res_tricky_zip.content), "r") as zf:
         names = zf.namelist()
         assert any(tricky_filename.split(".")[0] in n for n in names)
-    print("  [PASS] Export ZIP cleanly formatted and contains individual report for tricky filename")
+    # -------------------------------------------------------------
+    # Test 9: Upload limits and guardrails enforcement
+    # -------------------------------------------------------------
+    print("\n[TEST 9] Testing upload limits and guardrails...")
+    from config import MAX_BATCH_FILE_COUNT
+    too_many_zip = io.BytesIO()
+    with zipfile.ZipFile(too_many_zip, "w") as zf:
+        for i in range(MAX_BATCH_FILE_COUNT + 2):
+            zf.writestr(f"file_{i}.wav", create_synthetic_wav(duration_sec=0.1))
+    too_many_zip.seek(0)
+    res_too_many = client.post(
+        "/api/jobs",
+        files={"audio": ("too_many.zip", too_many_zip.getvalue(), "application/zip")},
+    )
+    assert res_too_many.status_code == 400, f"Expected 400 for too many files, got {res_too_many.status_code}"
+    print(f"  [PASS] Correctly rejected batch exceeding max files limit ({res_too_many.json().get('detail')})")
 
     print("\n" + "="*70)
     print("ALL TESTS PASSED SUCCESSFULLY! ZERO CRASHES.")

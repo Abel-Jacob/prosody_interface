@@ -4,6 +4,10 @@ import AudioPlayer from './AudioPlayer'
 
 const tapSpring = { type: 'spring', duration: 0.15, bounce: 0 }
 
+const MAX_SINGLE_AUDIO_MB = 100
+const MAX_ZIP_UPLOAD_MB = 250
+const MAX_BATCH_FILE_COUNT = 50
+
 export default function IdleState({ onStart, onUpload, onBack }) {
   const [selectedFile, setSelectedFile] = useState(null)
   const [selectedFiles, setSelectedFiles] = useState(null)
@@ -52,12 +56,34 @@ export default function IdleState({ onStart, onUpload, onBack }) {
       return
     }
 
+    const isZip = files.length === 1 && files[0].name.toLowerCase().endsWith('.zip')
+
+    // Size & count guardrails
+    if (isZip) {
+      if (files[0].size > MAX_ZIP_UPLOAD_MB * 1024 * 1024) {
+        setUploadError(`ZIP archive exceeds the maximum allowed size of ${MAX_ZIP_UPLOAD_MB} MB.`)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        return
+      }
+    } else {
+      if (files.length > MAX_BATCH_FILE_COUNT) {
+        setUploadError(`Too many files selected (${files.length}). Maximum allowed is ${MAX_BATCH_FILE_COUNT} files per batch.`)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        return
+      }
+      const oversized = files.find(f => f.size > MAX_SINGLE_AUDIO_MB * 1024 * 1024)
+      if (oversized) {
+        setUploadError(`File "${oversized.name}" exceeds the maximum allowed size of ${MAX_SINGLE_AUDIO_MB} MB.`)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+        return
+      }
+    }
+
     if (audioUrl) {
       URL.revokeObjectURL(audioUrl)
       setAudioUrl(null)
     }
 
-    const isZip = files.length === 1 && files[0].name.toLowerCase().endsWith('.zip')
     if (files.length > 1 || isZip) {
       setIsBatch(true)
       setSelectedFiles(files)
@@ -138,7 +164,7 @@ export default function IdleState({ onStart, onUpload, onBack }) {
               {isZip ? selectedFiles[0].name : `${selectedFiles.length} Audio Files Selected`}
             </span>
             <div className="batch-modal-subtitle">
-              {isZip ? `Archive Size: ${formattedSize}` : `Total Size: ${formattedSize} • Ready for batch analysis`}
+              {isZip ? `Archive Size: ${formattedSize} • Max ${MAX_ZIP_UPLOAD_MB} MB` : `Total Size: ${formattedSize} • ${selectedFiles.length}/${MAX_BATCH_FILE_COUNT} files max`}
             </div>
           </div>
 

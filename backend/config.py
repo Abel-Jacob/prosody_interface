@@ -68,6 +68,22 @@ HOST = os.environ.get("HOST", "0.0.0.0")
 PORT = int(os.environ.get("PORT", "8000"))
 CORS_ORIGINS = ["*"]
 
+# ── Upload Limits ──────────────────────────────────────────────
+# Configurable via environment variables (ideal for production server tuning)
+MAX_SINGLE_AUDIO_MB = int(os.environ.get("MAX_SINGLE_AUDIO_MB", "100"))
+MAX_SINGLE_AUDIO_BYTES = MAX_SINGLE_AUDIO_MB * 1024 * 1024
+
+MAX_ZIP_UPLOAD_MB = int(os.environ.get("MAX_ZIP_UPLOAD_MB", "250"))
+MAX_ZIP_UPLOAD_BYTES = MAX_ZIP_UPLOAD_MB * 1024 * 1024
+
+MAX_BATCH_FILE_COUNT = int(os.environ.get("MAX_BATCH_FILE_COUNT", "50"))
+
+MAX_ZIP_UNCOMPRESSED_MB = int(os.environ.get("MAX_ZIP_UNCOMPRESSED_MB", "500"))
+MAX_ZIP_UNCOMPRESSED_BYTES = MAX_ZIP_UNCOMPRESSED_MB * 1024 * 1024
+
+MAX_DATASET_MB = int(os.environ.get("MAX_DATASET_MB", "500"))
+MAX_DATASET_BYTES = MAX_DATASET_MB * 1024 * 1024
+
 # ── Worker ─────────────────────────────────────────────────────
 WORKER_POLL_INTERVAL_SEC = 0.2  # How often worker checks for new jobs
 
