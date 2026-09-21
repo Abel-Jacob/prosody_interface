@@ -104,7 +104,7 @@ class IDECAutoencoder(nn.Module):
             nn.Linear(shape[4], shape[3]), nn.ReLU(),
             nn.Linear(shape[3], shape[2]), nn.ReLU(),
             nn.Linear(shape[2], shape[1]), nn.ReLU(),
-            nn.Linear(shape[1], shape[0]), nn.Sigmoid()
+            nn.Linear(shape[1], shape[0])
         )
         self.cluster_centers = nn.Parameter(torch.Tensor(2, shape[4]))
         nn.init.xavier_uniform_(self.cluster_centers)
@@ -112,9 +112,7 @@ class IDECAutoencoder(nn.Module):
     def forward(self, x):
         z = self.encoder(x)
         x_rec = self.decoder(z)
-        z_norm = F.normalize(z, dim=1)
-        c_norm = F.normalize(self.cluster_centers, dim=1)
-        dist = torch.sum((z_norm.unsqueeze(1) - c_norm.unsqueeze(0)) ** 2, dim=2)
+        dist = torch.sum((z.unsqueeze(1) - self.cluster_centers.unsqueeze(0)) ** 2, dim=2)
         q = 1.0 / (1.0 + dist / self.alpha)
         q = q ** ((self.alpha + 1.0) / 2.0)
         q = q / torch.sum(q, dim=1, keepdim=True)
@@ -474,17 +472,11 @@ def find_best_anchor(
         wmap_tr[w].append(i)
 
     # 1. Identify all candidate words with at least 1 stressed and 1 unstressed syllable
+    # Scan all polysyllabic words (>= 2 syllables) for maximum accuracy on any dataset
     b_words = [
         w for w, idxs in wmap_tr.items()
-        if len(idxs) == 2 and any(Y_train[i] == 1 for i in idxs) and any(Y_train[i] == 0 for i in idxs)
+        if len(idxs) >= 2 and any(Y_train[i] == 1 for i in idxs) and any(Y_train[i] == 0 for i in idxs)
     ]
-
-    # If fewer than 10 bisyllabic words, expand to tri-syllabic and all polysyllabic words
-    if len(b_words) < 10:
-        b_words = [
-            w for w, idxs in wmap_tr.items()
-            if len(idxs) >= 2 and any(Y_train[i] == 1 for i in idxs) and any(Y_train[i] == 0 for i in idxs)
-        ]
 
     # Graceful fallback if no labeled words exist (e.g. pure unsupervised custom dataset)
     if not b_words:
@@ -726,6 +718,7 @@ def run_lexirep_training(
             _, rec, _ = idec_model(bx)
             loss_rec = F.mse_loss(rec, bx)
             loss_rec.backward()
+            torch.nn.utils.clip_grad_norm_(idec_model.parameters(), max_norm=5.0)
             idec_optimizer.step()
 
     # Initialize IDEC cluster centers via K-means on 2-D latent space
@@ -768,6 +761,7 @@ def run_lexirep_training(
     best_loss = 1.0
     z_s_h_best = None
     z_u_h_best = None
+    h_tr = h_tr_init  # Carry warmup representations into the first IDEC iteration
 
     for loop in range(1, epochs + 1):
         log_lexirep(f"[LexiRep Training] Starting Loop {loop}/{epochs}...")
@@ -781,39 +775,7 @@ def run_lexirep_training(
                 "log": phase_desc
             })
 
-        # 6a. Contrastive Learning on refined pseudo-labels
-        cl_encoder.train()
-        batches = make_word_batches(X_train, labels_tr, wmap_tr, batch_words=BATCH_WORDS)
-        cl_loss_sum = 0.0
-        cl_steps = 0
-        for ep in range(EPOCHS_PER_LOOP):
-            for bx, by in batches:
-                bx, by = bx.to(device), by.to(device)
-                cl_optimizer.zero_grad()
-                out = cl_encoder(bx)
-                loss = supcon_criterion(out, by)
-                loss.backward()
-                torch.nn.utils.clip_grad_norm_(cl_encoder.parameters(), max_norm=5.0)
-                cl_optimizer.step()
-                cl_loss_sum += float(loss.item())
-                cl_steps += 1
-
-        # 6b. Extract representations
-        cl_encoder.eval()
-        with torch.no_grad():
-            h_tr = cl_encoder(torch.as_tensor(X_train, dtype=torch.float32, device=device))
-            h_te = cl_encoder(torch.as_tensor(X_test, dtype=torch.float32, device=device))
-
-        loop_mid_prog = int(14 + ((loop - 0.5) / epochs) * 82)
-        if on_progress:
-            on_progress({
-                "current_loop": loop,
-                "total_loops": epochs,
-                "progress": loop_mid_prog,
-                "log": "Joint IDEC clustering & Student-t distribution..."
-            })
-
-        # 6c. IDEC Joint Clustering
+        # 6a. Block A — IDEC Joint Clustering (runs on h_tr from previous loop)
         # Re-fit KMeans centroids on current z_lat if loop > 1 to prevent centroid drift
         if loop > 1:
             with torch.no_grad():
@@ -841,18 +803,25 @@ def run_lexirep_training(
             idec_optimizer.step()
             last_idec_loss = float(loss_idec.item())
 
-        # 6d. Polar alignment using majority provisional voting
+        loop_mid_prog = int(14 + ((loop - 0.5) / epochs) * 82)
+        if on_progress:
+            on_progress({
+                "current_loop": loop,
+                "total_loops": epochs,
+                "progress": loop_mid_prog,
+                "log": "Polar alignment & linguistic constraint enforcement..."
+            })
+
+        # 6b. Block B — Polar Alignment & Linguistic Constraint
         idec_model.eval()
         with torch.no_grad():
             z_lat, _, q_tr = idec_model(h_tr)
 
         q_tr_np = q_tr.cpu().numpy()
         h_tr_np = h_tr.cpu().numpy()
-        h_te_np = h_te.cpu().numpy()
         c_assign = np.argmax(q_tr_np, axis=1)
 
-        # Majority provisional voting: use cosine similarity to anchor syllables
-        # to determine which cluster corresponds to stressed vs unstressed
+        # Majority provisional voting with 3-level tie-break (matches reference notebook)
         sim_to_rs = cosine_similarity(h_tr_np, h_tr_np[rs_idx:rs_idx+1]).flatten()
         sim_to_ru = cosine_similarity(h_tr_np, h_tr_np[ru_idx:ru_idx+1]).flatten()
         prov_labels = (sim_to_rs > sim_to_ru).astype(int)
@@ -861,28 +830,75 @@ def run_lexirep_training(
         c1_members = (c_assign == 1)
         c0_stressed_frac = np.mean(prov_labels[c0_members]) if c0_members.any() else 0.5
         c1_stressed_frac = np.mean(prov_labels[c1_members]) if c1_members.any() else 0.5
-        s_cluster = 0 if c0_stressed_frac > c1_stressed_frac else 1
+
+        if abs(c0_stressed_frac - c1_stressed_frac) > 1e-9:
+            # Majority vote: cluster with higher fraction of provisionally-stressed members
+            s_cluster = 0 if c0_stressed_frac > c1_stressed_frac else 1
+        else:
+            # Tie-break level 2: anchor cluster membership
+            rs_cluster = c_assign[rs_idx]
+            ru_cluster = c_assign[ru_idx]
+            if rs_cluster != ru_cluster:
+                s_cluster = int(rs_cluster)
+            else:
+                # Tie-break level 3: latent center cosine similarity
+                with torch.no_grad():
+                    z_rs_lat = z_lat[rs_idx:rs_idx+1].cpu().numpy()
+                    z_ru_lat = z_lat[ru_idx:ru_idx+1].cpu().numpy()
+                cc = idec_model.cluster_centers.data.cpu().numpy()
+                sim_rs_c = cosine_similarity(z_rs_lat, cc).flatten()
+                s_cluster = int(np.argmax(sim_rs_c))
         u_cluster = 1 - s_cluster
 
-        # 6e. Extract prototypes from within each cluster
+        # Extract prototypes from within each cluster
         cs_idx = np.where(c_assign == s_cluster)[0]
         cu_idx = np.where(c_assign == u_cluster)[0]
-        idx_s_h = cs_idx[np.argmax(q_tr_np[cs_idx, s_cluster])] if len(cs_idx) > 0 else int(np.argmax(q_tr_np[:, s_cluster]))
-        idx_u_h = cu_idx[np.argmax(q_tr_np[cu_idx, u_cluster])] if len(cu_idx) > 0 else int(np.argmax(q_tr_np[:, u_cluster]))
-        z_s_h = h_tr_np[idx_s_h:idx_s_h + 1]
-        z_u_h = h_tr_np[idx_u_h:idx_u_h + 1]
+        if len(cs_idx) > 0 and len(cu_idx) > 0:
+            idx_s_h = cs_idx[np.argmax(q_tr_np[cs_idx, s_cluster])]
+            idx_u_h = cu_idx[np.argmax(q_tr_np[cu_idx, u_cluster])]
+            z_s_h = h_tr_np[idx_s_h:idx_s_h + 1]
+            z_u_h = h_tr_np[idx_u_h:idx_u_h + 1]
+        else:
+            # Fallback to anchor representations
+            z_s_h = h_tr_np[rs_idx:rs_idx + 1]
+            z_u_h = h_tr_np[ru_idx:ru_idx + 1]
 
-        # 6e. Linguistic Constraint Enforcement (vectorized PyTorch prototype cosine scoring)
-        with torch.no_grad():
-            z_s_t = torch.as_tensor(z_s_h, dtype=torch.float32, device=device)
-            z_u_t = torch.as_tensor(z_u_h, dtype=torch.float32, device=device)
-            diff_tr = (F.cosine_similarity(h_tr, z_s_t, dim=-1) - F.cosine_similarity(h_tr, z_u_t, dim=-1)).cpu().numpy()
-            diff_te = (F.cosine_similarity(h_te, z_s_t, dim=-1) - F.cosine_similarity(h_te, z_u_t, dim=-1)).cpu().numpy()
-
+        # Linguistic constraint: compute signed acoustic contrast and enforce 1-stressed-per-word
+        diff_tr = cosine_similarity(h_tr_np, z_s_h).flatten() - cosine_similarity(h_tr_np, z_u_h).flatten()
         new_labels_tr = np.zeros(len(Y_train), dtype=int)
         for w, idxs in wmap_tr.items():
             new_labels_tr[idxs[np.argmax(diff_tr[idxs])]] = 1
         labels_tr = new_labels_tr
+
+        # 6c. Block C — Contrastive Learning on refined pseudo-labels
+        cl_encoder.train()
+        batches = make_word_batches(X_train, labels_tr, wmap_tr, batch_words=BATCH_WORDS)
+        cl_loss_sum = 0.0
+        cl_steps = 0
+        for ep in range(EPOCHS_PER_LOOP):
+            for bx, by in batches:
+                bx, by = bx.to(device), by.to(device)
+                cl_optimizer.zero_grad()
+                out = cl_encoder(bx)
+                loss = supcon_criterion(out, by)
+                loss.backward()
+                torch.nn.utils.clip_grad_norm_(cl_encoder.parameters(), max_norm=5.0)
+                cl_optimizer.step()
+                cl_loss_sum += float(loss.item())
+                cl_steps += 1
+
+        # Feedback to IDEC: extract updated representations
+        cl_encoder.eval()
+        with torch.no_grad():
+            h_tr = cl_encoder(torch.as_tensor(X_train, dtype=torch.float32, device=device))
+            h_te = cl_encoder(torch.as_tensor(X_test, dtype=torch.float32, device=device))
+
+        # 6d. Evaluate on test set using current prototypes
+        with torch.no_grad():
+            z_s_t = torch.as_tensor(z_s_h, dtype=torch.float32, device=device)
+            z_u_t = torch.as_tensor(z_u_h, dtype=torch.float32, device=device)
+            diff_te = (F.cosine_similarity(h_te, z_s_t, dim=-1) - F.cosine_similarity(h_te, z_u_t, dim=-1)).cpu().numpy()
+
         train_acc = float(accuracy_score(Y_train, labels_tr) * 100)
 
         # 6f. Unseen Test Set Evaluation (BTQ argmax, directional)
