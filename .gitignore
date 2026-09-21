@@ -66,3 +66,14 @@ backend/tests/test_audio/
 
 # Datasets and research artifacts (do not upload)
 ISLE 768/
+
+# LexiRep proprietary research backend code & checkpoints (keep local & work server only)
+backend/api/lexirep_training.py
+backend/api/lexirep_routes.py
+backend/pipeline/prosody_lexirep.py
+server/api/lexirep_training.py
+server/api/lexirep_routes.py
+server/pipeline/prosody_lexirep.py
+server/checkpoints/
+checkpoints/
+*.pt

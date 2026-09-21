@@ -27,7 +27,10 @@ from models.loader import load_all_models
 from worker.worker import Worker
 from api.routes import router as api_router
 from api.websocket import router as ws_router
-from api.lexirep_routes import router as lexirep_router
+try:
+    from api.lexirep_routes import router as lexirep_router
+except ImportError:
+    lexirep_router = None
 
 # ── Logging ────────────────────────────────────────────────────
 logging.basicConfig(
@@ -204,7 +207,8 @@ app.add_middleware(
 # Mount routes
 app.include_router(api_router)
 app.include_router(ws_router)
-app.include_router(lexirep_router)
+if lexirep_router:
+    app.include_router(lexirep_router)
 
 
 @app.get("/")

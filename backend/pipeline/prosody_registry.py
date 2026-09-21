@@ -17,7 +17,10 @@ from pipeline.prosody_base import ProsodyAnalyzer
 from pipeline.prosody_stress import StressAnalyzer
 from pipeline.prosody_pause import PauseAnalyzer
 from pipeline.prosody_pitch import PitchAnalyzer
-from pipeline.prosody_lexirep import SyllableStressAnalyzer
+try:
+    from pipeline.prosody_lexirep import SyllableStressAnalyzer
+except ImportError:
+    SyllableStressAnalyzer = None
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +32,9 @@ logger = logging.getLogger(__name__)
 ANALYZER_CLASSES: list[type[ProsodyAnalyzer]] = [
     StressAnalyzer,
     PauseAnalyzer,
-    SyllableStressAnalyzer,
-    # PitchAnalyzer is NOT listed here — it needs full audio,
-    # not per-sentence chunks. See FULL_AUDIO_ANALYZER_CLASSES.
 ]
+if SyllableStressAnalyzer:
+    ANALYZER_CLASSES.append(SyllableStressAnalyzer)
 
 # Analyzers that need the full audio (not per-sentence chunks).
 # These run once after all sentences are processed, on the complete
