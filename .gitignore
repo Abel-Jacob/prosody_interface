@@ -26,6 +26,12 @@ backend/lexirep_jobs/
 backend/jobs.db
 backend/jobs.db-wal
 backend/jobs.db-shm
+server/audio_uploads/
+server/lexirep_jobs/
+server/annotations/
+server/jobs.db
+server/jobs.db-wal
+server/jobs.db-shm
 
 # Node modules and build output
 node_modules/

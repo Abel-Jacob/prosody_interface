@@ -1,0 +1,49 @@
+# Prosody Interface — Production Server Dependencies
+#
+# Installation:
+# 1. Recommended: Install PyTorch first matching your server's hardware:
+#    - For NVIDIA GPU (CUDA 12.1):
+#        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+#    - For CPU only:
+#        pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+#
+# 2. Install remaining dependencies:
+#        pip install -r requirements.txt
+
+# Web framework & server
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+psutil>=5.9.0
+python-dotenv>=1.0.0
+
+# ASR - faster-whisper (CTranslate2 backend)
+faster-whisper>=1.0.0
+
+# Audio processing
+librosa>=0.10.0
+soundfile>=0.12.0
+numpy>=1.24.0
+
+# Pitch stylization (MAE algorithm)
+pysptk>=0.1.20            # SWIPE pitch extraction (C extension, GPU/Linux wheel)
+libf0>=0.1.0              # SWIPE pitch extraction fallback (pure Python)
+PyWavelets>=1.4.0        # Wavelet-based K estimation
+scipy>=1.10.0            # MAE linear programming solver (HiGHS)
+
+# WhiStress dependencies (vendored model uses these)
+transformers>=4.36.0
+torch>=2.0.0
+
+# Silero VAD (loaded via torch.hub / ONNX)
+onnxruntime>=1.16.0
+
+# Syllable-level lexical stress (LexiRep)
+pyphen>=0.14.0
+
+# LexiRep unsupervised training & data processing
+pandas>=2.0.0
+scikit-learn>=1.3.0
+
+# Data validation
+pydantic>=2.0.0
