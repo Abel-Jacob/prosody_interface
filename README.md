@@ -50,6 +50,79 @@
 
 ---
 
+## LexiRep Training: Custom Syllable Stress Models
+
+The platform includes an end-to-end unsupervised training suite to train new syllable-level lexical stress encoders on **any language or custom speech dataset** without requiring manual ground-truth phonetic annotations.
+
+### 1. Accepted Dataset Formats
+- **Transposed ISLE CSV**: 770 rows — Row 0: `word_id`, Row 1: `label` (0/1 or empty), Rows 2–769: 768-D Wav2Vec 2.0 features. Columns represent individual syllables.
+- **Row-Based CSV**: Standard CSV with `word_id`, optional `label`, and 768 feature columns (`feat_0`...`feat_767` or `f0`...`f767`).
+- **Precomputed Binary NPZ**: Fast `.npz` archive containing `X_tr`, `Y_tr`, `W_tr`, `X_te`, `Y_te`, `W_te` arrays for instant loading.
+
+### 2. Under the Hood: 5-Stage Unsupervised Engine
+
+```
+[Uploaded CSV / NPZ Dataset]
+             │
+             ▼
+1. Word-Isolated 80/20 Split ──► Zero word leakage between train & test sets
+             │
+             ▼
+2. Offline Anchor Selection  ──► Scans polysyllabic words for maximal acoustic separation
+             │
+             ▼
+3. Autoencoder Warmup        ──► 5 epochs pre-training 768→128→64→32→16→10→768
+             │
+             ▼
+4. Iterative Refinement Loop (1 to 10 loops)
+   ├── A. KMeans Re-init     ──► Recalibrates cluster centers to prevent drift
+   ├── B. IDEC Clustering    ──► 100 mini-batch steps with Student-t distribution
+   ├── C. Polarity Voting    ──► Majority voting + 3-level tie-break (stressed vs unstressed)
+   ├── D. SupCon Fine-Tuning ──► Supervised contrastive learning on word-grouped batches
+   └── E. Prototype Extract  ──► Cluster-specific latent prototypes (z_s_h, z_u_h)
+             │
+             ▼
+5. Evaluation & Export       ──► Peak accuracy tracking (B, BT, BTQ) & .pt/.zip artifacts
+```
+
+- **Accuracy Metrics**:
+  - **B (Binary)**: Raw cosine prototype assignment.
+  - **BT (Binary + Tie-break)**: Polarity-calibrated assignment.
+  - **BTQ (Binary + Tie-break + Quinquennial Constraint)**: Strictly enforces linguistic constraint of exactly **one primary stress per polysyllabic word** (reaches **80.7%+ BTQ** unsupervised).
+
+### 3. How to Train a Model
+
+#### Method A: Interactive Web UI
+1. Click the **LexiRep** card on the home screen (or navigate to `/train`).
+2. Drag & drop your `.csv` or `.npz` dataset. The UI automatically validates structure and displays row/column counts.
+3. Select training loops (slider: 1 to 10, default: 5).
+4. Click **Start Training** — watch live real-time loop progress and metric curves.
+5. Download your artifacts:
+   - `final_lexirep_model.pt` — Standalone PyTorch checkpoint.
+   - `model_weights.pt` — PyTorch state dict.
+   - `dataset_cache.npz` — Preprocessed, cached binary dataset for instant re-training.
+   - `lexirep_bundle.zip` — Complete archive with weights, config, and plots.
+
+#### Method B: REST API
+- **Start Training**:
+  ```bash
+  curl -X POST http://localhost:8000/lexirep/train-custom \
+    -F "file=@my_dataset.csv" \
+    -F "total_loops=5"
+  # Returns: {"job_id": "...", "status": "queued"}
+  ```
+- **Poll Progress**:
+  ```bash
+  curl http://localhost:8000/lexirep/train-status/{job_id}
+  # Returns: current_loop, stage, logs, latest_btq
+  ```
+- **Download Trained Checkpoint**:
+  ```bash
+  curl -O http://localhost:8000/lexirep/train-result/{job_id}?file=final_lexirep_model.pt
+  ```
+
+---
+
 ## Primary Use Cases
 
 | Use Case | Description |
