@@ -645,18 +645,18 @@
 }
 
 .lexirep-action-btn:hover {
-  color: #ff8c38 !important;
-  border-color: #ff8c38 !important;
-  background: rgba(255, 140, 56, 0.1) !important;
-  box-shadow: 0 0 14px rgba(255, 140, 56, 0.22) !important;
+  color: var(--accent, #c4956a) !important;
+  border-color: var(--accent, #c4956a) !important;
+  background: var(--accent-dim, rgba(196, 149, 106, 0.15)) !important;
+  box-shadow: 0 0 14px var(--accent-glow, rgba(196, 149, 106, 0.22)) !important;
 }
 
 .lexirep-action-btn:hover svg {
-  stroke: #ff8c38 !important;
+  stroke: var(--accent, #c4956a) !important;
 }
 
 .lexirep-action-btn:hover span {
-  color: #ff8c38 !important;
+  color: var(--accent, #c4956a) !important;
 }
 
 .lexirep-reset-link {
