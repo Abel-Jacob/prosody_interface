@@ -55,9 +55,10 @@ GAMMA = 0.4
 ALPHA = 1.0
 LEARNING_RATE = 0.001
 IDEC_LR = 0.001
-BATCH_WORDS = 64
-EPOCHS_PER_LOOP = 2
-IDEC_EPOCHS_PER_LOOP = 2
+BATCH_WORDS = 32
+EPOCHS_PER_LOOP = 3
+IDEC_STEPS_PER_LOOP = 100
+IDEC_BATCH_SIZE = 128
 SEED = 42
 
 
@@ -546,16 +547,6 @@ def find_best_anchor(
             s_cand.append(s)
             u_cand.append(u)
 
-    # Pre-filter to the top 150 candidates with highest acoustic contrast:
-    # A polar anchor has high intra-word distance between stressed and unstressed syllables
-    if len(candidates) > 150:
-        with torch.no_grad():
-            pair_cos = torch.sum(X_norm[s_cand] * X_norm[u_cand], dim=1)
-            top_k_indices = torch.topk(-pair_cos, k=150).indices.cpu().numpy()
-            candidates = [candidates[i] for i in top_k_indices]
-            s_cand = [s_cand[i] for i in top_k_indices]
-            u_cand = [u_cand[i] for i in top_k_indices]
-
     s_cand_tensor = torch.tensor(s_cand, dtype=torch.long, device=torch_device)
     u_cand_tensor = torch.tensor(u_cand, dtype=torch.long, device=torch_device)
 
@@ -712,7 +703,7 @@ def run_lexirep_training(
     # Warmup contrastive encoder on cold-start pseudo-labels
     cl_encoder.train()
     warmup_batches = make_word_batches(X_train, labels_tr, wmap_tr, batch_words=BATCH_WORDS)
-    for ep in range(3):
+    for ep in range(5):
         for bx, by in warmup_batches:
             bx, by = bx.to(device), by.to(device)
             cl_optimizer.zero_grad()
@@ -726,18 +717,21 @@ def run_lexirep_training(
     with torch.no_grad():
         h_tr_init = cl_encoder(torch.as_tensor(X_train, dtype=torch.float32, device=device))
 
-    for ep in range(3):
-        idec_optimizer.zero_grad()
-        _, rec, _ = idec_model(h_tr_init)
-        loss_rec = F.mse_loss(rec, h_tr_init)
-        loss_rec.backward()
-        idec_optimizer.step()
+    for ep in range(10):
+        perm = np.random.permutation(len(h_tr_init))
+        for b_start in range(0, len(h_tr_init), IDEC_BATCH_SIZE):
+            b_idx = perm[b_start:b_start + IDEC_BATCH_SIZE]
+            bx = h_tr_init[b_idx]
+            idec_optimizer.zero_grad()
+            _, rec, _ = idec_model(bx)
+            loss_rec = F.mse_loss(rec, bx)
+            loss_rec.backward()
+            idec_optimizer.step()
 
-    # Initialize IDEC cluster centers via K-means on normalized 2-D latent space
+    # Initialize IDEC cluster centers via K-means on 2-D latent space
     with torch.no_grad():
         z_lat_init, _, _ = idec_model(h_tr_init)
-    z_norm_init = F.normalize(z_lat_init, dim=1).cpu().numpy()
-    km_init = KMeans(n_clusters=2, random_state=SEED, n_init=5).fit(z_norm_init)
+    km_init = KMeans(n_clusters=2, random_state=SEED, n_init=10).fit(z_lat_init.cpu().numpy())
     idec_model.cluster_centers.data = torch.tensor(km_init.cluster_centers_, dtype=torch.float32).to(device)
 
     # Initial test evaluation (directional stress margin)
@@ -809,8 +803,6 @@ def run_lexirep_training(
         with torch.no_grad():
             h_tr = cl_encoder(torch.as_tensor(X_train, dtype=torch.float32, device=device))
             h_te = cl_encoder(torch.as_tensor(X_test, dtype=torch.float32, device=device))
-            h_rs = cl_encoder(torch.as_tensor(rs_vec, dtype=torch.float32, device=device))
-            h_ru = cl_encoder(torch.as_tensor(ru_vec, dtype=torch.float32, device=device))
 
         loop_mid_prog = int(14 + ((loop - 0.5) / epochs) * 82)
         if on_progress:
@@ -822,43 +814,61 @@ def run_lexirep_training(
             })
 
         # 6c. IDEC Joint Clustering
+        # Re-fit KMeans centroids on current z_lat if loop > 1 to prevent centroid drift
+        if loop > 1:
+            with torch.no_grad():
+                z_lat_curr, _, _ = idec_model(h_tr)
+            km_loop = KMeans(n_clusters=2, random_state=SEED, n_init=10).fit(z_lat_curr.cpu().numpy())
+            idec_model.cluster_centers.data = torch.tensor(km_loop.cluster_centers_, dtype=torch.float32).to(device)
+
         idec_model.train()
         with torch.no_grad():
             _, _, q_init = idec_model(h_tr)
             p_target = target_distribution(q_init.detach())
 
         last_idec_loss = 0.0
-        for ep in range(IDEC_EPOCHS_PER_LOOP):
-            if ep > 0 and ep % 2 == 0:
-                with torch.no_grad():
-                    _, _, q_curr = idec_model(h_tr)
-                    p_target = target_distribution(q_curr.detach())
+        for step in range(IDEC_STEPS_PER_LOOP):
+            b_idx = np.random.choice(len(h_tr), size=min(IDEC_BATCH_SIZE, len(h_tr)), replace=False)
+            bx = h_tr[b_idx]
+            bp = p_target[b_idx]
             idec_optimizer.zero_grad()
-            z_lat, rec, q = idec_model(h_tr)
-            loss_rec = F.mse_loss(rec, h_tr)
-            loss_kl = F.kl_div(q.log(), p_target, reduction='batchmean')
+            bz, brec, bq = idec_model(bx)
+            loss_rec = F.mse_loss(brec, bx)
+            loss_kl = F.kl_div(bq.log(), bp, reduction='batchmean')
             loss_idec = loss_rec + GAMMA * loss_kl
             loss_idec.backward()
             torch.nn.utils.clip_grad_norm_(idec_model.parameters(), max_norm=5.0)
             idec_optimizer.step()
             last_idec_loss = float(loss_idec.item())
 
-        # 6d. Polar alignment using reference syllables
+        # 6d. Polar alignment using majority provisional voting
         idec_model.eval()
         with torch.no_grad():
-            _, _, q_tr = idec_model(h_tr)
+            z_lat, _, q_tr = idec_model(h_tr)
 
         q_tr_np = q_tr.cpu().numpy()
         h_tr_np = h_tr.cpu().numpy()
         h_te_np = h_te.cpu().numpy()
+        c_assign = np.argmax(q_tr_np, axis=1)
 
-        q_rs, q_ru = q_tr_np[rs_idx], q_tr_np[ru_idx]
-        s_cluster = 0 if (q_rs[0] - q_ru[0]) >= (q_rs[1] - q_ru[1]) else 1
+        # Majority provisional voting: use cosine similarity to anchor syllables
+        # to determine which cluster corresponds to stressed vs unstressed
+        sim_to_rs = cosine_similarity(h_tr_np, h_tr_np[rs_idx:rs_idx+1]).flatten()
+        sim_to_ru = cosine_similarity(h_tr_np, h_tr_np[ru_idx:ru_idx+1]).flatten()
+        prov_labels = (sim_to_rs > sim_to_ru).astype(int)
+
+        c0_members = (c_assign == 0)
+        c1_members = (c_assign == 1)
+        c0_stressed_frac = np.mean(prov_labels[c0_members]) if c0_members.any() else 0.5
+        c1_stressed_frac = np.mean(prov_labels[c1_members]) if c1_members.any() else 0.5
+        s_cluster = 0 if c0_stressed_frac > c1_stressed_frac else 1
         u_cluster = 1 - s_cluster
 
-        # 6e. Linguistic Constraint Enforcement
-        idx_s_h = int(np.argmax(q_tr_np[:, s_cluster]))
-        idx_u_h = int(np.argmax(q_tr_np[:, u_cluster]))
+        # 6e. Extract prototypes from within each cluster
+        cs_idx = np.where(c_assign == s_cluster)[0]
+        cu_idx = np.where(c_assign == u_cluster)[0]
+        idx_s_h = cs_idx[np.argmax(q_tr_np[cs_idx, s_cluster])] if len(cs_idx) > 0 else int(np.argmax(q_tr_np[:, s_cluster]))
+        idx_u_h = cu_idx[np.argmax(q_tr_np[cu_idx, u_cluster])] if len(cu_idx) > 0 else int(np.argmax(q_tr_np[:, u_cluster]))
         z_s_h = h_tr_np[idx_s_h:idx_s_h + 1]
         z_u_h = h_tr_np[idx_u_h:idx_u_h + 1]
 
