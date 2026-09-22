@@ -40,6 +40,9 @@ export default function LandingPage({ onNavigate }) {
     try {
       const res = await fetch(`https://${clean}/health`, {
         signal: AbortSignal.timeout(5000),
+        headers: {
+          'ngrok-skip-browser-warning': 'true',
+        },
       })
       if (res.ok) {
         setStatus('connected')

@@ -46,7 +46,9 @@ function App({ onBack }) {
   const handleViewAnnotation = async (id) => {
     if (!id) return
     try {
-      const response = await fetch(getHttpUrl(`/api/jobs/${id}/annotation`))
+      const response = await fetch(getHttpUrl(`/api/jobs/${id}/annotation`), {
+        headers: { 'ngrok-skip-browser-warning': 'true' },
+      })
       if (!response.ok) {
         throw new Error(`Failed to fetch annotation: ${response.statusText}`)
       }
@@ -72,6 +74,7 @@ function App({ onBack }) {
     try {
       const response = await fetch(getHttpUrl('/api/jobs'), {
         method: 'POST',
+        headers: { 'ngrok-skip-browser-warning': 'true' },
         body: formData,
       })
       if (!response.ok) {

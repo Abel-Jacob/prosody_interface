@@ -96,19 +96,11 @@ def ensure_port_free(port: int, host: str = "0.0.0.0"):
     if sys.platform != "win32":
         try:
             import subprocess
-            subprocess.run(["fuser", "-k", "-9", f"{port}/tcp"], capture_output=True, timeout=3)
-        except Exception:
-            pass
-
-        try:
-            import subprocess
-            subprocess.run(f"kill -9 $(lsof -t -i:{port}) 2>/dev/null", shell=True, capture_output=True, timeout=3)
-        except Exception:
-            pass
-
-        try:
-            import subprocess
-            subprocess.run(f"pkill -9 -f 'uvicorn.*{port}' 2>/dev/null", shell=True, capture_output=True, timeout=3)
+            # Only use fuser if psutil couldn't free it and we are not the ones bound
+            out = subprocess.check_output(f"lsof -t -i:{port}", shell=True, text=True).strip()
+            for p in out.split():
+                if p and int(p) != current_pid:
+                    subprocess.run(["kill", "-9", p], capture_output=True)
         except Exception:
             pass
 
@@ -148,9 +140,6 @@ async def lifespan(app: FastAPI):
     logger.info("=" * 60)
     logger.info("Prosody Interface Backend — Starting Up")
     logger.info("=" * 60)
-
-    # 0. Free port if occupied by a zombie/interrupted process from earlier notebook run
-    ensure_port_free(PORT, HOST)
 
     # 1. Init database
     logger.info("Initializing database...")

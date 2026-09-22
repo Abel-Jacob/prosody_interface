@@ -287,6 +287,7 @@ export default function LexiRepTrainPage({ onBack }) {
       try {
         response = await fetch(url, {
           method: 'POST',
+          headers: { 'ngrok-skip-browser-warning': 'true' },
           body: formData,
         })
       } catch (netErr) {
@@ -322,7 +323,9 @@ export default function LexiRepTrainPage({ onBack }) {
 
       pollRef.current = setInterval(async () => {
         try {
-          const statusRes = await fetch(getHttpUrl(`/lexirep/train-status/${data.job_id}`))
+          const statusRes = await fetch(getHttpUrl(`/lexirep/train-status/${data.job_id}`), {
+            headers: { 'ngrok-skip-browser-warning': 'true' },
+          })
           if (!statusRes.ok) return
           const statusData = await statusRes.json()
 
@@ -404,7 +407,9 @@ export default function LexiRepTrainPage({ onBack }) {
 
   const handleDownloadArtifact = useCallback(async (url, filename) => {
     try {
-      const res = await fetch(url)
+      const res = await fetch(url, {
+        headers: { 'ngrok-skip-browser-warning': 'true' },
+      })
       if (!res.ok) throw new Error(`Download failed (HTTP ${res.status})`)
       const blob = await res.blob()
       const blobUrl = URL.createObjectURL(blob)
