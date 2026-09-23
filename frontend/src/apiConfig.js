@@ -4,9 +4,17 @@
 // 2. Vite environment variable: import.meta.env.VITE_BACKEND_DOMAIN or VITE_API_URL
 // 3. Fallback to same host (local dev via Vite proxy)
 
+export const DEFAULT_BACKEND_DOMAIN = "flattered-kooky-astonish.ngrok-free.dev";
+
 function safeGetStorage(key) {
   try {
-    return localStorage.getItem(key);
+    const val = localStorage.getItem(key);
+    // Automatically purge old/stale domains from previous temporary sessions
+    if (val && (val.includes("sixfold-hyphen-remote") || val.includes("trycloudflare.com"))) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return val;
   } catch {
     return null;
   }
@@ -30,7 +38,7 @@ const envDomain = ((import.meta.env.VITE_BACKEND_DOMAIN || import.meta.env.VITE_
   .replace(/^wss?:\/\//, "")
   .split('/')[0];
 
-export let BACKEND_DOMAIN = safeGetStorage("backendDomain") || envDomain || "";
+export let BACKEND_DOMAIN = safeGetStorage("backendDomain") || envDomain || DEFAULT_BACKEND_DOMAIN;
 
 export function setBackendDomain(domain) {
   const cleanDomain = (domain || "")
